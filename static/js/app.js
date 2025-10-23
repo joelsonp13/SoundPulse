@@ -111,19 +111,16 @@ document.addEventListener('alpine:init', () => {
                 this.currentTrack = track;
                 this.isLoading = true;
                 
-                console.log('🎵 Fazendo requisição para:', `/api/stream/${track.videoId}`);
-                const response = await fetch(`/api/stream/${track.videoId}?t=${Date.now()}`);
-                if (!response.ok) throw new Error('Erro ao carregar áudio');
+                // Usar rota proxy para evitar problemas de CORS
+                console.log('🎵 Usando proxy para:', track.videoId);
+                const proxyUrl = `/api/proxy/${track.videoId}?t=${Date.now()}`;
                 
-                const data = await response.json();
-                if (!data.success) throw new Error(data.error || 'Erro ao obter URL do áudio');
-                
-                console.log('🎵 URL do áudio obtida:', data.url);
-                this.audio.src = data.url;
+                console.log('🎵 URL do proxy:', proxyUrl);
+                this.audio.src = proxyUrl;
                 await this.audio.play();
                 this.isPlaying = true;
                 this.isLoading = false;
-                console.log('🎵 Música iniciada com sucesso!');
+                console.log('🎵 Música iniciada com sucesso via proxy!');
                 
                 // Load related songs
                 this.loadRelatedSongs(track.videoId);
