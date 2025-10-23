@@ -293,18 +293,32 @@ def search():
 def get_stream_url(videoId):
     """Obter URL de stream de áudio"""
     if not yt:
+        print("❌ YTMusic não conectado")
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
+        print(f"🎵 Tentando obter stream para: {videoId}")
+        
         # Usar pytubefix para obter URL de stream
-        yt_video = YouTube(f"https://www.youtube.com/watch?v={videoId}")
+        url = f"https://www.youtube.com/watch?v={videoId}"
+        print(f"📺 URL do YouTube: {url}")
+        
+        yt_video = YouTube(url)
+        print(f"✅ YouTube object criado")
+        
         audio_stream = yt_video.streams.filter(only_audio=True).first()
+        print(f"🔍 Streams encontrados: {len(yt_video.streams) if yt_video.streams else 0}")
         
         if audio_stream:
+            print(f"✅ Stream de áudio encontrado: {audio_stream.url[:100]}...")
             return jsonify({'success': True, 'url': audio_stream.url})
         else:
+            print(f"❌ Nenhum stream de áudio disponível")
             return jsonify({'error': 'Stream não encontrado'}), 404
     except Exception as e:
+        print(f"❌ ERRO ao obter stream: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Erro ao obter stream: {str(e)}'}), 500
 
 @app.route('/api/watch/<videoId>')
