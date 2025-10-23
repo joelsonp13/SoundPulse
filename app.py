@@ -543,52 +543,108 @@ def get_radio_playlist(videoId):
 
 @app.route('/api/proxy/<videoId>')
 def proxy_stream(videoId):
-    """Proxy para streaming de áudio usando yt-dlp"""
+    """Proxy para streaming de áudio usando ytmusicapi (OAuth) como primário e yt-dlp como fallback"""
     try:
         print(f"🎵 Proxy solicitado para: {videoId}")
+        stream_url = None
         
-        # Usar yt-dlp para obter URL de stream
-        url = f"https://www.youtube.com/watch?v={videoId}"
-        
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'quiet': True,
-            'no_warnings': True,
-            'extract_flat': False,
-            'socket_timeout': 30,
-        }
-        
-        print(f"🔧 Extraindo stream com yt-dlp...")
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        # MÉTODO 1: Tentar ytmusicapi PRIMEIRO (usa OAuth, não é bloqueado!)
+        try:
+            print(f"🔐 Tentando obter stream via ytmusicapi (OAuth)...")
+            song_data = yt.get_song(videoId)
             
-            if not info or 'url' not in info:
-                print(f"❌ Stream não encontrado")
-                return jsonify({'error': 'Stream não encontrado'}), 404
-            
-            stream_url = info['url']
-            print(f"✅ Stream URL obtida: {stream_url[:100]}...")
+            if song_data and 'streamingData' in song_data:
+                # Procurar melhor formato de áudio
+                formats = song_data['streamingData'].get('adaptiveFormats', [])
+                
+                # Filtrar apenas formatos de áudio e ordenar por qualidade
+                audio_formats = [f for f in formats if f.get('mimeType', '').startswith('audio/')]
+                
+                if audio_formats:
+                    # Preferir opus > aac > mp4a
+                    best_format = None
+                    for fmt in audio_formats:
+                        mime = fmt.get('mimeType', '')
+                        if 'opus' in mime.lower():
+                            best_format = fmt
+                            break
+                    
+                    if not best_format:
+                        for fmt in audio_formats:
+                            mime = fmt.get('mimeType', '')
+                            if 'mp4a' in mime.lower() or 'aac' in mime.lower():
+                                best_format = fmt
+                                break
+                    
+                    if not best_format:
+                        best_format = audio_formats[0]
+                    
+                    stream_url = best_format.get('url')
+                    if stream_url:
+                        print(f"✅ Stream URL obtida via ytmusicapi!")
+                        print(f"📊 Formato: {best_format.get('mimeType', 'unknown')}")
+                        print(f"📊 Bitrate: {best_format.get('bitrate', 'unknown')}")
+        except Exception as e:
+            print(f"⚠️ ytmusicapi falhou: {e}")
+        
+        # MÉTODO 2: Fallback para yt-dlp se ytmusicapi falhar
+        if not stream_url:
+            try:
+                print(f"🔧 Fallback: Tentando yt-dlp...")
+                url = f"https://www.youtube.com/watch?v={videoId}"
+                
+                ydl_opts = {
+                    'format': 'bestaudio/best',
+                    'quiet': True,
+                    'no_warnings': True,
+                    'extract_flat': False,
+                    'socket_timeout': 30,
+                }
+                
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
+                    
+                    if info and 'url' in info:
+                        stream_url = info['url']
+                        print(f"✅ Stream URL obtida via yt-dlp!")
+            except Exception as e:
+                print(f"❌ yt-dlp também falhou: {e}")
+        
+        # Se nenhum método funcionou
+        if not stream_url:
+            print(f"❌ Nenhum método conseguiu obter stream")
+            return jsonify({'error': 'Stream não disponível'}), 404
         
         # Fazer requisição para o stream
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5',
-            'Accept-Language': 'en-US,en;q=0.5',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Origin': 'https://music.youtube.com',
+            'Referer': 'https://music.youtube.com/',
             'DNT': '1',
             'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'audio',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
         }
         
-        print(f"📡 Fazendo requisição ao YouTube...")
+        print(f"📡 Fazendo requisição ao stream...")
         response = requests.get(stream_url, headers=headers, stream=True, timeout=60)
         
-        # Pegar Content-Type real do YouTube
+        # Pegar Content-Type real
         content_type = response.headers.get('Content-Type', 'audio/webm')
         print(f"📊 Content-Type: {content_type}")
+        print(f"📊 Status: {response.status_code}")
         
         def generate():
             try:
+                chunk_count = 0
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
+                        chunk_count += 1
+                        if chunk_count == 1:
+                            print(f"✅ Primeiro chunk enviado!")
                         yield chunk
             except Exception as e:
                 print(f"❌ Erro no streaming: {e}")
@@ -599,12 +655,13 @@ def proxy_stream(videoId):
             'Cache-Control': 'no-cache',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Range',
+            'Access-Control-Allow-Headers': 'Range, Content-Type',
         }
         
         # Adicionar Content-Length se disponível
         if 'Content-Length' in response.headers:
             response_headers['Content-Length'] = response.headers['Content-Length']
+            print(f"📊 Content-Length: {response.headers['Content-Length']} bytes")
         
         print(f"✅ Iniciando streaming do proxy")
         return Response(
@@ -614,7 +671,9 @@ def proxy_stream(videoId):
         )
         
     except Exception as e:
-        print(f"Erro no proxy: {str(e)}")
+        print(f"❌ Erro fatal no proxy: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Erro no proxy: {str(e)}'}), 500
 
 # ===== PAGE ENDPOINTS (Return HTML Partials) =====
