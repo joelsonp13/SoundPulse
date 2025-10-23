@@ -1,7 +1,7 @@
 from flask import Flask, render_template, jsonify, request, stream_with_context, Response
 from flask_cors import CORS
 from ytmusicapi import YTMusic
-from pytubefix import YouTube
+import yt_dlp
 import json
 import os
 import requests
@@ -291,7 +291,7 @@ def search():
 
 @app.route('/api/stream/<videoId>')
 def get_stream_url(videoId):
-    """Obter URL de stream de áudio"""
+    """Obter URL de stream de áudio usando yt-dlp"""
     if not yt:
         print("❌ YTMusic não conectado")
         return jsonify({'error': 'YTMusic não conectado'}), 500
@@ -299,22 +299,43 @@ def get_stream_url(videoId):
     try:
         print(f"🎵 Tentando obter stream para: {videoId}")
         
-        # Usar pytubefix para obter URL de stream
         url = f"https://www.youtube.com/watch?v={videoId}"
         print(f"📺 URL do YouTube: {url}")
         
-        yt_video = YouTube(url)
-        print(f"✅ YouTube object criado")
+        # Configuração do yt-dlp
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': False,
+            'socket_timeout': 30,
+        }
         
-        audio_stream = yt_video.streams.filter(only_audio=True).first()
-        print(f"🔍 Streams encontrados: {len(yt_video.streams) if yt_video.streams else 0}")
+        print(f"🔧 Iniciando yt-dlp...")
         
-        if audio_stream:
-            print(f"✅ Stream de áudio encontrado: {audio_stream.url[:100]}...")
-            return jsonify({'success': True, 'url': audio_stream.url})
-        else:
-            print(f"❌ Nenhum stream de áudio disponível")
-            return jsonify({'error': 'Stream não encontrado'}), 404
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            print(f"📥 Extraindo informações do vídeo...")
+            info = ydl.extract_info(url, download=False)
+            
+            if info and 'url' in info:
+                stream_url = info['url']
+                print(f"✅ Stream de áudio encontrado!")
+                print(f"📊 Formato: {info.get('format', 'unknown')}")
+                print(f"🔗 URL: {stream_url[:100]}...")
+                
+                return jsonify({
+                    'success': True, 
+                    'url': stream_url,
+                    'title': info.get('title', ''),
+                    'duration': info.get('duration', 0)
+                })
+            else:
+                print(f"❌ Nenhum stream de áudio disponível")
+                return jsonify({'error': 'Stream não encontrado'}), 404
+                
+    except yt_dlp.utils.DownloadError as e:
+        print(f"❌ ERRO yt-dlp DownloadError: {str(e)}")
+        return jsonify({'error': f'Vídeo indisponível: {str(e)}'}), 404
     except Exception as e:
         print(f"❌ ERRO ao obter stream: {type(e).__name__}: {str(e)}")
         import traceback

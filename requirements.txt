@@ -1,7 +1,7 @@
 flask==3.0.0
 flask-cors==4.0.0
 ytmusicapi==1.7.0
-pytubefix==6.10.2
+yt-dlp==2024.8.6
 pydub==0.25.1
 requests==2.31.0
 gunicorn==21.2.0
