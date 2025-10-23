@@ -1,0 +1,13 @@
+<div class="artist-card" data-browse-id="{{ item.browseId }}" onclick="openArtistFromCard(this)">
+    <div class="artist-card-image-wrapper">
+        <img class="artist-card-image artist-avatar" 
+             src="{{ (item.thumbnails[0].url if item.thumbnails else '/static/images/placeholder.jpg')|highres }}"
+             alt="{{ item.name }}"
+             loading="lazy"
+             crossorigin="anonymous"
+             onerror="this.src='/static/images/placeholder.jpg'">
+    </div>
+    <h4 class="artist-card-title">{{ item.name }}</h4>
+    <p class="artist-card-type">Artista</p>
+</div>
+

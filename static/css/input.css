@@ -1,0 +1,349 @@
+/* ====================================
+   TAILWIND CSS V4.1 - INPUT FILE
+   ==================================== */
+
+/* Import Tailwind CSS */
+@import "tailwindcss";
+
+/* ====================================
+   CUSTOM ANIMATIONS
+   ==================================== */
+
+/* Blob Animation */
+@keyframes blob {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+}
+
+/* Gradient Shift Animation */
+@keyframes gradient-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Gradient X Animation */
+@keyframes gradient-x {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Spin Slow Animation */
+@keyframes spin-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulse Icon Animation */
+@keyframes pulse-icon {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* ====================================
+   ANIMATION CLASSES
+   ==================================== */
+
+.animate-blob {
+    animation: blob 7s infinite;
+}
+
+.animate-blob-delay-2 {
+    animation: blob 7s infinite;
+    animation-delay: 2s;
+}
+
+.animate-blob-delay-4 {
+    animation: blob 7s infinite;
+    animation-delay: 4s;
+}
+
+.animate-gradient-shift {
+    animation: gradient-shift 3s ease infinite;
+}
+
+.animate-gradient-x {
+    animation: gradient-x 3s linear infinite;
+}
+
+.animate-spin-custom-slow {
+    animation: spin-slow 20s linear infinite;
+}
+
+/* ====================================
+   SEARCH PAGE - CUSTOM STYLES
+   ==================================== */
+
+/* Alpine.js Cloak */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Scroll Container */
+.scroll-container {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 1rem 0.5rem 1.5rem;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 182, 212, 0.5) rgba(30, 41, 59, 0.3);
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.3);
+    border-radius: 10px;
+    margin: 0 1rem;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.6), rgba(59, 130, 246, 0.6));
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.9), rgba(59, 130, 246, 0.9));
+}
+
+/* Scroll Navigation Buttons */
+.scroll-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(6, 182, 212, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(6, 182, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.scroll-nav-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(6, 182, 212, 0.2), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.scroll-nav-button:hover::before {
+    opacity: 1;
+}
+
+.scroll-nav-button:hover {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3));
+    border-color: rgba(6, 182, 212, 0.7);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 40px rgba(6, 182, 212, 0.6), 0 0 60px rgba(6, 182, 212, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.15);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.scroll-nav-button:active {
+    transform: translateY(-50%) scale(0.95);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 30px rgba(6, 182, 212, 0.8), inset 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-nav-button i {
+    font-size: 20px;
+    color: white;
+    text-shadow: 0 0 10px rgba(6, 182, 212, 0.8), 0 0 20px rgba(6, 182, 212, 0.5);
+    transition: all 0.3s ease;
+}
+
+.scroll-nav-button:hover i {
+    text-shadow: 0 0 15px rgba(6, 182, 212, 1), 0 0 30px rgba(6, 182, 212, 0.7);
+    transform: scale(1.1);
+}
+
+.scroll-nav-button.left {
+    left: -24px;
+}
+
+.scroll-nav-button.right {
+    right: -24px;
+}
+
+/* Search Icon Hero */
+.search-icon-hero {
+    font-size: 3rem;
+}
+
+.search-icon-container {
+    width: 5rem;
+    height: 5rem;
+}
+
+@media (min-width: 768px) {
+    .search-icon-hero {
+        font-size: 4.5rem !important;
+    }
+    .search-icon-container {
+        width: 7rem !important;
+        height: 7rem !important;
+    }
+}
+
+/* Top Songs List */
+.top-songs-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.top-songs-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+.top-songs-list::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(6, 182, 212, 0.6), rgba(59, 130, 246, 0.6));
+    border-radius: 10px;
+}
+
+.top-songs-list::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(6, 182, 212, 0.9), rgba(59, 130, 246, 0.9));
+}
+
+/* ====================================
+   RESPONSIVE BREAKPOINTS
+   ==================================== */
+
+/* Mobile */
+@media (max-width: 639px) {
+    #search-artists-section .artist-card,
+    #search-playlists-section-scroll .playlist-card {
+        width: 150px !important;
+        min-height: 250px !important;
+        height: 250px !important;
+    }
+    
+    .scroll-nav-button {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .scroll-nav-button i {
+        font-size: 16px;
+    }
+    
+    .scroll-nav-button.left {
+        left: -12px;
+    }
+    
+    .scroll-nav-button.right {
+        right: -12px;
+    }
+}
+
+/* Tablet */
+@media (min-width: 640px) and (max-width: 1023px) {
+    #search-artists-section .artist-card,
+    #search-playlists-section-scroll .playlist-card {
+        width: 180px !important;
+        min-height: 270px !important;
+        height: 270px !important;
+    }
+}
+
+/* Desktop Medium */
+@media (min-width: 1024px) and (max-width: 1439px) {
+    #search-artists-section .artist-card,
+    #search-playlists-section-scroll .playlist-card {
+        width: 200px !important;
+        min-height: 280px !important;
+        height: 280px !important;
+    }
+    
+    .scroll-container {
+        gap: 1.75rem;
+    }
+}
+
+/* Desktop Large */
+@media (min-width: 1440px) {
+    #search-artists-section .artist-card,
+    #search-playlists-section-scroll .playlist-card {
+        width: 220px !important;
+        min-height: 300px !important;
+        height: 300px !important;
+    }
+    
+    .scroll-container {
+        gap: 2rem;
+    }
+}
+
+/* Cards Uniformity */
+#search-artists-section .artist-card,
+#search-playlists-section-scroll .playlist-card {
+    flex-shrink: 0;
+    width: 200px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+
+#search-artists-section .artist-card:focus,
+#search-playlists-section-scroll .playlist-card:focus {
+    outline: 2px solid rgba(6, 182, 212, 0.5);
+    outline-offset: 4px;
+}
+
+#search-artists-section .artist-card .artist-card-title,
+#search-playlists-section-scroll .playlist-card .playlist-card-title {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    height: 2.5rem !important;
+    line-height: 1.25rem !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+}
+

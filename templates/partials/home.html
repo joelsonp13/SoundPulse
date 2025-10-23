@@ -1,0 +1,72 @@
+<div class="home-page p-6">
+    <!-- Em Alta Agora -->
+    <section class="content-section mb-8">
+        <div class="section-header">
+            <h2 class="section-title">Em Alta Agora</h2>
+            <a href="#" class="section-show-all">Mostrar tudo</a>
+        </div>
+        <div hx-get="/api/trending-songs" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Novos Lançamentos (Álbuns) -->
+    <section class="content-section mb-8">
+        <div class="section-header">
+            <h2 class="section-title">Novos Lançamentos</h2>
+            <a href="#" class="section-show-all">Mostrar tudo</a>
+        </div>
+        <div hx-get="/api/new-releases" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Podcasts em Alta -->
+    <section class="content-section mb-8">
+        <div class="section-header">
+            <h2 class="section-title">Podcasts em Alta</h2>
+            <a href="#" class="section-show-all">Mostrar tudo</a>
+        </div>
+        <div hx-get="/api/trending-podcasts" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Top Charts (País Selecionado) -->
+    <section class="content-section mb-8">
+        <h2 class="section-title">🔥 Top Músicas - Brasil</h2>
+        <div hx-get="/api/charts/songs/BR" 
+             hx-trigger="load, countryChanged from:body" 
+             hx-swap="innerHTML"
+             id="charts-songs-section">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Explorar por Humor -->
+    <section class="content-section mb-8">
+        <div class="section-header">
+            <h2 class="section-title">Explorar por Humor</h2>
+            <a href="#" class="section-show-all">Mostrar tudo</a>
+        </div>
+        <div hx-get="/api/moods-preview" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+</div>
+

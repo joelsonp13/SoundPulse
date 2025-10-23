@@ -1,0 +1,51 @@
+<div class="explore-page p-6">
+    <!-- Page Header -->
+    <header class="page-header mb-8">
+        <h1 class="text-4xl font-bold mb-2">Explorar Música</h1>
+        <p class="text-gray-400 text-lg">Descubra novas músicas por humor e gênero</p>
+    </header>
+
+    <!-- Se mood foi selecionado, mostra playlists -->
+    {% if mood %}
+    <section class="content-section mb-8">
+        <div class="flex items-center gap-4 mb-6">
+            <button hx-get="/pages/explore" 
+                    hx-target="#main-content" 
+                    hx-swap="innerHTML"
+                    class="btn-secondary px-4 py-2 rounded-lg">
+                <i class="fas fa-arrow-left mr-2"></i> Voltar
+            </button>
+            <h2 class="section-title">Playlists</h2>
+        </div>
+        <div id="mood-playlists" 
+             hx-get="/api/mood/{{ mood }}" 
+             hx-trigger="load" 
+             hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando playlists...</p>
+            </div>
+        </div>
+    </section>
+    {% else %}
+    <!-- Mood Categories Grid -->
+    <section class="content-section mb-8">
+        <h2 class="section-title mb-6">Explorar por Humor</h2>
+        <div class="mood-grid" hx-get="/api/moods" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Genre Playlists (Implementação futura) -->
+    <section class="content-section mb-8">
+        <h2 class="section-title mb-6">Gêneros Musicais</h2>
+        <div class="text-center py-8 text-gray-400">
+            <p>Em breve: Explorar por gênero musical</p>
+        </div>
+    </section>
+    {% endif %}
+</div>
+

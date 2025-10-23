@@ -1,0 +1,23 @@
+{
+  "name": "soundpulse",
+  "version": "1.0.0",
+  "description": "SoundPulse - Modern Music Streaming Platform",
+  "main": "tailwind.config.js",
+  "scripts": {
+    "build-css": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch",
+    "build-css-prod": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify",
+    "dev": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch",
+    "build": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify"
+  },
+  "keywords": ["music", "streaming", "youtube", "music-api"],
+  "author": "SoundPulse Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.19",
+    "tailwindcss": "^4.1.15"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.15"
+  }
+}

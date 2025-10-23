@@ -1,0 +1,20 @@
+<div class="mood-categories-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    {% if moods %}
+        {% for mood in moods %}
+            <div class="mood-category-card p-6 rounded-lg cursor-pointer transition transform hover:scale-105"
+                 hx-get="/pages/explore?mood={{ mood['params'] }}"
+                 hx-target="#main-content"
+                 hx-swap="innerHTML"
+                 hx-push-url="true"
+                 style="background: linear-gradient(135deg, {{ loop.cycle('#00bcd4', '#3b82f6', '#9c27b0', '#f59e0b', '#10b981', '#ef4444') }}, rgba(10,10,10,0.8));">
+                <h3 class="text-2xl font-bold text-white mb-2">{{ mood['title'] }}</h3>
+                <p class="text-sm text-gray-200">Playlists selecionadas</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-span-full text-center py-8 text-gray-400">
+            <p>Nenhuma categoria de humor encontrada</p>
+        </div>
+    {% endif %}
+</div>
+

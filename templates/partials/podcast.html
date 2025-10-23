@@ -1,0 +1,58 @@
+<div class="podcast-page p-6">
+    <!-- Podcast Header -->
+    <header class="podcast-header mb-8 flex items-start gap-6 p-8 rounded-lg"
+            style="background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(10,10,10,0.8));">
+        {% if podcast and podcast.thumbnails %}
+        <img class="podcast-cover w-64 h-64 rounded-lg shadow-2xl" 
+             src="{{ (podcast.thumbnails[0].url if podcast.thumbnails else '/static/images/placeholder.jpg')|highres }}" 
+             alt="{{ podcast.title if podcast else 'Podcast' }}"
+             loading="lazy"
+             crossorigin="anonymous"
+             onerror="this.src='/static/images/placeholder.jpg'">
+        {% else %}
+        <div class="podcast-cover w-64 h-64 rounded-lg shadow-2xl bg-gradient-to-br from-green-500 to-cyan-500 flex items-center justify-center">
+            <i class="fas fa-podcast text-white text-6xl"></i>
+        </div>
+        {% endif %}
+        <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="podcast-badge px-3 py-1 rounded-full text-xs font-bold uppercase"
+                      style="background: linear-gradient(135deg, #10b981, #00bcd4); color: white;">
+                    Podcast
+                </span>
+            </div>
+            <h1 class="text-5xl font-bold mb-4">{{ podcast.title if podcast else 'Podcast' }}</h1>
+            <p class="text-gray-300 mb-4">{{ podcast.author.name if podcast and podcast.author else '' }}</p>
+            <p class="text-gray-400 text-sm leading-relaxed">{{ podcast.description if podcast else '' }}</p>
+            <div class="podcast-actions mt-6 flex gap-4">
+                <button class="btn-primary px-8 py-3 rounded-full"
+                        style="background: linear-gradient(135deg, #10b981, #00bcd4);">
+                    <i class="fas fa-play mr-2"></i> Reproduzir
+                </button>
+                <button class="btn-secondary px-6 py-3 rounded-full">
+                    <i class="fas fa-bell"></i> Seguir
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Episodes -->
+    <section class="episodes mb-8">
+        <h2 class="section-title mb-6">Episódios</h2>
+        {% if podcast and podcast.author and podcast.author.id %}
+        <div hx-get="/api/podcast/{{ podcast.author.id }}/episodes" 
+             hx-trigger="load" 
+             hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando episódios...</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-400">
+            <p>Informações do podcast não disponíveis</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+

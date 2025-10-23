@@ -1,0 +1,45 @@
+<div class="album-page p-6" x-data="{ album: {{ album|tojson if album else '{}' }} }">
+    <!-- Album Header -->
+    <header class="album-header mb-8 flex items-end gap-6 p-8 rounded-lg"
+            style="background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(10,10,10,0.8));">
+        <img class="album-cover w-64 h-64 rounded-lg shadow-2xl" 
+             :src="getHighResThumbnail(album.thumbnails?.[0]?.url || '/static/images/placeholder.jpg')"
+             alt="{{ album.title if album else 'Álbum' }}"
+             loading="lazy"
+             crossorigin="anonymous"
+             onerror="this.src='/static/images/placeholder.jpg'">
+        <div class="flex-1">
+            <p class="album-type text-sm uppercase tracking-wide text-gray-300 mb-2">ÁLBUM</p>
+            <h1 class="text-5xl font-bold mb-4" x-text="album.title">{{ album.title if album else 'Álbum' }}</h1>
+            <div class="flex items-center gap-2 text-gray-300">
+                <span x-text="album.artist || album.artists?.[0]?.name">{{ album.artist if album else 'Artista' }}</span>
+                <span>•</span>
+                <span x-text="album.year">{{ album.year if album else '' }}</span>
+                <span>•</span>
+                <span x-text="album.trackCount + ' músicas'">{{ album.trackCount if album else '' }} músicas</span>
+            </div>
+            <div class="album-actions mt-6 flex gap-4">
+                <button class="btn-primary px-8 py-3 rounded-full">
+                    <i class="fas fa-play mr-2"></i> Reproduzir
+                </button>
+                <button class="btn-secondary px-6 py-3 rounded-full">
+                    <i class="far fa-heart"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tracklist -->
+    <section class="tracklist mb-8">
+        <h2 class="section-title mb-6">Faixas</h2>
+        <div hx-get="/api/album/{{ album.browseId if album else '' }}/tracks" 
+             hx-trigger="load" 
+             hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando faixas...</p>
+            </div>
+        </div>
+    </section>
+</div>
+

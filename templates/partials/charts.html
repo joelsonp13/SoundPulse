@@ -1,0 +1,61 @@
+<div class="charts-page p-6">
+    <!-- Page Header -->
+    <header class="page-header mb-8">
+        <h1 class="text-4xl font-bold mb-2">Charts Musicais</h1>
+        <p class="text-gray-400 text-lg">Músicas, artistas e vídeos mais populares</p>
+    </header>
+
+    <!-- Top Songs -->
+    <section class="content-section mb-8">
+        <h2 class="section-title">🔥 Top Músicas - {{ country|upper }}</h2>
+        <div hx-get="/api/charts/songs/{{ country|upper }}" 
+             hx-trigger="load, countryChanged from:body" 
+             hx-swap="innerHTML"
+             id="charts-songs">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Top Artists -->
+    <section class="content-section mb-8">
+        <h2 class="section-title">🎤 Top Artistas - {{ country|upper }}</h2>
+        <div hx-get="/api/charts/artists/{{ country|upper }}" 
+             hx-trigger="load, countryChanged from:body" 
+             hx-swap="innerHTML"
+             id="charts-artists">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Top Videos -->
+    <section class="content-section mb-8">
+        <h2 class="section-title">🎬 Top Vídeos - {{ country|upper }}</h2>
+        <div hx-get="/api/charts/videos/{{ country|upper }}" 
+             hx-trigger="load, countryChanged from:body" 
+             hx-swap="innerHTML"
+             id="charts-videos">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trending Global -->
+    <section class="content-section mb-8">
+        <h2 class="section-title">🌍 Tendências Globais</h2>
+        <div hx-get="/api/charts/songs/ZZ" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
+            </div>
+        </div>
+    </section>
+</div>
+

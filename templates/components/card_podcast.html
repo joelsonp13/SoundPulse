@@ -1,0 +1,17 @@
+<div class="podcast-card" data-browse-id="{{ item.browseId }}" onclick="openPodcastFromCard(this)">
+    <div class="podcast-card-image-wrapper">
+        <span class="podcast-card-badge">Podcast</span>
+        <img class="podcast-card-image" 
+             src="{{ (item.thumbnails[0].url if item.thumbnails else '/static/images/placeholder.jpg')|highres }}"
+             alt="{{ item.title }}"
+             loading="lazy"
+             crossorigin="anonymous"
+             onerror="this.src='/static/images/placeholder.jpg'">
+        <button class="podcast-card-play-button" onclick="event.stopPropagation(); playPodcastFromCard(this.closest('.podcast-card'))">
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+    <h4 class="podcast-card-title">{{ item.title }}</h4>
+    <p class="podcast-card-author">{{ item.author or 'Podcast' }}</p>
+</div>
+

@@ -1,0 +1,12 @@
+<div class="error-state text-center py-12">
+    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+    <h3 class="text-xl font-bold mb-2">{{ title or 'Erro ao carregar' }}</h3>
+    <p class="text-gray-400">{{ message or 'Ocorreu um erro ao carregar o conteúdo' }}</p>
+    {% if retry %}
+        <button class="btn-primary mt-4" onclick="location.reload()">
+            <i class="fas fa-redo mr-2"></i>
+            Tentar novamente
+        </button>
+    {% endif %}
+</div>
+

@@ -1,0 +1,16 @@
+<div class="music-card" data-video-id="{{ item.videoId }}" onclick="playTrackFromCard(this)">
+    <div class="music-card-image-wrapper">
+        <img class="music-card-image" 
+             src="{{ (item.thumbnails[0].url if item.thumbnails else '/static/images/placeholder.jpg')|highres }}"
+             alt="{{ item.title }}"
+             loading="lazy"
+             crossorigin="anonymous"
+             onerror="this.src='/static/images/placeholder.jpg'">
+        <button class="music-card-play-button" onclick="event.stopPropagation(); playTrackFromCard(this.closest('.music-card'))">
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+    <h4 class="music-card-title">{{ item.title }}</h4>
+    <p class="music-card-artist">{{ item.artists[0].name if item.artists else 'Artista desconhecido' }}</p>
+</div>
+

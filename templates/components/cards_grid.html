@@ -1,0 +1,18 @@
+<div class="cards-grid">
+    {% for item in items %}
+        {% if type == 'music' %}
+            {% include 'components/card_music.html' %}
+        {% elif type == 'artist' %}
+            {% include 'components/card_artist.html' %}
+        {% elif type == 'album' %}
+            {% include 'components/card_album.html' %}
+        {% elif type == 'playlist' %}
+            {% include 'components/card_playlist.html' %}
+        {% elif type == 'podcast' %}
+            {% include 'components/card_podcast.html' %}
+        {% else %}
+            {% include 'components/card_music.html' %}
+        {% endif %}
+    {% endfor %}
+</div>
+

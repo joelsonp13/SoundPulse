@@ -1,0 +1,747 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR" x-data="app()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundPulse - Stream Your Sound</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ðŸŽµ</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- CSS Modular -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cards.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/player.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/search-custom.css') }}">
+    
+    <!-- HTMX (Local) -->
+    <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+    <!-- Alpine.js (Local) -->
+    <script defer src="{{ url_for('static', filename='js/alpine.min.js') }}"></script>
+    
+    <!-- Debug Helpers (Desenvolvimento) -->
+    <script src="{{ url_for('static', filename='js/tailwind-debug.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/htmx-debug.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/alpine-debug.js') }}"></script>
+    
+    <!-- CSS Crítico (Apenas Animações) -->
+    <style>
+        /* Animações de background */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+    
+    <!-- HTMX Configuration -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configure HTMX for better performance
+            htmx.config.defaultSwapStyle = 'innerHTML';
+            htmx.config.defaultSwapDelay = 100;
+            htmx.config.defaultSettleDelay = 100;
+        });
+    </script>
+</head>
+<body class="text-white">
+    <!-- Background Animation -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse-slow" style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow" style="animation-delay: 2s;"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-wave-square text-white text-lg"></i>
+                </div>
+                <span class="text-xl font-bold">
+                    Sound<span class="neon-text">Pulse</span>
+                </span>
+            </div>
+        </div>
+        
+        <nav class="px-4">
+            <ul class="space-y-2">
+                <li>
+                    <a href="#" class="sidebar-link" 
+                       hx-get="/pages/home" 
+                       hx-target="#main-content" 
+                       hx-swap="innerHTML"
+                       hx-push-url="true"
+                       @click="currentSection = 'home'"
+                       :class="{'active': currentSection === 'home'}">
+                        <i class="fas fa-home w-5"></i>
+                        <span>Início</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" 
+                       hx-get="/pages/search" 
+                       hx-target="#main-content" 
+                       hx-swap="innerHTML"
+                       hx-push-url="true"
+                       @click="currentSection = 'search'"
+                       :class="{'active': currentSection === 'search'}">
+                        <i class="fas fa-search w-5"></i>
+                        <span>Buscar</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" 
+                       hx-get="/pages/library" 
+                       hx-target="#main-content" 
+                       hx-swap="innerHTML"
+                       hx-push-url="true"
+                       @click="currentSection = 'library'"
+                       :class="{'active': currentSection === 'library'}">
+                        <i class="fas fa-music w-5"></i>
+                        <span>Sua Biblioteca</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" 
+                       hx-get="/pages/charts" 
+                       hx-target="#main-content" 
+                       hx-swap="innerHTML"
+                       hx-push-url="true"
+                       @click="currentSection = 'charts'"
+                       :class="{'active': currentSection === 'charts'}">
+                        <i class="fas fa-chart-line w-5"></i>
+                        <span>Charts</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" 
+                       hx-get="/pages/explore" 
+                       hx-target="#main-content" 
+                       hx-swap="innerHTML"
+                       hx-push-url="true"
+                       @click="currentSection = 'explore'"
+                       :class="{'active': currentSection === 'explore'}">
+                        <i class="fas fa-compass w-5"></i>
+                        <span>Explorar</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- Country Selector - Above Player -->
+        <div class="sidebar-country-selector">
+            <label for="countrySelector">Charts de:</label>
+            <select id="countrySelector" name="countrySelector" x-model="$store.charts.selectedCountry" 
+                    @change="$store.charts.loadCharts()">
+                <option value="ZZ">🌍 Global</option>
+                <option value="BR">🇧🇷 Brasil</option>
+                <option value="US">🇺🇸 EUA</option>
+                <option value="GB">🇬🇧 Reino Unido</option>
+                <option value="DE">🇩🇪 Alemanha</option>
+                <option value="FR">🇫🇷 França</option>
+                <option value="IT">🇮🇹 Itália</option>
+                <option value="ES">🇪🇸 Espanha</option>
+                <option value="MX">🇲🇽 México</option>
+                <option value="AR">🇦🇷 Argentina</option>
+                <option value="CL">🇨🇱 Chile</option>
+                <option value="CO">🇨🇴 Colômbia</option>
+                <option value="JP">🇯🇵 Japão</option>
+                <option value="KR">🇰🇷 Coreia do Sul</option>
+                <option value="IN">🇮🇳 Índia</option>
+                <option value="AU">🇦🇺 Austrália</option>
+                <option value="CA">🇨🇦 Canadá</option>
+                <option value="RU">🇷🇺 Rússia</option>
+                <option value="PL">🇵🇱 Polônia</option>
+                <option value="TR">🇹🇷 Turquia</option>
+                <option value="SE">🇸🇪 Suécia</option>
+                <option value="NO">🇳🇴 Noruega</option>
+                <option value="DK">🇩🇰 Dinamarca</option>
+                <option value="FI">🇫🇮 Finlândia</option>
+                <option value="NL">🇳🇱 Holanda</option>
+                <option value="BE">🇧🇪 Bélgica</option>
+                <option value="CH">🇨🇭 Suíça</option>
+                <option value="AT">🇦🇹 Áustria</option>
+                <option value="PT">🇵🇹 Portugal</option>
+                <option value="GR">🇬🇷 Grécia</option>
+                <option value="CZ">🇨🇿 República Tcheca</option>
+                <option value="HU">🇭🇺 Hungria</option>
+                <option value="RO">🇷🇴 Romênia</option>
+                <option value="BG">🇧🇬 Bulgária</option>
+                <option value="UA">🇺🇦 Ucrânia</option>
+                <option value="ZA">🇿🇦 África do Sul</option>
+                <option value="EG">🇪🇬 Egito</option>
+                <option value="NG">🇳🇬 Nigéria</option>
+                <option value="KE">🇰🇪 Quênia</option>
+                <option value="TH">🇹🇭 Tailândia</option>
+                <option value="VN">🇻🇳 Vietnã</option>
+                <option value="PH">🇵🇭 Filipinas</option>
+                <option value="MY">🇲🇾 Malásia</option>
+                <option value="SG">🇸🇬 Singapura</option>
+                <option value="ID">🇮🇩 Indonésia</option>
+                <option value="NZ">🇳🇿 Nova Zelândia</option>
+                <option value="CN">🇨🇳 China</option>
+                <option value="PE">🇵🇪 Peru</option>
+                <option value="EC">🇪🇨 Equador</option>
+                <option value="VE">🇻🇪 Venezuela</option>
+                <option value="BO">🇧🇴 Bolívia</option>
+                <option value="PY">🇵🇾 Paraguai</option>
+                <option value="UY">🇺🇾 Uruguai</option>
+            </select>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header Spotify -->
+        <header class="main-header">
+            <div class="header-nav-buttons">
+                <button class="nav-button" @click="history.back()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="nav-button" @click="history.forward()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <!-- Espaçador para manter o layout centralizado -->
+            <div class="flex-1"></div>
+            
+            <div class="header-actions">
+                <button class="upgrade-button">Fazer upgrade</button>
+                <button class="profile-button">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area (populated by HTMX) -->
+        <div id="main-content">
+            <!-- Initial loading state (will be replaced by JS or HTMX) -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Feito para você</h2>
+                    <a href="#" class="section-show-all">Mostrar tudo</a>
+                </div>
+                <div class="cards-grid">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Trending -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Em alta agora</h2>
+                    <a href="#" class="section-show-all">Mostrar tudo</a>
+                </div>
+                <div class="cards-grid">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gym Vibes -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Vibes de Gym</h2>
+                    <a href="#" class="section-show-all">Mostrar tudo</a>
+                </div>
+                <div class="cards-grid">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Top Charts Global -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">Top Charts Global</h2>
+                    <a href="#" class="section-show-all">Mostrar tudo</a>
+                </div>
+                <div class="cards-grid">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Regional Charts -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 neon-text">ðŸ‡§ðŸ‡· Em Alta no Brasil</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 neon-text">ðŸ‡ºðŸ‡¸ Top Charts EUA</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 neon-text">ðŸ‡¬ðŸ‡§ Top Charts Reino Unido</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recommended Playlists -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 neon-text">Playlists recomendadas</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Popular Artists -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 neon-text">Artistas populares</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- Player Container - Redesenhado -->
+    <div id="player-container" x-show="$store.player.currentTrack" x-transition>
+        <!-- Coluna Esquerda: Info da Música -->
+        <div class="player-left">
+            <img class="player-album-art" 
+                 :src="getHighResThumbnail($store.player.currentTrack?.thumbnails?.[0]?.url || '/static/images/placeholder.jpg')"
+                 :alt="$store.player.currentTrack?.title"
+                 loading="lazy"
+                 crossorigin="anonymous"
+                 onerror="this.src='/static/images/placeholder.jpg'">
+            <div class="player-track-info">
+                <div class="player-track-title" x-text="$store.player.currentTrack?.title || 'Nenhuma música'"></div>
+                <div class="player-track-artist" x-text="$store.player.currentTrack?.artist || 'Artista'"></div>
+            </div>
+            <button class="player-like-button" title="Curtir">
+                <i class="far fa-heart"></i>
+            </button>
+        </div>
+        
+        <!-- Coluna Centro: Controles e Progress -->
+        <div class="player-center">
+            <div class="player-controls">
+                <button title="Modo aleatório"><i class="fas fa-random"></i></button>
+                <button @click="$store.player.previous()" title="Anterior"><i class="fas fa-step-backward"></i></button>
+                <button class="play-pause-btn" @click="$store.player.togglePlay()" title="Play/Pause">
+                    <i class="fas" :class="$store.player.isPlaying ? 'fa-pause-circle' : 'fa-play-circle'"></i>
+                </button>
+                <button @click="$store.player.next()" title="Próxima"><i class="fas fa-step-forward"></i></button>
+                <button title="Repetir"><i class="fas fa-redo"></i></button>
+            </div>
+            <div class="player-progress">
+                <span class="time-current" x-text="$store.player.formatTime($store.player.currentTime)">0:00</span>
+                <div class="progress-bar" 
+                     @click="$store.player.seek($event)"
+                     role="slider"
+                     aria-label="Barra de progresso da música"
+                     aria-valuemin="0"
+                     aria-valuemax="100"
+                     :aria-valuenow="$store.player.progress"
+                     tabindex="0">
+                    <div class="progress-fill" :style="`width: ${$store.player.progress}%`"></div>
+                </div>
+                <span class="time-duration" x-text="$store.player.formatTime($store.player.duration)">0:00</span>
+            </div>
+        </div>
+        
+        <!-- Coluna Direita: Extras e Volume -->
+        <div class="player-right">
+            <button @click="$store.player.showLyrics()" title="Letras"><i class="fas fa-align-left"></i></button>
+            <button @click="$store.player.showRelatedSongs()" title="Relacionadas"><i class="fas fa-stream"></i></button>
+            <div class="volume-control">
+                <button title="Mudo"><i class="fas fa-volume-up"></i></button>
+                <label for="volumeSlider" class="sr-only">Volume</label>
+                <input type="range" id="volumeSlider" name="volume" class="volume-slider" min="0" max="1" step="0.01" :value="$store.player.volume" @input="$store.player.setVolume($event.target.value)" title="Volume" aria-label="Controle de volume">
+            </div>
+        </div>
+    </div>
+
+        <!-- Related Songs Section -->
+        <div class="related-songs-section" x-show="$store.player.showRelated" x-transition>
+            <div class="bg-dark-800/90 backdrop-blur-md border-t border-white/10 p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold">Músicas relacionadas</h3>
+                    <button class="text-gray-400 hover:text-white" @click="$store.player.showRelatedSongs()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <template x-for="song in $store.player.relatedSongs" :key="song.videoId">
+                        <div class="music-card" @click="$store.player.playRelatedSong(song)">
+                            <div class="music-card-image-wrapper">
+                                <img class="music-card-image" 
+                                     :src="song.thumbnails?.[0]?.url" 
+                                     :alt="song.title"
+                                     crossorigin="anonymous"
+                                     loading="lazy"
+                                     onerror="this.src='/static/images/placeholder.jpg'">
+                                <button class="music-card-play-button" @click.stop="$store.player.playRelatedSong(song)">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                            <div class="music-card-title" x-text="song.title"></div>
+                            <div class="music-card-artist" x-text="song.artist"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lyrics Modal -->
+    <div id="lyricsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" 
+         x-show="$store.player.showLyricsModal" 
+         x-transition
+         @click.self="$store.player.hideLyrics()">
+        <div class="bg-dark-800/90 backdrop-blur-md rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-white/10">
+                <div>
+                    <h3 class="text-xl font-bold" x-text="$store.player.currentTrack?.title"></h3>
+                    <p class="text-gray-400" x-text="$store.player.currentTrack?.artist"></p>
+                </div>
+                <button class="text-gray-400 hover:text-white" @click="$store.player.hideLyrics()">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-96">
+                <div x-show="$store.player.lyricsLoading" class="text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                    <p class="mt-2 text-gray-400">Carregando letras...</p>
+                </div>
+                <div x-show="$store.player.lyricsError" class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    <p class="mt-2 text-gray-400" x-text="$store.player.lyricsError"></p>
+                </div>
+                <div x-show="$store.player.lyricsText" class="text-gray-300 whitespace-pre-line" x-text="$store.player.lyricsText"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alpine.js Components -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
+    <!-- Lazy Loading Inteligente para Imagens -->
+    <script>
+        // Sistema de lazy loading com rate limiting para evitar 429
+        console.log('🖼️ Sistema de Lazy Loading Inteligente inicializado');
+        console.log('⚙️ Configuração: Batch de 5 imagens, delay de 500ms entre batches');
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            let imageQueue = [];
+            let isProcessing = false;
+            const BATCH_SIZE = 5; // Carregar 5 imagens por vez
+            const BATCH_DELAY = 500; // Aguardar 500ms entre batches
+            
+            // Configurar Intersection Observer
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        
+                        // Adicionar à fila se ainda não está carregada
+                        if (!img.dataset.loaded && !img.dataset.queued) {
+                            img.dataset.queued = 'true';
+                            imageQueue.push(img);
+                            processImageQueue();
+                        }
+                        
+                        // Parar de observar esta imagem
+                        observer.unobserve(img);
+                    }
+                });
+            }, {
+                rootMargin: '50px', // Começar a carregar 50px antes de entrar na viewport
+                threshold: 0.01
+            });
+            
+            // Processar fila de imagens gradualmente
+            async function processImageQueue() {
+                if (isProcessing || imageQueue.length === 0) return;
+                
+                isProcessing = true;
+                
+                // Pegar um batch de imagens
+                const batch = imageQueue.splice(0, BATCH_SIZE);
+                
+                // Carregar cada imagem do batch
+                batch.forEach(img => {
+                    const dataSrc = img.dataset.src || img.src;
+                    
+                    // Se a imagem já tem src válido, marcar como carregada
+                    if (img.src && img.src !== window.location.href && !img.src.includes('placeholder')) {
+                        img.dataset.loaded = 'true';
+                        img.classList.remove('lazy-loading');
+                        return;
+                    }
+                    
+                    // Adicionar classe de loading
+                    img.classList.add('lazy-loading');
+                    
+                    // Criar nova imagem para pré-carregar
+                    const tempImg = new Image();
+                    
+                    tempImg.onload = function() {
+                        img.src = dataSrc;
+                        img.dataset.loaded = 'true';
+                        img.classList.remove('lazy-loading');
+                        img.classList.add('lazy-loaded');
+                        console.log('✅ Imagem carregada:', dataSrc.substring(0, 60) + '...');
+                    };
+                    
+                    tempImg.onerror = function() {
+                        console.warn('Erro ao carregar imagem:', dataSrc);
+                        img.src = '/static/images/placeholder.jpg';
+                        img.dataset.loaded = 'true';
+                        img.classList.remove('lazy-loading');
+                    };
+                    
+                    tempImg.src = dataSrc;
+                });
+                
+                isProcessing = false;
+                
+                // Se ainda há imagens na fila, processar próximo batch após delay
+                if (imageQueue.length > 0) {
+                    setTimeout(() => processImageQueue(), BATCH_DELAY);
+                }
+            }
+            
+            // Observar todas as imagens com loading="lazy"
+            function observeImages() {
+                const images = document.querySelectorAll('img[loading="lazy"]');
+                images.forEach(img => {
+                    if (!img.dataset.observed) {
+                        img.dataset.observed = 'true';
+                        imageObserver.observe(img);
+                    }
+                });
+            }
+            
+            // Observar imagens iniciais
+            observeImages();
+            
+            // Observar novas imagens quando conteúdo HTMX é carregado
+            document.addEventListener('htmx:afterSwap', function() {
+                setTimeout(observeImages, 100);
+            });
+            
+            // Reprocessar fila a cada 2 segundos se houver imagens pendentes
+            setInterval(() => {
+                if (imageQueue.length > 0) {
+                    processImageQueue();
+                }
+            }, 2000);
+        });
+    </script>
+    
+    <!-- Estilos para lazy loading -->
+    <style>
+        img.lazy-loading {
+            opacity: 0.5;
+            filter: blur(5px);
+            transition: opacity 0.3s, filter 0.3s;
+        }
+        
+        img.lazy-loaded {
+            opacity: 1;
+            filter: blur(0);
+        }
+    </style>
+    
+    <!-- HTMX Helper Functions -->
+    <script>
+        function playTrackFromCard(card) {
+            const videoId = card.dataset.videoId;
+            const title = card.querySelector('h4').textContent;
+            const artist = card.querySelector('p').textContent;
+            const thumbnail = card.querySelector('img').src;
+            
+            const track = {
+                videoId: videoId,
+                title: title,
+                artist: artist,
+                thumbnails: [{ url: thumbnail }]
+            };
+            
+            // Use Alpine store to play track
+            if (window.Alpine && Alpine.store('player')) {
+                Alpine.store('player').playTrack(track);
+            }
+        }
+        
+        function openPlaylistFromCard(card) {
+            const browseId = card.dataset.browseId;
+            const title = card.querySelector('h4').textContent;
+            const author = card.querySelector('p').textContent;
+            const thumbnail = card.querySelector('img').src;
+            
+            const playlist = {
+                browseId: browseId,
+                title: title,
+                author: author,
+                thumbnails: [{ url: thumbnail }]
+            };
+            
+            // Use Alpine store to open playlist
+            if (window.Alpine && Alpine.store('app')) {
+                Alpine.store('app').openPlaylist(playlist);
+            }
+        }
+        
+        function openArtistFromCard(card) {
+            const browseId = card.dataset.browseId;
+            const name = card.querySelector('h4, .artist-card-title').textContent;
+            const thumbnail = card.querySelector('img').src;
+            
+            // Navigate to artist page via HTMX
+            htmx.ajax('GET', `/pages/artist/${browseId}`, {
+                target: '#main-content',
+                swap: 'innerHTML'
+            });
+        }
+        
+        function openAlbumFromCard(card) {
+            const browseId = card.dataset.browseId;
+            
+            // Navigate to album page via HTMX
+            htmx.ajax('GET', `/pages/album/${browseId}`, {
+                target: '#main-content',
+                swap: 'innerHTML'
+            });
+        }
+        
+        function playAlbumFromCard(card) {
+            // For now, just open the album page
+            openAlbumFromCard(card);
+        }
+        
+        function playPlaylistFromCard(card) {
+            const browseId = card.dataset.browseId;
+            
+            // Navigate to playlist page via HTMX
+            htmx.ajax('GET', `/pages/playlist/${browseId}`, {
+                target: '#main-content',
+                swap: 'innerHTML'
+            });
+        }
+        
+        function openPodcastFromCard(card) {
+            const browseId = card.dataset.browseId;
+            
+            // Navigate to podcast page via HTMX
+            htmx.ajax('GET', `/pages/podcast/${browseId}`, {
+                target: '#main-content',
+                swap: 'innerHTML'
+            });
+        }
+        
+        function playPodcastFromCard(card) {
+            // For now, just open the podcast page
+            openPodcastFromCard(card);
+        }
+        
+        function loadMoodPlaylists(params) {
+            // Load mood playlists
+            if (window.Alpine && Alpine.store('explore')) {
+                Alpine.store('explore').loadMoodPlaylists(params);
+            }
+        }
+        
+        function playTrackFromTracklist(element) {
+            const videoId = element.dataset.videoId;
+            const title = element.querySelector('.track-title').textContent;
+            const artist = element.querySelector('.track-artist').textContent;
+            const thumbnail = element.querySelector('.track-thumbnail img').src;
+            
+            const track = {
+                videoId: videoId,
+                title: title,
+                artist: artist,
+                thumbnails: [{ url: thumbnail }]
+            };
+            
+            // Use Alpine store to play track
+            if (window.Alpine && Alpine.store('player')) {
+                Alpine.store('player').playTrack(track);
+            }
+        }
+        
+        function playEpisodeFromList(element) {
+            const videoId = element.dataset.videoId;
+            const title = element.querySelector('.episode-title').textContent;
+            const thumbnail = element.querySelector('.episode-thumbnail img').src;
+            
+            const track = {
+                videoId: videoId,
+                title: title,
+                artist: 'Podcast',
+                thumbnails: [{ url: thumbnail }]
+            };
+            
+            // Use Alpine store to play episode
+            if (window.Alpine && Alpine.store('player')) {
+                Alpine.store('player').playTrack(track);
+            }
+        }
+        
+        // Detect current URL and load appropriate content
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const mainContent = document.getElementById('main-content');
+            
+            if (!mainContent) return;
+            
+            let targetUrl = '/pages/home';
+            let section = 'home';
+            
+            // Se estamos em uma rota /pages/*, carrega o conteúdo via HTMX
+            if (currentPath.startsWith('/pages/')) {
+                targetUrl = currentPath;
+                section = currentPath.split('/')[2] || 'home'; // extrai 'home', 'charts', etc.
+            }
+            
+            // Carrega o conteúdo
+            htmx.ajax('GET', targetUrl, {
+                target: '#main-content',
+                swap: 'innerHTML'
+            });
+            
+            // Atualiza a seção ativa na sidebar
+            setTimeout(() => {
+                if (window.Alpine && Alpine.store('app')) {
+                    Alpine.store('app').currentSection = section;
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

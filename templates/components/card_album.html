@@ -1,0 +1,16 @@
+<div class="album-card" data-browse-id="{{ item.browseId }}" onclick="openAlbumFromCard(this)">
+    <div class="album-card-image-wrapper">
+        <img class="album-card-image" 
+             src="{{ (item.thumbnails[0].url if item.thumbnails else '/static/images/placeholder.jpg')|highres }}"
+             alt="{{ item.title }}"
+             loading="lazy"
+             crossorigin="anonymous"
+             onerror="this.src='/static/images/placeholder.jpg'">
+        <button class="album-card-play-button" onclick="event.stopPropagation(); playAlbumFromCard(this.closest('.album-card'))">
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+    <h4 class="album-card-title">{{ item.title }}</h4>
+    <p class="album-card-artist">{{ item.artists[0].name if item.artists else item.author if item.author else 'Artista' }}</p>
+</div>
+

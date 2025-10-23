@@ -1,0 +1,16 @@
+<div class="playlist-card" data-browse-id="{{ item.browseId or item.playlistId }}" onclick="openPlaylistFromCard(this)">
+    <div class="playlist-card-image-wrapper">
+        <img class="playlist-card-image" 
+             src="{{ (item.thumbnails[0].url if item.thumbnails else '/static/images/placeholder.jpg')|highres }}"
+             alt="{{ item.title }}"
+             loading="lazy"
+             crossorigin="anonymous"
+             onerror="this.src='/static/images/placeholder.jpg'">
+        <button class="playlist-card-play-button" onclick="event.stopPropagation(); playPlaylistFromCard(this.closest('.playlist-card'))">
+            <i class="fas fa-play"></i>
+        </button>
+    </div>
+    <h4 class="playlist-card-title">{{ item.title }}</h4>
+    <p class="playlist-card-author">{{ item.author or item.description or 'Playlist' }}</p>
+</div>
+

@@ -1,0 +1,68 @@
+<div class="artist-page p-6" x-data="{ artist: {{ artist|tojson if artist else '{}' }} }">
+    <!-- Artist Header -->
+    <header class="artist-header mb-8 relative rounded-lg overflow-hidden" 
+            style="background: linear-gradient(to bottom, rgba(0,188,212,0.3), rgba(10,10,10,1)), url('{{ (artist.thumbnails[0].url if artist and artist.thumbnails else '')|highres }}'); background-size: cover; background-position: center;">
+        <div class="artist-header-content p-12 flex items-end gap-6">
+            <img class="artist-avatar w-48 h-48 rounded-full border-4 border-cyan-500 shadow-2xl" 
+                 :src="getHighResThumbnail(artist.thumbnails?.[0]?.url || '/static/images/placeholder.jpg')"
+                 alt="{{ artist.name if artist else 'Artista' }}"
+                 loading="lazy"
+                 crossorigin="anonymous"
+                 onerror="this.src='/static/images/placeholder.jpg'">
+            <div class="flex-1">
+                <p class="text-sm uppercase tracking-wide text-gray-300 mb-2">Artista</p>
+                <h1 class="text-6xl font-bold mb-4" x-text="artist.name">{{ artist.name if artist else 'Artista' }}</h1>
+                <p class="text-gray-300" x-text="artist.subscribers + ' inscritos'">{{ artist.subscribers if artist else '' }}</p>
+                <div class="mt-6 flex gap-4">
+                    <button class="btn-primary px-8 py-3 rounded-full">
+                        <i class="fas fa-play mr-2"></i> Reproduzir
+                    </button>
+                    <button class="btn-secondary px-8 py-3 rounded-full">
+                        <i class="fas fa-heart mr-2"></i> Seguir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Top Songs -->
+    <section class="content-section mb-8">
+        <h2 class="section-title mb-6">Músicas Populares</h2>
+        <div hx-get="/api/artist/{{ artist.channelId if artist else '' }}/top-songs" 
+             hx-trigger="load" 
+             hx-swap="innerHTML">
+            {% include 'components/loading_skeleton.html' with count=6 %}
+        </div>
+    </section>
+
+    <!-- Albums -->
+    <section class="content-section mb-8">
+        <h2 class="section-title mb-6">Álbuns</h2>
+        <div hx-get="/api/artist/{{ artist.channelId if artist else '' }}/albums" 
+             hx-trigger="load" 
+             hx-swap="innerHTML">
+            {% include 'components/loading_skeleton.html' with count=6 %}
+        </div>
+    </section>
+
+    <!-- Singles -->
+    <section class="content-section mb-8">
+        <h2 class="section-title mb-6">Singles e EPs</h2>
+        <div hx-get="/api/artist/{{ artist.channelId if artist else '' }}/singles" 
+             hx-trigger="load" 
+             hx-swap="innerHTML">
+            {% include 'components/loading_skeleton.html' with count=6 %}
+        </div>
+    </section>
+
+    <!-- Related Artists -->
+    <section class="content-section mb-8">
+        <h2 class="section-title mb-6">Artistas Relacionados</h2>
+        <div hx-get="/api/artist/{{ artist.channelId if artist else '' }}/related" 
+             hx-trigger="load" 
+             hx-swap="innerHTML">
+            {% include 'components/loading_skeleton.html' with count=6 %}
+        </div>
+    </section>
+</div>
+

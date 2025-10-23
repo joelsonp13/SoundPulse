@@ -1,0 +1,41 @@
+<div class="episode-list-container">
+    {% if episodes %}
+        <div class="episode-list space-y-4">
+            {% for episode in episodes %}
+                <div class="episode-item p-4 rounded-lg hover:bg-white/5 transition cursor-pointer group"
+                     onclick="playEpisodeFromList(this)" 
+                     data-video-id="{{ episode.videoId }}">
+                    <div class="flex gap-4">
+                        <div class="episode-thumbnail w-32 h-32 rounded-lg overflow-hidden flex-shrink-0 relative">
+                            <img src="{{ (episode.thumbnails[0].url if episode.thumbnails else '/static/images/placeholder.jpg')|highres }}"
+                                 alt="{{ episode.title }}"
+                                 class="w-full h-full object-cover"
+                                 loading="lazy"
+                                 crossorigin="anonymous"
+                                 onerror="this.src='/static/images/placeholder.jpg'">
+                            <button class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <i class="fas fa-play text-white text-2xl"></i>
+                            </button>
+                        </div>
+                        <div class="episode-info flex-1 min-w-0">
+                            <div class="episode-title text-white font-semibold mb-2 line-clamp-2">{{ episode.title }}</div>
+                            <div class="episode-description text-sm text-gray-400 line-clamp-3 mb-2">
+                                {{ episode.description if episode.description else 'Sem descrição' }}
+                            </div>
+                            <div class="episode-meta flex items-center gap-3 text-xs text-gray-500">
+                                <span>{{ episode.date if episode.date else '' }}</span>
+                                <span>•</span>
+                                <span>{{ episode.duration if episode.duration else '--:--' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-8 text-gray-400">
+            <p>Nenhum episódio encontrado</p>
+        </div>
+    {% endif %}
+</div>
+

@@ -1,0 +1,1035 @@
+from flask import Flask, render_template, jsonify, request, stream_with_context, Response
+from flask_cors import CORS
+from ytmusicapi import YTMusic
+from pytubefix import YouTube
+import json
+import os
+import requests
+
+app = Flask(__name__)
+
+# Configuração CORS mais robusta
+CORS(app, 
+     resources={
+         r"/api/*": {
+             "origins": "*",
+             "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+             "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+             "supports_credentials": True
+         },
+         r"/static/*": {
+             "origins": "*",
+             "methods": ["GET"],
+             "allow_headers": ["Content-Type"]
+         }
+     },
+     supports_credentials=True)
+
+# Headers adicionais para resolver CORB e melhorar segurança
+@app.after_request
+def after_request(response):
+    # Headers CORS (permitir requisições locais)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+    
+    # Headers de segurança (remover X-Frame-Options DENY para permitir iframes locais)
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    
+    # Corrigir Content-Type para arquivos estáticos (resolver CORB)
+    path = request.path
+    if path.endswith('.js'):
+        response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+    elif path.endswith('.css'):
+        response.headers['Content-Type'] = 'text/css; charset=utf-8'
+    elif path.endswith('.json'):
+        response.headers['Content-Type'] = 'application/json; charset=utf-8'
+    elif path.endswith('.html'):
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    
+    return response
+
+# ========================================
+# JINJA2 CUSTOM FILTERS
+# ========================================
+
+def highres_thumbnail(url):
+    """Usa proxy para evitar 429 - puxar normal como músicas"""
+    if not url:
+        return '/static/images/placeholder.jpg'
+    
+    import re
+    from urllib.parse import quote
+    
+    # Para TODAS as URLs do Google/YouTube, usar proxy do servidor
+    if 'googleusercontent.com' in url or 'ggpht.com' in url or 'ytimg.com' in url or 'gstatic.com' in url:
+        # URLs do googleusercontent e gstatic (INCLUI yt3, lh3, etc) - ALTA QUALIDADE =s800
+        if 'googleusercontent.com' in url or 'ggpht.com' in url or 'gstatic.com' in url:
+            # Converter TODOS os formatos para =s800 (ALTA QUALIDADE)
+            # Limpar TUDO depois do = ou ? e adicionar =s800
+            if '=' in url:
+                # Pegar só até o =
+                base_url = url.split('=')[0]
+                url = base_url + '=s800'
+            elif '?' in url:
+                # Pegar só até o ?
+                base_url = url.split('?')[0]
+                url = base_url + '?sqp=CMjZ1tgF-oaymwEGCDwQPFgB&rs=ALLJMcL7TCigANJCPRDX39EDsxqZ57jUrw'
+            else:
+                # Se não tem = nem ?, adicionar =s800
+                url = url + '=s800'
+        
+        # URLs .jpg do YouTube (i.ytimg.com)
+        elif 'ytimg.com' in url:
+            # Vídeos normais - MÁXIMA QUALIDADE
+            url = url.replace('/default.jpg', '/maxresdefault.jpg')
+            url = url.replace('/mqdefault.jpg', '/maxresdefault.jpg')
+            url = url.replace('/sddefault.jpg', '/maxresdefault.jpg')
+            url = url.replace('/hqdefault.jpg', '/maxresdefault.jpg')
+            # Playlists/Podcasts - manter URL original (qualidade limitada pela API)
+        
+        # USAR PROXY - Solução simples
+        return f'/api/image-proxy?url={quote(url)}'
+    
+    return url
+
+# Registrar filtro customizado
+app.jinja_env.filters['highres'] = highres_thumbnail
+
+# ========================================
+# YTMUSIC SETUP
+# ========================================
+
+# Configurar YTMusic com OAuth existente
+try:
+    # Usar YTMusic sem autenticação primeiro (para busca pública)
+    yt = YTMusic()
+    print("YTMusic conectado com sucesso (modo publico)!")
+except Exception as e:
+    print(f"Erro ao conectar YTMusic: {e}")
+    yt = None
+
+def create_svg_placeholder():
+    """Cria um SVG placeholder inline (nunca causa CORB)"""
+    svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+        <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:rgb(6,182,212);stop-opacity:0.2" />
+                <stop offset="100%" style="stop-color:rgb(59,130,246);stop-opacity:0.2" />
+            </linearGradient>
+        </defs>
+        <rect width="160" height="160" fill="url(#grad)"/>
+        <text x="80" y="80" font-family="Arial" font-size="48" fill="rgba(255,255,255,0.3)" text-anchor="middle" dominant-baseline="middle">🎵</text>
+    </svg>'''
+    
+    return Response(
+        svg,
+        mimetype='image/svg+xml',
+        headers={
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=86400',
+            'Content-Type': 'image/svg+xml'
+        }
+    )
+
+@app.route('/api/image-proxy', methods=['GET', 'OPTIONS'])
+def image_proxy():
+    """Proxy para imagens externas (resolve CORB e CORS)"""
+    
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        response = Response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+    
+    image_url = request.args.get('url', '')
+    
+    if not image_url:
+        # Retorna SVG placeholder inline (nunca causa CORB)
+        return create_svg_placeholder()
+    
+    try:
+        # Headers para simular navegador e evitar bloqueio
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Referer': 'https://music.youtube.com/',
+            'Connection': 'keep-alive'
+        }
+        
+        # Faz a requisição da imagem com timeout maior
+        response = requests.get(image_url, headers=headers, timeout=15, stream=True)
+        
+        # Verifica se foi bem-sucedido
+        if response.status_code != 200:
+            # Fallback: Se maxresdefault.jpg falhar (404), tentar sddefault.jpg
+            if response.status_code == 404 and 'maxresdefault.jpg' in image_url:
+                print(f"🔄 maxresdefault 404, tentando sddefault: {image_url[:60]}...")
+                fallback_url = image_url.replace('maxresdefault.jpg', 'sddefault.jpg')
+                try:
+                    fallback_response = requests.get(fallback_url, headers=headers, timeout=10, stream=True)
+                    if fallback_response.status_code == 200:
+                        print(f"✅ Fallback bem-sucedido: sddefault.jpg")
+                        return Response(
+                            fallback_response.content,
+                            mimetype='image/jpeg',
+                            headers={
+                                'Access-Control-Allow-Origin': '*',
+                                'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                                'Cache-Control': 'public, max-age=86400',
+                                'Content-Type': 'image/jpeg',
+                                'X-Content-Type-Options': 'nosniff',
+                                'Vary': 'Origin'
+                            }
+                        )
+                except:
+                    pass
+            
+            print(f"⚠️ Imagem falhou com status {response.status_code}: {image_url[:60]}...")
+            return create_svg_placeholder()
+        
+        # Determina o Content-Type correto (prioriza o header da resposta)
+        content_type = response.headers.get('Content-Type', 'image/jpeg')
+        
+        # Se não tem Content-Type ou é incorreto, deduz pela URL
+        if not content_type or content_type == 'application/octet-stream':
+            if '.png' in image_url.lower():
+                content_type = 'image/png'
+            elif '.webp' in image_url.lower():
+                content_type = 'image/webp'
+            elif '.gif' in image_url.lower():
+                content_type = 'image/gif'
+            else:
+                content_type = 'image/jpeg'
+        
+        # Log de sucesso
+        print(f"✅ Imagem carregada: {content_type} - {image_url[:60]}...")
+        
+        # Retorna a imagem com headers CORRETOS para evitar CORB
+        return Response(
+            response.content,
+            mimetype=content_type,
+            headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Cache-Control': 'public, max-age=86400',
+                'X-Content-Type-Options': 'nosniff',
+                'Content-Type': content_type,  # Garantir Content-Type explícito
+                'Vary': 'Origin'
+            }
+        )
+    except requests.exceptions.Timeout:
+        print(f"⏱️ TIMEOUT ao carregar imagem (15s): {image_url[:60]}...")
+        return create_svg_placeholder()
+    except requests.exceptions.RequestException as e:
+        print(f"🌐 ERRO de rede ao carregar imagem: {type(e).__name__}")
+        print(f"   URL que falhou: {image_url[:80]}")
+        return create_svg_placeholder()
+    except Exception as e:
+        print(f"❌ ERRO DESCONHECIDO ao carregar imagem: {type(e).__name__}: {e}")
+        print(f"   URL que falhou: {image_url[:60]}...")
+        return create_svg_placeholder()
+
+@app.route('/')
+def index():
+    """Página principal do site de streaming"""
+    return render_template('index.html')
+
+@app.route('/api/search')
+def search():
+    """Buscar músicas no YouTube Music"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    query = request.args.get('q', '')
+    filter_type = request.args.get('filter', '')  # ✅ CORRIGIDO: padrão vazio para busca geral
+    
+    if not query:
+        return jsonify({'error': 'Query vazia'}), 400
+    
+    try:
+        print(f"🔍 BUSCA: query='{query}', filter='{filter_type}'")
+        
+        # Busca otimizada - Limites reduzidos para performance
+        print(f"🌟 Fazendo busca otimizada")
+        all_results = []
+        
+        # 1. Buscar músicas (30 suficientes para paginação inicial)
+        songs = yt.search(query, filter='songs', limit=30)
+        all_results.extend([r for r in songs if r.get('resultType') == 'song'])
+        print(f"   🎵 Músicas: {len([r for r in songs if r.get('resultType') == 'song'])}")
+        
+        # 2. Buscar artistas (15 suficientes)
+        artists = yt.search(query, filter='artists', limit=15)
+        artist_results = [r for r in artists if r.get('resultType') == 'artist' and r.get('browseId')]
+        all_results.extend(artist_results)
+        print(f"   🎤 Artistas: {len(artist_results)}")
+        
+        # 3. Buscar playlists (15 suficientes)
+        playlists = yt.search(query, filter='playlists', limit=15)
+        playlist_results = [r for r in playlists if r.get('resultType') == 'playlist' and r.get('browseId')]
+        all_results.extend(playlist_results)
+        print(f"   📋 Playlists: {len(playlist_results)}")
+        
+        # 4. Buscar álbuns (15 suficientes)
+        albums = yt.search(query, filter='albums', limit=15)
+        all_results.extend([r for r in albums if r.get('resultType') == 'album'])
+        print(f"   💿 Álbuns: {len([r for r in albums if r.get('resultType') == 'album'])}")
+        
+        filtered_results = all_results
+        print(f"✅ TOTAL de resultados: {len(filtered_results)}")
+        
+        return jsonify({'success': True, 'results': filtered_results})
+    except Exception as e:
+        print(f"❌ ERRO na busca: {str(e)}")
+        return jsonify({'error': f'Erro na busca: {str(e)}'}), 500
+
+@app.route('/api/stream/<videoId>')
+def get_stream_url(videoId):
+    """Obter URL de stream de áudio"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        # Usar pytubefix para obter URL de stream
+        yt_video = YouTube(f"https://www.youtube.com/watch?v={videoId}")
+        audio_stream = yt_video.streams.filter(only_audio=True).first()
+        
+        if audio_stream:
+            return jsonify({'success': True, 'url': audio_stream.url})
+        else:
+            return jsonify({'error': 'Stream não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter stream: {str(e)}'}), 500
+
+@app.route('/api/watch/<videoId>')
+def get_watch_playlist(videoId):
+    """Obter playlist de watch (músicas relacionadas)"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        watch_playlist = yt.get_watch_playlist(videoId)
+        return jsonify({'success': True, 'related': watch_playlist.get('tracks', [])})
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter watch playlist: {str(e)}'}), 500
+
+@app.route('/api/song/<videoId>')
+def get_song_info(videoId):
+    """Obter informações detalhadas da música"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        song_info = yt.get_song(videoId)
+        return jsonify({'success': True, 'song': song_info})
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter informações da música: {str(e)}'}), 500
+
+@app.route('/api/playlist/<playlistId>')
+def get_playlist(playlistId):
+    """Obter playlist completa"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        playlist = yt.get_playlist(playlistId, limit=100)
+        return jsonify({'success': True, 'playlist': playlist, 'tracks': playlist.get('tracks', [])})
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter playlist: {str(e)}'}), 500
+
+@app.route('/api/playlist/<playlistId>/more-songs')
+def get_more_playlist_songs(playlistId):
+    """Obter mais músicas da playlist (paginação)"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        page = int(request.args.get('page', 1))
+        limit = 10
+        
+        playlist = yt.get_playlist(playlistId, limit=limit, offset=(page-1)*limit)
+        tracks = playlist.get('tracks', [])
+        
+        return jsonify({
+            'success': True, 
+            'tracks': tracks,
+            'hasMore': len(tracks) >= limit
+        })
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter mais músicas: {str(e)}'}), 500
+
+@app.route('/api/artist/<artistId>')
+def get_artist(artistId):
+    """Obter informações do artista"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        artist = yt.get_artist(artistId)
+        return jsonify({'success': True, 'artist': artist})
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter artista: {str(e)}'}), 500
+
+@app.route('/api/artist/<artistId>/albums')
+def get_artist_albums(artistId):
+    """Obter álbuns do artista"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        artist = yt.get_artist(artistId)
+        albums = artist.get('albums', {}).get('results', [])
+        return jsonify({'success': True, 'albums': albums})
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter álbuns: {str(e)}'}), 500
+
+@app.route('/api/artist/<artistId>/playlists')
+def get_artist_playlists(artistId):
+    """Obter playlists do artista"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        artist = yt.get_artist(artistId)
+        playlists = artist.get('playlists', {}).get('results', [])
+        return jsonify({'success': True, 'playlists': playlists})
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter playlists: {str(e)}'}), 500
+
+@app.route('/api/artist/<artistId>/more-playlists')
+def get_more_artist_playlists(artistId):
+    """Obter mais playlists do artista (paginação)"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        page = int(request.args.get('page', 1))
+        limit = 10
+        
+        artist = yt.get_artist(artistId)
+        playlists = artist.get('playlists', {}).get('results', [])
+        
+        # Simular paginação (YTMusic não suporta offset para playlists)
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        paginated_playlists = playlists[start_idx:end_idx]
+        
+        return jsonify({
+            'success': True, 
+            'playlists': paginated_playlists,
+            'hasMore': end_idx < len(playlists)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter mais playlists: {str(e)}'}), 500
+
+@app.route('/api/artist/<artistId>/more-songs')
+def get_more_artist_songs(artistId):
+    """Obter mais músicas do artista (paginação)"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        page = int(request.args.get('page', 1))
+        limit = 10
+        
+        artist = yt.get_artist(artistId)
+        songs = artist.get('songs', {}).get('results', [])
+        
+        # Simular paginação
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        paginated_songs = songs[start_idx:end_idx]
+        
+        return jsonify({
+            'success': True, 
+            'tracks': paginated_songs,
+            'hasMore': end_idx < len(songs)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter mais músicas: {str(e)}'}), 500
+
+@app.route('/api/lyrics/<videoId>')
+def get_lyrics(videoId):
+    """Obter letras da música"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        print(f"Tentando obter letras para: {videoId}")
+        lyrics = yt.get_lyrics(videoId)
+        print(f"Resposta do yt.get_lyrics: {type(lyrics)} - {lyrics}")
+        
+        # Verificar se as letras existem e não estão vazias
+        if lyrics and isinstance(lyrics, dict) and lyrics.get('lyrics'):
+            return jsonify({'success': True, 'lyrics': lyrics['lyrics']})
+        elif lyrics and isinstance(lyrics, str) and lyrics.strip():
+            return jsonify({'success': True, 'lyrics': lyrics})
+        else:
+            print(f"Letras não encontradas para {videoId}")
+            return jsonify({'success': False, 'error': 'Letras não disponíveis para esta música'})
+            
+    except Exception as e:
+        print(f"Erro ao obter letras para {videoId}: {str(e)}")
+        return jsonify({'success': False, 'error': f'Erro ao obter letras: {str(e)}'})
+
+@app.route('/api/related/<videoId>')
+def get_related_songs(videoId):
+    """Obter músicas relacionadas"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        # Tenta usar get_watch_playlist ao invés de get_song_related
+        watch_playlist = yt.get_watch_playlist(videoId)
+        related = watch_playlist.get('tracks', [])[:10]  # Pega apenas 10 músicas relacionadas
+        return jsonify({'success': True, 'related': related})
+    except Exception as e:
+        print(f"Erro ao obter músicas relacionadas para {videoId}: {str(e)}")
+        # Retorna lista vazia ao invés de erro 500
+        return jsonify({'success': True, 'related': []})
+
+@app.route('/api/radio/<videoId>')
+def get_radio_playlist(videoId):
+    """Obter playlist de rádio baseada na música"""
+    if not yt:
+        return jsonify({'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        radio_playlist = yt.get_watch_playlist(videoId, radio=True)
+        return jsonify({'success': True, 'radio': radio_playlist})
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter rádio: {str(e)}'}), 500
+
+@app.route('/api/proxy/<videoId>')
+def proxy_stream(videoId):
+    """Proxy para streaming de áudio"""
+    try:
+        # Usar pytubefix para obter URL de stream
+        yt_video = YouTube(f"https://www.youtube.com/watch?v={videoId}")
+        audio_stream = yt_video.streams.filter(only_audio=True).first()
+        
+        if not audio_stream:
+            return jsonify({'error': 'Stream não encontrado'}), 404
+        
+        # Fazer requisição para o stream
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        }
+        
+        response = requests.get(audio_stream.url, headers=headers, stream=True, timeout=30)
+        
+        def generate():
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    yield chunk
+        
+        return Response(
+            stream_with_context(generate()),
+            headers={
+                'Content-Type': 'audio/mpeg',
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'no-cache',
+                'Access-Control-Allow-Origin': '*'
+            }
+        )
+        
+    except Exception as e:
+        print(f"Erro no proxy: {str(e)}")
+        return jsonify({'error': f'Erro no proxy: {str(e)}'}), 500
+
+# ===== PAGE ENDPOINTS (Return HTML Partials) =====
+
+@app.route('/pages/home')
+def page_home():
+    """Home page"""
+    # Se for requisição HTMX, retorna apenas o partial
+    if request.headers.get('HX-Request'):
+        return render_template('partials/home.html')
+    # Se for acesso direto, retorna página completa
+    return render_template('index.html')
+
+@app.route('/pages/search')
+def page_search():
+    """Search page"""
+    if request.headers.get('HX-Request'):
+        return render_template('partials/search.html')
+    return render_template('index.html')
+
+@app.route('/pages/library')
+def page_library():
+    """Library page"""
+    if request.headers.get('HX-Request'):
+        return render_template('partials/library.html')
+    return render_template('index.html')
+
+@app.route('/pages/charts')
+def page_charts():
+    """Charts page"""
+    country = request.args.get('country', 'BR')
+    if request.headers.get('HX-Request'):
+        return render_template('partials/charts.html', country=country)
+    return render_template('index.html')
+
+@app.route('/pages/explore')
+def page_explore():
+    """Explore page"""
+    mood = request.args.get('mood', None)
+    if request.headers.get('HX-Request'):
+        return render_template('partials/explore.html', mood=mood)
+    return render_template('index.html')
+
+@app.route('/pages/artist/<browseId>')
+def page_artist(browseId):
+    """Artist page"""
+    if not request.headers.get('HX-Request'):
+        return render_template('index.html')
+    
+    try:
+        artist = yt.get_artist(browseId)
+        return render_template('partials/artist.html', artist=artist)
+    except Exception as e:
+        return render_template('components/error_state.html', 
+                             title='Erro ao carregar artista',
+                             message=str(e),
+                             retry=True)
+
+@app.route('/pages/album/<browseId>')
+def page_album(browseId):
+    """Album page"""
+    if not request.headers.get('HX-Request'):
+        return render_template('index.html')
+    
+    try:
+        album = yt.get_album(browseId)
+        return render_template('partials/album.html', album=album)
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar álbum',
+                             message=str(e),
+                             retry=True)
+
+@app.route('/pages/playlist/<playlistId>')
+def page_playlist(playlistId):
+    """Playlist page"""
+    if not request.headers.get('HX-Request'):
+        return render_template('index.html')
+    
+    try:
+        playlist = yt.get_playlist(playlistId)
+        return render_template('partials/playlist.html', playlist=playlist)
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar playlist',
+                             message=str(e),
+                             retry=True)
+
+@app.route('/pages/podcast/<browseId>')
+def page_podcast(browseId):
+    """Podcast page"""
+    if not request.headers.get('HX-Request'):
+        return render_template('index.html')
+    
+    try:
+        podcast = yt.get_podcast(browseId)
+        return render_template('partials/podcast.html', podcast=podcast)
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar podcast',
+                             message=str(e),
+                             retry=True)
+
+# ===== CHARTS ENDPOINTS =====
+
+@app.route('/api/charts/songs/<country>')
+def charts_songs(country):
+    """Charts songs by country"""
+    if not yt:
+        return render_template('components/error_state.html', 
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        # Usar busca direta ao invés de get_charts (mais confiável)
+        country_names = {
+            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
+            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
+            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+        }
+        
+        country_name = country_names.get(country.upper(), 'trending')
+        query = f'top hits {country_name} 2024'
+        
+        songs = yt.search(query, filter='songs', limit=10)
+        
+        # Filtrar apenas músicas válidas
+        songs = [s for s in songs if s.get('videoId') and s.get('title')]
+        
+        return render_template('components/cards_grid.html', items=songs, type='music')
+    except Exception as e:
+        print(f"Erro em charts_songs: {str(e)}")
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar charts',
+                             message=str(e))
+
+@app.route('/api/charts/artists/<country>')
+def charts_artists(country):
+    """Charts artists by country"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        # Usar busca direta ao invés de get_charts (mais confiável)
+        country_names = {
+            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
+            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
+            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+        }
+        
+        country_name = country_names.get(country.upper(), 'trending')
+        query = f'top artists {country_name} 2024'
+        
+        artists = yt.search(query, filter='artists', limit=10)
+        
+        # Filtrar apenas artistas válidos
+        artists = [a for a in artists if a.get('browseId')]
+        
+        return render_template('components/cards_grid.html', items=artists, type='artist')
+    except Exception as e:
+        print(f"Erro em charts_artists: {str(e)}")
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar charts',
+                             message=str(e))
+
+@app.route('/api/charts/videos/<country>')
+def charts_videos(country):
+    """Charts videos by country"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        # Usar busca direta ao invés de get_charts (mais confiável)
+        country_names = {
+            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
+            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
+            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+        }
+        
+        country_name = country_names.get(country.upper(), 'trending')
+        query = f'top music videos {country_name} 2024'
+        
+        videos = yt.search(query, filter='videos', limit=10)
+        
+        # Filtrar apenas vídeos válidos
+        videos = [v for v in videos if v.get('videoId')]
+        
+        return render_template('components/cards_grid.html', items=videos, type='music')
+    except Exception as e:
+        print(f"Erro em charts_videos: {str(e)}")
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar charts',
+                             message=str(e))
+
+# ===== HOME SECTION ENDPOINTS =====
+
+@app.route('/api/trending-songs')
+def trending_songs_endpoint():
+    """Trending songs"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        results = yt.search('trending music 2024', filter='songs', limit=10)
+        return render_template('components/cards_grid.html', items=results, type='music')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar músicas',
+                             message=str(e))
+
+@app.route('/api/new-releases')
+def new_releases_endpoint():
+    """New album releases"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        results = yt.search('new releases albums 2024', filter='albums', limit=10)
+        return render_template('components/cards_grid.html', items=results, type='album')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar lançamentos',
+                             message=str(e))
+
+@app.route('/api/trending-podcasts')
+def trending_podcasts_endpoint():
+    """Trending podcasts"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        # Search for popular podcasts
+        results = yt.search('best podcasts 2024', limit=15)
+        
+        # Filtrar e processar podcasts
+        podcasts = []
+        for r in results:
+            # Verificar se é podcast ou playlist
+            if ('podcast' in str(r.get('resultType', '')).lower() or 
+                'podcast' in str(r.get('category', '')).lower() or
+                r.get('resultType') == 'playlist'):
+                
+                # Melhorar thumbnails se possível
+                if r.get('thumbnails'):
+                    # Pegar a maior thumbnail disponível
+                    thumbnails = sorted(r['thumbnails'], key=lambda x: x.get('width', 0) * x.get('height', 0), reverse=True)
+                    r['thumbnails'] = thumbnails
+                
+                podcasts.append(r)
+                
+                if len(podcasts) >= 10:
+                    break
+        
+        return render_template('components/cards_grid.html', items=podcasts, type='podcast')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar podcasts',
+                             message=str(e))
+
+# ===== ARTIST ENDPOINTS =====
+
+@app.route('/api/artist/<browseId>/top-songs')
+def artist_top_songs_endpoint(browseId):
+    """Artist top songs"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        artist = yt.get_artist(browseId)
+        songs = artist.get('songs', {}).get('results', [])[:10]
+        return render_template('components/cards_grid.html', items=songs, type='music')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar músicas',
+                             message=str(e))
+
+@app.route('/api/artist/<browseId>/albums')
+def artist_albums_endpoint(browseId):
+    """Artist albums"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        albums = yt.get_artist_albums(browseId)
+        return render_template('components/cards_grid.html', items=albums, type='album')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar álbuns',
+                             message=str(e))
+
+@app.route('/api/artist/<browseId>/singles')
+def artist_singles_endpoint(browseId):
+    """Artist singles"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        albums = yt.get_artist_albums(browseId)
+        singles = [a for a in albums if a.get('type') == 'Single' or a.get('browseId', '').startswith('MPRE')]
+        return render_template('components/cards_grid.html', items=singles, type='album')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar singles',
+                             message=str(e))
+
+@app.route('/api/artist/<browseId>/related')
+def artist_related_endpoint(browseId):
+    """Related artists"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        artist = yt.get_artist(browseId)
+        related = artist.get('related', {}).get('results', [])
+        return render_template('components/cards_grid.html', items=related, type='artist')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar artistas relacionados',
+                             message=str(e))
+
+# ===== ALBUM ENDPOINTS =====
+
+@app.route('/api/album/<browseId>/tracks')
+def album_tracks_endpoint(browseId):
+    """Album tracks"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        album = yt.get_album(browseId)
+        tracks = album.get('tracks', [])
+        return render_template('partials/tracklist.html', tracks=tracks)
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar faixas',
+                             message=str(e))
+
+# ===== PLAYLIST ENDPOINTS =====
+
+@app.route('/api/playlist/<playlistId>/tracks')
+def playlist_tracks_endpoint(playlistId):
+    """Playlist tracks"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        playlist = yt.get_playlist(playlistId)
+        tracks = playlist.get('tracks', [])
+        return render_template('partials/tracklist.html', tracks=tracks)
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar músicas',
+                             message=str(e))
+
+# ===== PODCAST ENDPOINTS =====
+
+@app.route('/api/podcast/<browseId>/episodes')
+def podcast_episodes_endpoint(browseId):
+    """Podcast episodes"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        episodes = yt.get_channel_episodes(browseId)
+        return render_template('partials/episode_list.html', episodes=episodes)
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar episódios',
+                             message=str(e))
+
+# ===== EXPLORE MUSIC ENDPOINTS =====
+
+@app.route('/api/moods')
+def get_moods_endpoint():
+    """Get mood categories"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        mood_data = yt.get_mood_categories()
+        # mood_data é dict com {'Moods & moments': [...], 'Genres': [...]}
+        moods = []
+        if isinstance(mood_data, dict):
+            for category, items in mood_data.items():
+                if isinstance(items, list):
+                    moods.extend(items)
+        return render_template('partials/mood_categories.html', moods=moods)
+    except Exception as e:
+        print(f"Erro em get_moods: {str(e)}")
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar categorias',
+                             message=str(e))
+
+@app.route('/api/moods-preview')
+def get_moods_preview_endpoint():
+    """Get mood categories preview (first 6)"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        mood_data = yt.get_mood_categories()
+        # mood_data é dict com {'Moods & moments': [...], 'Genres': [...]}
+        moods = []
+        if isinstance(mood_data, dict):
+            for category, items in mood_data.items():
+                if isinstance(items, list):
+                    moods.extend(items)
+        # Pega apenas os primeiros 6
+        moods_preview = moods[:6] if len(moods) > 6 else moods
+        return render_template('partials/mood_categories.html', moods=moods_preview)
+    except Exception as e:
+        print(f"Erro em get_moods_preview: {str(e)}")
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar categorias',
+                             message=str(e))
+
+@app.route('/api/mood/<params>')
+def mood_playlists_endpoint(params):
+    """Get playlists by mood"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        playlists = yt.get_mood_playlists(params)
+        return render_template('components/cards_grid.html', items=playlists, type='playlist')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar playlists',
+                             message=str(e))
+
+# ===== SEARCH ENDPOINTS =====
+
+@app.route('/api/search-suggestions')
+def search_suggestions_endpoint():
+    """Search suggestions"""
+    if not yt:
+        return ''
+    
+    query = request.args.get('q', '')
+    if len(query) < 2:
+        return ''
+    
+    try:
+        suggestions = yt.get_search_suggestions(query)
+        html = '<div class="suggestions-list">'
+        for suggestion in suggestions[:5]:
+            html += f'<div class="suggestion-item p-2 hover:bg-white/10 cursor-pointer">{suggestion}</div>'
+        html += '</div>'
+        return html
+    except Exception as e:
+        return ''
+
+if __name__ == '__main__':
+    print("Iniciando Site de Streaming de Musica...")
+    print("Acesse: http://localhost:5000")
+    app.run(debug=True, host='0.0.0.0', port=5000)

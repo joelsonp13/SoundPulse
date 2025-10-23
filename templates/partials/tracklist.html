@@ -1,0 +1,43 @@
+<div class="tracklist-container">
+    {% if tracks %}
+        <div class="tracklist space-y-2">
+            {% for track in tracks %}
+                <div class="track-item flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition cursor-pointer group"
+                     onclick="playTrackFromTracklist(this)" 
+                     data-video-id="{{ track.videoId }}">
+                    <div class="track-number text-gray-400 w-8 text-center group-hover:hidden">
+                        {{ loop.index }}
+                    </div>
+                    <button class="track-play-button hidden group-hover:block w-8 text-center text-cyan-500">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <div class="track-thumbnail w-12 h-12 rounded overflow-hidden flex-shrink-0">
+                        <img src="{{ (track.thumbnails[0].url if track.thumbnails else '/static/images/placeholder.jpg')|highres }}"
+                             alt="{{ track.title }}"
+                             class="w-full h-full object-cover"
+                             loading="lazy"
+                             crossorigin="anonymous"
+                             onerror="this.src='/static/images/placeholder.jpg'">
+                    </div>
+                    <div class="track-info flex-1 min-w-0">
+                        <div class="track-title text-white font-medium truncate">{{ track.title }}</div>
+                        <div class="track-artist text-sm text-gray-400 truncate">
+                            {{ track.artists[0].name if track.artists else 'Artista desconhecido' }}
+                        </div>
+                    </div>
+                    <div class="track-duration text-gray-400 text-sm">
+                        {{ track.duration if track.duration else '--:--' }}
+                    </div>
+                    <button class="track-like-button text-gray-400 hover:text-white transition">
+                        <i class="far fa-heart"></i>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-8 text-gray-400">
+            <p>Nenhuma faixa encontrada</p>
+        </div>
+    {% endif %}
+</div>
+

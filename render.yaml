@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: testando-jamendo
+    runtime: python
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120 --access-logfile - --error-logfile -"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 2
+    healthCheckPath: /
+    autoDeploy: true
+

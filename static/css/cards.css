@@ -1,0 +1,675 @@
+/* ========================================
+   CARDS - SoundPulse
+   Glassmorphism Design with Neon Gradients
+   ======================================== */
+
+/* ===== MUSIC CARD - Glassmorphism Cyan-Blue ===== */
+.music-card {
+    background: linear-gradient(135deg, rgba(0, 188, 212, 0.1), rgba(59, 130, 246, 0.1));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 180px;
+    max-width: 220px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(0, 188, 212, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.music-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(59, 130, 246, 0.05));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.music-card:hover {
+    transform: scale(1.05) translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 255, 255, 0.3);
+    border-color: rgba(0, 255, 255, 0.3);
+}
+
+.music-card:hover::before {
+    opacity: 1;
+}
+
+.music-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.music-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.music-card:hover .music-card-image {
+    transform: scale(1.05);
+}
+
+.music-card-play-button {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #00ffff, #00bcd4);
+    border: none;
+    border-radius: 50%;
+    color: #000;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 3px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(0, 255, 255, 0.4);
+    cursor: pointer;
+}
+
+.music-card:hover .music-card-play-button {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.music-card-play-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.6);
+}
+
+.music-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+.music-card-artist {
+    font-size: 12px;
+    color: #b3b3b3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== ALBUM CARD - Glassmorphism Blue-Purple ===== */
+.album-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(156, 39, 176, 0.1));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 180px;
+    max-width: 220px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.album-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(156, 39, 176, 0.05));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.album-card:hover {
+    transform: scale(1.05) translateY(-4px);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.3);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.album-card:hover::before {
+    opacity: 1;
+}
+
+.album-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.album-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.album-card:hover .album-card-image {
+    transform: scale(1.05);
+}
+
+.album-card-play-button {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #6366f1, #9c27b0);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 3px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+    cursor: pointer;
+}
+
+.album-card:hover .album-card-play-button {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.album-card-play-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.6);
+}
+
+.album-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+.album-card-artist {
+    font-size: 12px;
+    color: #b3b3b3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== ARTIST CARD - Circular with Radial Gradient ===== */
+.artist-card {
+    background: radial-gradient(circle at top, rgba(0, 188, 212, 0.15), rgba(99, 102, 241, 0.1));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 180px;
+    max-width: 220px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(0, 188, 212, 0.15);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.artist-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at top, rgba(0, 255, 255, 0.08), rgba(99, 102, 241, 0.05));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.artist-card:hover {
+    transform: scale(1.05) translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 255, 255, 0.3);
+    border-color: rgba(0, 255, 255, 0.3);
+}
+
+.artist-card:hover::before {
+    opacity: 1;
+}
+
+.artist-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 3px solid rgba(0, 255, 255, 0.2);
+    transition: border-color 0.3s ease;
+}
+
+.artist-card:hover .artist-card-image-wrapper {
+    border-color: rgba(0, 255, 255, 0.5);
+}
+
+.artist-avatar,
+.artist-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.artist-card:hover .artist-avatar,
+.artist-card:hover .artist-card-image {
+    transform: scale(1.05);
+}
+
+.artist-card h4,
+.artist-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+.artist-card p,
+.artist-card-type {
+    font-size: 12px;
+    color: #b3b3b3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== PLAYLIST CARD - Glassmorphism Purple-Pink ===== */
+.playlist-card {
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(236, 72, 153, 0.1));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(236, 72, 153, 0.15);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 180px;
+    max-width: 220px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(236, 72, 153, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.playlist-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.05), rgba(236, 72, 153, 0.05));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.playlist-card:hover {
+    transform: scale(1.05) translateY(-4px);
+    box-shadow: 0 12px 40px rgba(236, 72, 153, 0.3);
+    border-color: rgba(236, 72, 153, 0.3);
+}
+
+.playlist-card:hover::before {
+    opacity: 1;
+}
+
+.playlist-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.playlist-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.playlist-card:hover .playlist-card-image {
+    transform: scale(1.05);
+}
+
+.playlist-card-play-button {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #ec4899, #9c27b0);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 3px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(236, 72, 153, 0.4);
+    cursor: pointer;
+}
+
+.playlist-card:hover .playlist-card-play-button {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.playlist-card-play-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(236, 72, 153, 0.6);
+}
+
+.playlist-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+.playlist-card-author {
+    font-size: 12px;
+    color: #b3b3b3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== PODCAST CARD - Badge + Glassmorphism Green-Cyan ===== */
+.podcast-card {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(0, 188, 212, 0.1));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 180px;
+    max-width: 220px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.podcast-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(0, 188, 212, 0.05));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.podcast-card:hover {
+    transform: scale(1.05) translateY(-4px);
+    box-shadow: 0 12px 40px rgba(16, 185, 129, 0.3);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.podcast-card:hover::before {
+    opacity: 1;
+}
+
+.podcast-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.podcast-card-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: linear-gradient(135deg, #10b981, #00bcd4);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    z-index: 2;
+}
+
+.podcast-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.podcast-card:hover .podcast-card-image {
+    transform: scale(1.05);
+}
+
+.podcast-card-play-button {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #10b981, #00bcd4);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 3px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+    cursor: pointer;
+}
+
+.podcast-card:hover .podcast-card-play-button {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.podcast-card-play-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.6);
+}
+
+.podcast-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+.podcast-card-author {
+    font-size: 12px;
+    color: #b3b3b3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== CARDS GRID ===== */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+@media (max-width: 768px) {
+    .cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    
+    .music-card,
+    .album-card,
+    .artist-card,
+    .playlist-card,
+    .podcast-card {
+        min-width: auto;
+        max-width: none;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .cards-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+    }
+}
+
+@media (min-width: 1025px) and (max-width: 1440px) {
+    .cards-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+    }
+}
+
+@media (min-width: 1441px) {
+    .cards-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 24px;
+    }
+}
+
+/* Touch Devices - Sempre mostrar botão play */
+@media (hover: none) and (pointer: coarse) {
+    .music-card-play-button,
+    .album-card-play-button,
+    .playlist-card-play-button,
+    .podcast-card-play-button {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== LOADING SKELETON ===== */
+.skeleton-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 180px;
+    max-width: 220px;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.skeleton-title {
+    width: 80%;
+    height: 14px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.skeleton-subtitle {
+    width: 60%;
+    height: 12px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}

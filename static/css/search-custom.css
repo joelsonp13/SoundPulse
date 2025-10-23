@@ -1,0 +1,975 @@
+/* ====================================
+   SEARCH PAGE - CUSTOM STYLES
+   Arquivo dedicado para estilos da página de busca
+   ==================================== */
+
+/* ====================================
+   CUSTOM ANIMATIONS
+   ==================================== */
+
+/* Blob Animation */
+@keyframes blob {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+}
+
+/* Gradient Shift Animation */
+@keyframes gradient-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Gradient X Animation */
+@keyframes gradient-x {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Spin Slow Animation */
+@keyframes spin-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulse Icon Animation */
+@keyframes pulse-icon {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* Icon Glow Pulse Animation */
+@keyframes icon-glow-pulse {
+    0% {
+        text-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+    }
+    100% {
+        text-shadow: 0 0 20px rgba(6, 182, 212, 0.9), 0 0 30px rgba(6, 182, 212, 0.5);
+    }
+}
+
+/* ====================================
+   MODERN GLASSMORPHISM CLASSES
+   ==================================== */
+
+/* Modern Search Input with Advanced Glassmorphism */
+.search-input-modern {
+    background: rgba(15, 23, 42, 0.25);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 2px solid rgba(6, 182, 212, 0.3);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 2px 8px rgba(255, 255, 255, 0.05),
+        0 0 20px rgba(6, 182, 212, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-input-modern:focus {
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.5),
+        inset 0 2px 8px rgba(255, 255, 255, 0.08),
+        0 0 30px rgba(6, 182, 212, 0.3),
+        0 0 60px rgba(6, 182, 212, 0.15);
+    background: rgba(15, 23, 42, 0.35);
+}
+
+/* Premium Filter Button */
+.filter-button-modern {
+    background: radial-gradient(
+        circle at top,
+        rgba(6, 182, 212, 0.08),
+        rgba(15, 23, 42, 0.05)
+    );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1.5px solid rgba(6, 182, 212, 0.25);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.filter-button-modern:hover {
+    background: radial-gradient(
+        circle at top,
+        rgba(6, 182, 212, 0.12),
+        rgba(15, 23, 42, 0.08)
+    );
+    border-color: rgba(6, 182, 212, 0.4);
+    box-shadow: 
+        0 4px 12px rgba(6, 182, 212, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transform: scale(1.02);
+}
+
+.filter-button-modern.active {
+    background: radial-gradient(
+        circle at top,
+        rgba(6, 182, 212, 0.2),
+        rgba(59, 130, 246, 0.15)
+    );
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 
+        0 4px 16px rgba(6, 182, 212, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 0 20px rgba(6, 182, 212, 0.2);
+    color: #22d3ee;
+}
+
+/* Glass Button - Reusable */
+.glass-button {
+    background: linear-gradient(135deg, 
+        rgba(6, 182, 212, 0.15), 
+        rgba(59, 130, 246, 0.15)
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(6, 182, 212, 0.4);
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 0 15px rgba(6, 182, 212, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-button:hover {
+    background: linear-gradient(135deg, 
+        rgba(6, 182, 212, 0.25), 
+        rgba(59, 130, 246, 0.25)
+    );
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 
+        0 6px 20px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 0 25px rgba(6, 182, 212, 0.35);
+    transform: scale(1.05);
+}
+
+.glass-button:active {
+    transform: scale(0.98);
+}
+
+/* Glow Border Effect */
+.glow-border {
+    position: relative;
+}
+
+.glow-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, 
+        rgba(6, 182, 212, 0.5),
+        rgba(59, 130, 246, 0.5),
+        rgba(6, 182, 212, 0.5)
+    );
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+    filter: blur(8px);
+}
+
+.glow-border:hover::before {
+    opacity: 1;
+}
+
+/* Icon Glow */
+.icon-glow {
+    text-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+    transition: text-shadow 0.2s ease;
+}
+
+.icon-glow:hover {
+    text-shadow: 0 0 15px rgba(6, 182, 212, 0.9), 0 0 25px rgba(6, 182, 212, 0.5);
+}
+
+/* ====================================
+   PERFORMANCE OPTIMIZATIONS
+   ==================================== */
+
+/* Use GPU acceleration for transforms */
+.filter-button-modern,
+.glass-button,
+.search-input-modern {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Apply will-change only during interaction */
+.filter-button-modern:hover,
+.glass-button:hover {
+    will-change: transform, box-shadow;
+}
+
+.filter-button-modern:not(:hover),
+.glass-button:not(:hover) {
+    will-change: auto;
+}
+
+/* Smooth transitions using cubic-bezier */
+.filter-button-modern,
+.glass-button {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ====================================
+   ANIMATION CLASSES
+   ==================================== */
+
+.animate-blob {
+    animation: blob 7s infinite;
+}
+
+.animate-blob-delay-2 {
+    animation: blob 7s infinite;
+    animation-delay: 2s;
+}
+
+.animate-blob-delay-4 {
+    animation: blob 7s infinite;
+    animation-delay: 4s;
+}
+
+.animate-gradient-shift {
+    animation: gradient-shift 3s ease infinite;
+}
+
+.animate-gradient-x {
+    animation: gradient-x 3s linear infinite;
+}
+
+.animate-spin-custom-slow {
+    animation: spin-slow 20s linear infinite;
+}
+
+/* ====================================
+   ALPINE.JS - CLOAK
+   ==================================== */
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* ====================================
+   SCROLL HORIZONTAL - CONTAINERS
+   ==================================== */
+
+.scroll-container {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 1rem 0.5rem 1.5rem;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 182, 212, 0.5) rgba(30, 41, 59, 0.3);
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.3);
+    border-radius: 10px;
+    margin: 0 1rem;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.6), rgba(59, 130, 246, 0.6));
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.9), rgba(59, 130, 246, 0.9));
+}
+
+/* ====================================
+   SCROLL NAVIGATION BUTTONS
+   ==================================== */
+
+.scroll-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(6, 182, 212, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(6, 182, 212, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.scroll-nav-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(6, 182, 212, 0.2), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.scroll-nav-button:hover::before {
+    opacity: 1;
+}
+
+.scroll-nav-button:hover {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3));
+    border-color: rgba(6, 182, 212, 0.7);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(6, 182, 212, 0.6),
+                0 0 60px rgba(6, 182, 212, 0.3),
+                inset 0 2px 4px rgba(255, 255, 255, 0.15);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.scroll-nav-button:active {
+    transform: translateY(-50%) scale(0.95);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6),
+                0 0 30px rgba(6, 182, 212, 0.8),
+                inset 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-nav-button i {
+    font-size: 20px;
+    color: white;
+    text-shadow: 0 0 10px rgba(6, 182, 212, 0.8),
+                 0 0 20px rgba(6, 182, 212, 0.5);
+    transition: all 0.3s ease;
+}
+
+.scroll-nav-button:hover i {
+    text-shadow: 0 0 15px rgba(6, 182, 212, 1),
+                 0 0 30px rgba(6, 182, 212, 0.7);
+    transform: scale(1.1);
+}
+
+.scroll-nav-button.left {
+    left: -24px;
+}
+
+.scroll-nav-button.right {
+    right: -24px;
+}
+
+/* ====================================
+   SEARCH ICON HERO
+   ==================================== */
+
+.search-icon-hero {
+    font-size: 3rem;
+}
+
+.search-icon-container {
+    width: 5rem;
+    height: 5rem;
+}
+
+@media (min-width: 768px) {
+    .search-icon-hero {
+        font-size: 4.5rem !important;
+    }
+    .search-icon-container {
+        width: 7rem !important;
+        height: 7rem !important;
+    }
+}
+
+/* ====================================
+   TOP SONGS LIST
+   ==================================== */
+
+.top-songs-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.top-songs-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+.top-songs-list::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(6, 182, 212, 0.6), rgba(59, 130, 246, 0.6));
+    border-radius: 10px;
+}
+
+.top-songs-list::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(6, 182, 212, 0.9), rgba(59, 130, 246, 0.9));
+}
+
+/* ====================================
+   CARD UNIFORMITY & SCROLL
+   ==================================== */
+
+#search-artists-section .artist-card,
+#search-playlists-section-scroll .playlist-card {
+    flex-shrink: 0;
+    width: 200px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+
+#search-artists-section .artist-card:focus,
+#search-playlists-section-scroll .playlist-card:focus {
+    outline: 2px solid rgba(6, 182, 212, 0.5);
+    outline-offset: 4px;
+}
+
+#search-artists-section .artist-card .artist-card-title,
+#search-playlists-section-scroll .playlist-card .playlist-card-title {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    height: 2.5rem !important;
+    line-height: 1.25rem !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+}
+
+#search-artists-section .artist-card .artist-card-type,
+#search-playlists-section-scroll .playlist-card .playlist-card-author {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#search-artists-section .artist-card .artist-card-image-wrapper,
+#search-playlists-section-scroll .playlist-card .playlist-card-image-wrapper {
+    flex-shrink: 0;
+}
+
+#search-artists-section .artist-card > div:last-child,
+#search-playlists-section-scroll .playlist-card > div:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.playlist-card-title,
+.artist-card-title,
+.music-card-title,
+.album-card-title {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    line-height: 1.25rem !important;
+}
+
+/* ====================================
+   ARTIST HERO LAYOUT - RESPONSIVE
+   ==================================== */
+
+/* Desktop padrão */
+#artist-hero-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    align-items: flex-start;
+    width: 100%;
+}
+
+/* Imagem do artista principal */
+#artist-hero-layout img {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Container de top músicas */
+.top-songs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem;
+    width: 100%;
+}
+
+/* Botões de ação do artista */
+#artist-hero-layout .flex.flex-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+#artist-hero-layout button {
+    padding: 0.625rem 1.5rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Coluna direita com conteúdo */
+#artist-hero-layout .flex-1 {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* ====================================
+   RESPONSIVE BREAKPOINTS
+   ==================================== */
+
+/* Mobile */
+@media (max-width: 639px) {
+    #search-artists-section .artist-card,
+    #search-playlists-section-scroll .playlist-card {
+        width: 150px !important;
+        min-height: 250px !important;
+        height: 250px !important;
+    }
+    
+    .scroll-nav-button {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .scroll-nav-button i {
+        font-size: 16px;
+    }
+    
+    .scroll-nav-button.left {
+        left: -12px;
+    }
+    
+    .scroll-nav-button.right {
+        right: -12px;
+    }
+    
+    /* Card Hero do Artista - Mobile */
+    #artist-hero-layout {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        gap: 1rem !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Imagem menor em mobile */
+    #artist-hero-layout img {
+        width: 140px !important;
+        height: 140px !important;
+    }
+    
+    /* Badge "Artista Principal" */
+    #artist-hero-layout p[style*="text-transform: uppercase"] {
+        font-size: 0.75rem !important;
+    }
+    
+    /* Nome do artista menor */
+    #artist-hero-layout h2 {
+        font-size: 1.75rem !important;
+        text-align: center !important;
+        width: 100%;
+        word-break: break-word;
+    }
+    
+    /* Container da coluna direita */
+    #artist-hero-layout .flex-1 {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+    }
+    
+    /* Botões em grid 2 colunas */
+    #artist-hero-layout .flex.flex-wrap {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Botões menores e responsivos */
+    #artist-hero-layout button {
+        font-size: 0.7rem !important;
+        padding: 0.5rem 0.5rem !important;
+        justify-content: center;
+        white-space: normal !important;
+        word-break: break-word;
+        line-height: 1.2;
+        min-height: 2.5rem;
+    }
+    
+    #artist-hero-layout button i {
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+    
+    #artist-hero-layout button span {
+        flex: 1;
+        text-align: center;
+    }
+    
+    /* Título "Top Músicas" */
+    #artist-hero-layout h3 {
+        font-size: 0.875rem !important;
+        justify-content: center !important;
+        width: 100%;
+    }
+    
+    /* Lista de músicas menor e sem cortes */
+    .top-songs-list {
+        max-height: 250px !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        padding-right: 0.25rem !important;
+    }
+    
+    /* Items da lista menores */
+    .top-songs-list > div {
+        padding: 0.5rem !important;
+        gap: 0.375rem !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    /* Números menores */
+    .top-songs-list > div > div:first-child {
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+        font-size: 0.7rem !important;
+        flex-shrink: 0 !important;
+    }
+    
+    /* Thumbnails menores - FORÇAR SOBRESCRITA MOBILE */
+    .top-songs-list > div > div[style*="width: 2.5rem"],
+    .top-songs-list > div > div:nth-child(2) {
+        width: 1.75rem !important;
+        height: 1.75rem !important;
+        min-width: 1.75rem !important;
+        max-width: 1.75rem !important;
+        min-height: 1.75rem !important;
+        max-height: 1.75rem !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .top-songs-list > div > div:nth-child(2) img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+    
+    /* Container de info - flex para não cortar */
+    .top-songs-list > div > div:nth-child(3) {
+        flex: 1 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    /* Textos menores e com ellipsis */
+    .top-songs-list p {
+        font-size: 0.7rem !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        width: 100% !important;
+    }
+    
+    .top-songs-list p:last-child {
+        font-size: 0.65rem !important;
+    }
+    
+    /* Duration - esconder em telas muito pequenas */
+    .top-songs-list > div > div:last-child {
+        display: none !important;
+    }
+}
+
+/* Tablet */
+@media (min-width: 640px) and (max-width: 1023px) {
+    #search-artists-section .artist-card,
+    #search-playlists-section-scroll .playlist-card {
+        width: 180px !important;
+        min-height: 270px !important;
+        height: 270px !important;
+    }
+    
+    /* Card Hero do Artista - Tablet */
+    #artist-hero-layout {
+        gap: 1.25rem !important;
+        width: 100% !important;
+    }
+    
+    /* Imagem ligeiramente menor em tablet */
+    #artist-hero-layout img {
+        width: 160px !important;
+        height: 160px !important;
+    }
+    
+    /* Container da coluna direita */
+    #artist-hero-layout .flex-1 {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    /* Nome do artista ajustado */
+    #artist-hero-layout h2 {
+        font-size: 2rem !important;
+        word-break: break-word;
+    }
+    
+    /* Botões ajustados e com quebra de linha se necessário */
+    #artist-hero-layout .flex.flex-wrap {
+        width: 100% !important;
+    }
+    
+    #artist-hero-layout button {
+        font-size: 0.75rem !important;
+        padding: 0.5rem 1rem !important;
+        flex: 1 1 auto;
+        min-width: 120px;
+    }
+    
+    /* Lista de músicas */
+    .top-songs-list {
+        max-height: 280px !important;
+        width: 100% !important;
+    }
+    
+    /* Thumbnails menores em tablet - FORÇAR SOBRESCRITA */
+    .top-songs-list > div > div[style*="width: 2.5rem"],
+    .top-songs-list > div > div:nth-child(2) {
+        width: 2rem !important;
+        height: 2rem !important;
+        min-width: 2rem !important;
+        max-width: 2rem !important;
+        min-height: 2rem !important;
+        max-height: 2rem !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .top-songs-list > div > div:nth-child(2) img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+}
+
+/* Desktop Medium */
+@media (min-width: 1024px) and (max-width: 1439px) {
+    #search-artists-section .artist-card,
+    #search-playlists-section-scroll .playlist-card {
+        width: 200px !important;
+        min-height: 280px !important;
+        height: 280px !important;
+    }
+    
+    .scroll-container {
+        gap: 1.75rem;
+    }
+}
+
+/* Desktop Large */
+@media (min-width: 1440px) {
+    #search-artists-section .artist-card,
+    #search-playlists-section-scroll .playlist-card {
+        width: 220px !important;
+        min-height: 300px !important;
+        height: 300px !important;
+    }
+    
+    .scroll-container {
+        gap: 2rem;
+    }
+}
+
+/* Desktop - Thumbnails das top músicas */
+@media (min-width: 1024px) {
+    /* Thumbnails maiores em desktop */
+    .top-songs-list > div > div[style*="width: 2.5rem"],
+    .top-songs-list > div > div:nth-child(2) {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+        min-width: 2.25rem !important;
+        max-width: 2.25rem !important;
+        min-height: 2.25rem !important;
+        max-height: 2.25rem !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .top-songs-list > div > div:nth-child(2) img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        border-radius: 0.375rem !important;
+    }
+}
+
+/* ====================================
+   RESPONSIVE GLASSMORPHISM
+   ==================================== */
+
+/* Mobile - Reduced blur and simplified glow */
+@media (max-width: 640px) {
+    .search-input-modern {
+        background: rgba(15, 23, 42, 0.25);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        box-shadow: 
+            0 6px 24px rgba(0, 0, 0, 0.4),
+            inset 0 1px 4px rgba(255, 255, 255, 0.05),
+            0 0 15px rgba(6, 182, 212, 0.08);
+        padding: 16px 140px 16px 45px !important;
+        font-size: 14px !important;
+    }
+    
+    .search-input-modern:focus {
+        background: rgba(15, 23, 42, 0.35);
+        box-shadow: 
+            0 8px 30px rgba(0, 0, 0, 0.5),
+            inset 0 1px 4px rgba(255, 255, 255, 0.08),
+            0 0 20px rgba(6, 182, 212, 0.2);
+    }
+    
+    .filter-button-modern {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        padding: 8px 16px !important;
+        font-size: 13px !important;
+    }
+    
+    .filter-button-modern i {
+        font-size: 11px !important;
+    }
+    
+    .glass-button {
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 
+            0 3px 12px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 0 12px rgba(6, 182, 212, 0.15);
+    }
+    
+    /* Ajustar botão buscar em mobile */
+    .search-submit-btn {
+        padding: 12px 20px !important;
+        font-size: 14px !important;
+    }
+    
+    /* Esconder texto do botão buscar em mobile, mostrar apenas ícone */
+    .search-btn-text {
+        display: none;
+    }
+    
+    .search-submit-btn i {
+        margin-right: 0 !important;
+    }
+    
+    /* Ajustar posição do botão limpar */
+    .search-clear-btn {
+        right: 90px !important;
+        width: 32px !important;
+        height: 32px !important;
+        padding: 6px !important;
+    }
+    
+    .glow-border::before {
+        filter: blur(6px);
+    }
+    
+    /* Simplificar ícones em mobile */
+    .icon-glow {
+        text-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
+    }
+}
+
+/* Tablet - Moderate blur and glow */
+@media (min-width: 641px) and (max-width: 1023px) {
+    .search-input-modern {
+        background: rgba(15, 23, 42, 0.25);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+    }
+    
+    .filter-button-modern {
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+}
+
+/* Desktop - Full blur and glow effects */
+@media (min-width: 1024px) {
+    .search-input-modern {
+        background: rgba(15, 23, 42, 0.25);
+        backdrop-filter: blur(30px) saturate(180%);
+        -webkit-backdrop-filter: blur(30px) saturate(180%);
+    }
+    
+    .filter-button-modern {
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }
+    
+    .glass-button {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+}
+
