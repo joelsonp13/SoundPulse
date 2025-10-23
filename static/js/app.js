@@ -80,13 +80,72 @@ document.addEventListener('alpine:init', () => {
             this.setupAudioListeners();
         },
 
+        logAudioState() {
+            console.log('📊 Audio State:', {
+                src: this.audio.src,
+                readyState: this.audio.readyState,
+                readyStateText: ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT_DATA', 'HAVE_FUTURE_DATA', 'HAVE_ENOUGH_DATA'][this.audio.readyState],
+                networkState: this.audio.networkState,
+                networkStateText: ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'][this.audio.networkState],
+                error: this.audio.error,
+                errorCode: this.audio.error ? this.audio.error.code : null,
+                errorMessage: this.audio.error ? this.audio.error.message : null,
+                paused: this.audio.paused,
+                duration: this.audio.duration,
+                currentTime: this.audio.currentTime,
+                buffered: this.audio.buffered.length > 0 ? {
+                    start: this.audio.buffered.start(0),
+                    end: this.audio.buffered.end(0)
+                } : 'empty'
+            });
+        },
+
         setupAudioListeners() {
+            console.log('🔧 Configurando listeners do áudio...');
+            
             this.audio.addEventListener('loadstart', () => {
+                console.log('🎵 [EVENT] loadstart - Começando a carregar áudio');
                 this.isLoading = true;
+                this.logAudioState();
+            });
+
+            this.audio.addEventListener('loadedmetadata', () => {
+                console.log('🎵 [EVENT] loadedmetadata - Metadados carregados');
+                this.logAudioState();
+            });
+
+            this.audio.addEventListener('loadeddata', () => {
+                console.log('🎵 [EVENT] loadeddata - Primeiros dados carregados');
+                this.logAudioState();
             });
 
             this.audio.addEventListener('canplay', () => {
+                console.log('🎵 [EVENT] canplay - Pode começar a tocar');
                 this.isLoading = false;
+                this.logAudioState();
+            });
+
+            this.audio.addEventListener('canplaythrough', () => {
+                console.log('🎵 [EVENT] canplaythrough - Pode tocar até o fim sem parar');
+                this.logAudioState();
+            });
+
+            this.audio.addEventListener('playing', () => {
+                console.log('🎵 [EVENT] playing - Áudio está tocando');
+                this.logAudioState();
+            });
+
+            this.audio.addEventListener('waiting', () => {
+                console.log('⏳ [EVENT] waiting - Aguardando mais dados');
+                this.logAudioState();
+            });
+
+            this.audio.addEventListener('seeking', () => {
+                console.log('⏩ [EVENT] seeking - Procurando nova posição');
+            });
+
+            this.audio.addEventListener('seeked', () => {
+                console.log('✅ [EVENT] seeked - Nova posição encontrada');
             });
 
             this.audio.addEventListener('timeupdate', () => {
@@ -96,37 +155,146 @@ document.addEventListener('alpine:init', () => {
             });
 
             this.audio.addEventListener('ended', () => {
+                console.log('🏁 [EVENT] ended - Áudio terminou');
                 this.next();
             });
 
-            this.audio.addEventListener('error', () => {
+            this.audio.addEventListener('error', (e) => {
                 this.isLoading = false;
-                console.error('Erro no player de áudio');
+                console.error('❌ [EVENT] error - Erro no player de áudio');
+                console.error('❌ Error Code:', this.audio.error?.code);
+                console.error('❌ Error Message:', this.audio.error?.message);
+                console.error('❌ Error Details:', {
+                    code: this.audio.error?.code,
+                    message: this.audio.error?.message,
+                    MEDIA_ERR_ABORTED: this.audio.error?.code === 1 ? 'User aborted' : false,
+                    MEDIA_ERR_NETWORK: this.audio.error?.code === 2 ? 'Network error' : false,
+                    MEDIA_ERR_DECODE: this.audio.error?.code === 3 ? 'Decode error' : false,
+                    MEDIA_ERR_SRC_NOT_SUPPORTED: this.audio.error?.code === 4 ? 'Source not supported' : false,
+                });
+                this.logAudioState();
             });
+
+            this.audio.addEventListener('stalled', () => {
+                console.warn('⚠️ [EVENT] stalled - Download parou');
+                this.logAudioState();
+            });
+
+            this.audio.addEventListener('suspend', () => {
+                console.log('⏸️ [EVENT] suspend - Download suspenso');
+            });
+
+            this.audio.addEventListener('abort', () => {
+                console.warn('🛑 [EVENT] abort - Download abortado');
+                this.logAudioState();
+            });
+
+            this.audio.addEventListener('emptied', () => {
+                console.log('🗑️ [EVENT] emptied - Áudio esvaziado');
+            });
+
+            this.audio.addEventListener('progress', () => {
+                if (this.audio.buffered.length > 0) {
+                    const bufferedEnd = this.audio.buffered.end(this.audio.buffered.length - 1);
+                    const duration = this.audio.duration;
+                    if (duration > 0) {
+                        const bufferedPercent = (bufferedEnd / duration) * 100;
+                        console.log(`📊 [EVENT] progress - Buffered: ${bufferedPercent.toFixed(1)}% (${bufferedEnd.toFixed(1)}s / ${duration.toFixed(1)}s)`);
+                    }
+                }
+            });
+            
+            console.log('✅ Listeners configurados com sucesso');
         },
 
         async playTrack(track) {
-            console.log('🎵 Tentando reproduzir música:', track);
+            console.log('\n' + '='.repeat(80));
+            console.log('🎵 PLAYTRACK INICIADO');
+            console.log('='.repeat(80));
+            console.log('📦 Track recebido:', JSON.stringify(track, null, 2));
+            
             try {
                 this.currentTrack = track;
                 this.isLoading = true;
                 
-                // Usar rota proxy para evitar problemas de CORS
-                console.log('🎵 Usando proxy para:', track.videoId);
-                const proxyUrl = `/api/proxy/${track.videoId}?t=${Date.now()}`;
+                console.log('\n' + '─'.repeat(80));
+                console.log('🔧 CONFIGURANDO ÁUDIO');
+                console.log('─'.repeat(80));
                 
-                console.log('🎵 URL do proxy:', proxyUrl);
+                // Log estado ANTES
+                console.log('📊 Estado do áudio ANTES de configurar src:');
+                this.logAudioState();
+                
+                // Construir URL do proxy
+                const timestamp = Date.now();
+                const proxyUrl = `/api/proxy/${track.videoId}?t=${timestamp}`;
+                console.log('🔗 URL do proxy construída:', proxyUrl);
+                console.log('   - videoId:', track.videoId);
+                console.log('   - timestamp:', timestamp);
+                console.log('   - URL completa:', window.location.origin + proxyUrl);
+                
+                // Atribuir src
+                console.log('\n⚙️ Atribuindo src ao elemento audio...');
                 this.audio.src = proxyUrl;
-                await this.audio.play();
+                console.log('✅ src atribuído com sucesso');
+                
+                // Log estado DEPOIS de atribuir src
+                console.log('📊 Estado do áudio DEPOIS de atribuir src:');
+                this.logAudioState();
+                
+                // Verificar readyState antes de play
+                console.log('\n▶️ Tentando chamar audio.play()...');
+                console.log('   - readyState atual:', this.audio.readyState);
+                console.log('   - networkState atual:', this.audio.networkState);
+                console.log('   - paused:', this.audio.paused);
+                
+                // Chamar play() e capturar a Promise
+                const playPromise = this.audio.play();
+                console.log('✅ audio.play() chamado, aguardando Promise...');
+                console.log('   - Tipo da Promise:', typeof playPromise);
+                
+                await playPromise;
+                
                 this.isPlaying = true;
                 this.isLoading = false;
-                console.log('🎵 Música iniciada com sucesso via proxy!');
+                
+                console.log('\n' + '='.repeat(80));
+                console.log('✅ MÚSICA INICIADA COM SUCESSO!');
+                console.log('='.repeat(80));
+                console.log('📊 Estado final do áudio:');
+                this.logAudioState();
+                console.log('='.repeat(80) + '\n');
                 
                 // Load related songs
                 this.loadRelatedSongs(track.videoId);
+                
             } catch (error) {
-                console.error('❌ Erro ao reproduzir:', error);
-                console.error('❌ Detalhes do erro:', error.message);
+                console.log('\n' + '='.repeat(80));
+                console.error('❌ ERRO AO REPRODUZIR');
+                console.log('='.repeat(80));
+                console.error('❌ Tipo do erro:', error.constructor.name);
+                console.error('❌ Mensagem:', error.message);
+                console.error('❌ Stack trace:', error.stack);
+                console.error('❌ Erro completo:', error);
+                
+                // Log estado no momento do erro
+                console.log('📊 Estado do áudio no momento do erro:');
+                this.logAudioState();
+                
+                // Informações adicionais sobre o erro
+                if (error.name === 'NotSupportedError') {
+                    console.error('⚠️ NotSupportedError detectado!');
+                    console.error('   - Isso geralmente significa que o navegador não consegue reproduzir o formato de áudio');
+                    console.error('   - Verifique o Content-Type do stream');
+                    console.error('   - src atual:', this.audio.src);
+                } else if (error.name === 'NotAllowedError') {
+                    console.error('⚠️ NotAllowedError detectado!');
+                    console.error('   - O navegador bloqueou a reprodução automática');
+                    console.error('   - Isso geralmente requer interação do usuário primeiro');
+                }
+                
+                console.log('='.repeat(80) + '\n');
+                
                 this.isLoading = false;
             }
         },

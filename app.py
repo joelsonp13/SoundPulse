@@ -544,29 +544,55 @@ def get_radio_playlist(videoId):
 @app.route('/api/proxy/<videoId>')
 def proxy_stream(videoId):
     """Proxy para streaming de áudio usando ytmusicapi (OAuth) como primário e yt-dlp como fallback"""
+    import traceback
     try:
-        print(f"🎵 Proxy solicitado para: {videoId}")
+        print(f"\n{'='*80}")
+        print(f"🎵 PROXY SOLICITADO PARA: {videoId}")
+        print(f"{'='*80}")
+        
+        # Verificar estado do ytmusicapi
+        print(f"🔍 Estado do ytmusicapi: {yt}")
+        print(f"🔍 Tipo do yt: {type(yt)}")
+        print(f"🔍 OAuth configurado: {hasattr(yt, '_oauth')}")
+        
         stream_url = None
+        content_type_hint = 'audio/webm'
         
         # MÉTODO 1: Tentar ytmusicapi PRIMEIRO (usa OAuth, não é bloqueado!)
         try:
-            print(f"🔐 Tentando obter stream via ytmusicapi (OAuth)...")
+            print(f"\n{'─'*80}")
+            print(f"🔐 MÉTODO 1: Tentando obter stream via ytmusicapi (OAuth)...")
+            print(f"{'─'*80}")
+            
             song_data = yt.get_song(videoId)
             
+            print(f"📦 Resposta do get_song recebida:")
+            print(f"   - Tipo: {type(song_data)}")
+            print(f"   - Keys disponíveis: {list(song_data.keys()) if isinstance(song_data, dict) else 'N/A'}")
+            
             if song_data and 'streamingData' in song_data:
+                print(f"✅ streamingData encontrado!")
+                
                 # Procurar melhor formato de áudio
                 formats = song_data['streamingData'].get('adaptiveFormats', [])
+                print(f"📊 Total de formatos encontrados: {len(formats)}")
                 
                 # Filtrar apenas formatos de áudio e ordenar por qualidade
                 audio_formats = [f for f in formats if f.get('mimeType', '').startswith('audio/')]
+                print(f"📊 Formatos de áudio disponíveis: {len(audio_formats)}")
                 
                 if audio_formats:
+                    # Listar todos os formatos de áudio
+                    for i, fmt in enumerate(audio_formats):
+                        print(f"   [{i}] {fmt.get('mimeType', 'unknown')} - {fmt.get('bitrate', 'unknown')} bps")
+                    
                     # Preferir opus > aac > mp4a
                     best_format = None
                     for fmt in audio_formats:
                         mime = fmt.get('mimeType', '')
                         if 'opus' in mime.lower():
                             best_format = fmt
+                            print(f"✅ Selecionado formato OPUS")
                             break
                     
                     if not best_format:
@@ -574,48 +600,103 @@ def proxy_stream(videoId):
                             mime = fmt.get('mimeType', '')
                             if 'mp4a' in mime.lower() or 'aac' in mime.lower():
                                 best_format = fmt
+                                print(f"✅ Selecionado formato AAC/MP4A")
                                 break
                     
                     if not best_format:
                         best_format = audio_formats[0]
+                        print(f"✅ Selecionado primeiro formato disponível")
                     
                     stream_url = best_format.get('url')
+                    content_type_hint = best_format.get('mimeType', 'audio/webm')
+                    
                     if stream_url:
                         print(f"✅ Stream URL obtida via ytmusicapi!")
-                        print(f"📊 Formato: {best_format.get('mimeType', 'unknown')}")
-                        print(f"📊 Bitrate: {best_format.get('bitrate', 'unknown')}")
+                        print(f"📊 Formato selecionado: {content_type_hint}")
+                        print(f"📊 Bitrate: {best_format.get('bitrate', 'unknown')} bps")
+                        print(f"📊 URL (primeiros 150 chars): {stream_url[:150]}...")
+                        
+                        # Verificar se URL tem parâmetros de expiração
+                        if 'expire=' in stream_url:
+                            import re
+                            expire_match = re.search(r'expire=(\d+)', stream_url)
+                            if expire_match:
+                                expire_timestamp = int(expire_match.group(1))
+                                import time
+                                current_time = int(time.time())
+                                time_until_expire = expire_timestamp - current_time
+                                print(f"⏰ URL expira em: {time_until_expire} segundos ({time_until_expire/60:.1f} minutos)")
+                    else:
+                        print(f"❌ URL não encontrada no formato selecionado")
+                else:
+                    print(f"❌ Nenhum formato de áudio encontrado")
+            else:
+                print(f"❌ streamingData não encontrado na resposta")
+                print(f"   Dados disponíveis: {list(song_data.keys()) if isinstance(song_data, dict) else 'N/A'}")
+                
         except Exception as e:
-            print(f"⚠️ ytmusicapi falhou: {e}")
+            print(f"❌ ytmusicapi falhou com exceção:")
+            print(f"   Tipo: {type(e).__name__}")
+            print(f"   Mensagem: {str(e)}")
+            traceback.print_exc()
         
         # MÉTODO 2: Fallback para yt-dlp se ytmusicapi falhar
         if not stream_url:
             try:
-                print(f"🔧 Fallback: Tentando yt-dlp...")
+                print(f"\n{'─'*80}")
+                print(f"🔧 MÉTODO 2: Fallback para yt-dlp...")
+                print(f"{'─'*80}")
+                
                 url = f"https://www.youtube.com/watch?v={videoId}"
+                print(f"📺 URL: {url}")
                 
                 ydl_opts = {
                     'format': 'bestaudio/best',
-                    'quiet': True,
-                    'no_warnings': True,
+                    'quiet': False,  # Mudado para ver mais logs
+                    'no_warnings': False,
                     'extract_flat': False,
-                    'socket_timeout': 30,
+                    'socket_timeout': 60,  # Aumentado para 60s
+                    'verbose': True,
                 }
                 
+                print(f"🔧 Iniciando extração com yt-dlp...")
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=False)
                     
-                    if info and 'url' in info:
-                        stream_url = info['url']
-                        print(f"✅ Stream URL obtida via yt-dlp!")
+                    if info:
+                        print(f"✅ Info extraída do yt-dlp")
+                        print(f"   Keys disponíveis: {list(info.keys())[:20]}...")  # Primeiras 20 keys
+                        
+                        if 'url' in info:
+                            stream_url = info['url']
+                            content_type_hint = info.get('ext', 'webm')
+                            print(f"✅ Stream URL obtida via yt-dlp!")
+                            print(f"📊 Formato: {info.get('format', 'unknown')}")
+                            print(f"📊 Extension: {info.get('ext', 'unknown')}")
+                            print(f"📊 URL (primeiros 150 chars): {stream_url[:150]}...")
+                        else:
+                            print(f"❌ Key 'url' não encontrada no info")
+                    else:
+                        print(f"❌ extract_info retornou None")
+                        
             except Exception as e:
-                print(f"❌ yt-dlp também falhou: {e}")
+                print(f"❌ yt-dlp falhou com exceção:")
+                print(f"   Tipo: {type(e).__name__}")
+                print(f"   Mensagem: {str(e)}")
+                traceback.print_exc()
         
         # Se nenhum método funcionou
         if not stream_url:
-            print(f"❌ Nenhum método conseguiu obter stream")
+            print(f"\n{'='*80}")
+            print(f"❌ FALHA TOTAL: Nenhum método conseguiu obter stream")
+            print(f"{'='*80}\n")
             return jsonify({'error': 'Stream não disponível'}), 404
         
         # Fazer requisição para o stream
+        print(f"\n{'─'*80}")
+        print(f"📡 FAZENDO REQUISIÇÃO AO STREAM")
+        print(f"{'─'*80}")
+        
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': '*/*',
@@ -629,25 +710,45 @@ def proxy_stream(videoId):
             'Sec-Fetch-Site': 'cross-site',
         }
         
-        print(f"📡 Fazendo requisição ao stream...")
+        print(f"📡 Requisitando stream do YouTube...")
         response = requests.get(stream_url, headers=headers, stream=True, timeout=60)
         
         # Pegar Content-Type real
-        content_type = response.headers.get('Content-Type', 'audio/webm')
-        print(f"📊 Content-Type: {content_type}")
-        print(f"📊 Status: {response.status_code}")
+        content_type = response.headers.get('Content-Type', content_type_hint)
+        print(f"📊 Resposta recebida:")
+        print(f"   - Status Code: {response.status_code}")
+        print(f"   - Content-Type: {content_type}")
+        print(f"   - Content-Length: {response.headers.get('Content-Length', 'N/A')}")
+        print(f"   - Headers completos: {dict(response.headers)}")
+        
+        if response.status_code != 200:
+            print(f"❌ Status code inválido: {response.status_code}")
+            return jsonify({'error': f'Erro HTTP {response.status_code}'}), 500
         
         def generate():
             try:
                 chunk_count = 0
+                total_bytes = 0
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         chunk_count += 1
-                        if chunk_count == 1:
-                            print(f"✅ Primeiro chunk enviado!")
+                        total_bytes += len(chunk)
+                        
+                        # Log dos primeiros 5 chunks
+                        if chunk_count <= 5:
+                            print(f"📦 Chunk #{chunk_count}: {len(chunk)} bytes (Total: {total_bytes} bytes)")
+                        # Depois, a cada 100 chunks
+                        elif chunk_count % 100 == 0:
+                            print(f"📦 Chunk #{chunk_count}: Total transferido: {total_bytes} bytes ({total_bytes/1024/1024:.2f} MB)")
+                        
                         yield chunk
+                        
+                print(f"✅ Streaming concluído: {chunk_count} chunks, {total_bytes} bytes ({total_bytes/1024/1024:.2f} MB)")
             except Exception as e:
-                print(f"❌ Erro no streaming: {e}")
+                print(f"❌ Erro durante streaming:")
+                print(f"   Tipo: {type(e).__name__}")
+                print(f"   Mensagem: {str(e)}")
+                traceback.print_exc()
         
         response_headers = {
             'Content-Type': content_type,
@@ -661,9 +762,10 @@ def proxy_stream(videoId):
         # Adicionar Content-Length se disponível
         if 'Content-Length' in response.headers:
             response_headers['Content-Length'] = response.headers['Content-Length']
-            print(f"📊 Content-Length: {response.headers['Content-Length']} bytes")
         
-        print(f"✅ Iniciando streaming do proxy")
+        print(f"✅ Iniciando streaming do proxy para o cliente")
+        print(f"{'='*80}\n")
+        
         return Response(
             stream_with_context(generate()),
             headers=response_headers,
@@ -671,9 +773,13 @@ def proxy_stream(videoId):
         )
         
     except Exception as e:
-        print(f"❌ Erro fatal no proxy: {str(e)}")
-        import traceback
+        print(f"\n{'='*80}")
+        print(f"❌ ERRO FATAL NO PROXY:")
+        print(f"   Tipo: {type(e).__name__}")
+        print(f"   Mensagem: {str(e)}")
+        print(f"{'='*80}")
         traceback.print_exc()
+        print(f"{'='*80}\n")
         return jsonify({'error': f'Erro no proxy: {str(e)}'}), 500
 
 # ===== PAGE ENDPOINTS (Return HTML Partials) =====
