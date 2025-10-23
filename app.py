@@ -545,6 +545,8 @@ def get_radio_playlist(videoId):
 def proxy_stream(videoId):
     """Proxy para streaming de áudio usando yt-dlp"""
     try:
+        print(f"🎵 Proxy solicitado para: {videoId}")
+        
         # Usar yt-dlp para obter URL de stream
         url = f"https://www.youtube.com/watch?v={videoId}"
         
@@ -556,40 +558,59 @@ def proxy_stream(videoId):
             'socket_timeout': 30,
         }
         
+        print(f"🔧 Extraindo stream com yt-dlp...")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
             if not info or 'url' not in info:
+                print(f"❌ Stream não encontrado")
                 return jsonify({'error': 'Stream não encontrado'}), 404
             
             stream_url = info['url']
+            print(f"✅ Stream URL obtida: {stream_url[:100]}...")
         
         # Fazer requisição para o stream
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
         }
         
-        response = requests.get(stream_url, headers=headers, stream=True, timeout=30)
+        print(f"📡 Fazendo requisição ao YouTube...")
+        response = requests.get(stream_url, headers=headers, stream=True, timeout=60)
+        
+        # Pegar Content-Type real do YouTube
+        content_type = response.headers.get('Content-Type', 'audio/webm')
+        print(f"📊 Content-Type: {content_type}")
         
         def generate():
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    yield chunk
+            try:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        yield chunk
+            except Exception as e:
+                print(f"❌ Erro no streaming: {e}")
         
+        response_headers = {
+            'Content-Type': content_type,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'no-cache',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Range',
+        }
+        
+        # Adicionar Content-Length se disponível
+        if 'Content-Length' in response.headers:
+            response_headers['Content-Length'] = response.headers['Content-Length']
+        
+        print(f"✅ Iniciando streaming do proxy")
         return Response(
             stream_with_context(generate()),
-            headers={
-                'Content-Type': 'audio/mpeg',
-                'Accept-Ranges': 'bytes',
-                'Cache-Control': 'no-cache',
-                'Access-Control-Allow-Origin': '*'
-            }
+            headers=response_headers,
+            status=200
         )
         
     except Exception as e:
