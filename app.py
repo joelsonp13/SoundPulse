@@ -543,14 +543,26 @@ def get_radio_playlist(videoId):
 
 @app.route('/api/proxy/<videoId>')
 def proxy_stream(videoId):
-    """Proxy para streaming de áudio"""
+    """Proxy para streaming de áudio usando yt-dlp"""
     try:
-        # Usar pytubefix para obter URL de stream
-        yt_video = YouTube(f"https://www.youtube.com/watch?v={videoId}")
-        audio_stream = yt_video.streams.filter(only_audio=True).first()
+        # Usar yt-dlp para obter URL de stream
+        url = f"https://www.youtube.com/watch?v={videoId}"
         
-        if not audio_stream:
-            return jsonify({'error': 'Stream não encontrado'}), 404
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': False,
+            'socket_timeout': 30,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            if not info or 'url' not in info:
+                return jsonify({'error': 'Stream não encontrado'}), 404
+            
+            stream_url = info['url']
         
         # Fazer requisição para o stream
         headers = {
@@ -563,7 +575,7 @@ def proxy_stream(videoId):
             'Upgrade-Insecure-Requests': '1',
         }
         
-        response = requests.get(audio_stream.url, headers=headers, stream=True, timeout=30)
+        response = requests.get(stream_url, headers=headers, stream=True, timeout=30)
         
         def generate():
             for chunk in response.iter_content(chunk_size=8192):
