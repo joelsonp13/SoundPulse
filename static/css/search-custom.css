@@ -698,6 +698,7 @@
     }
     
     /* Thumbnails menores - FORÇAR SOBRESCRITA MOBILE */
+    .top-songs-thumbnail-container,
     .top-songs-list > div > div[style*="width: 2.5rem"],
     .top-songs-list > div > div:nth-child(2),
     .top-songs-list > div > div[style*="position: relative"] {
@@ -710,6 +711,7 @@
         flex-shrink: 0 !important;
     }
     
+    .top-songs-thumbnail-img,
     .top-songs-list > div > div:nth-child(2) img,
     .top-songs-list > div > div[style*="position: relative"] img {
         width: 1.75rem !important;
@@ -796,6 +798,7 @@
     }
     
     /* Thumbnails menores em tablet - FORÇAR SOBRESCRITA */
+    .top-songs-thumbnail-container,
     .top-songs-list > div > div[style*="width: 2.5rem"],
     .top-songs-list > div > div:nth-child(2),
     .top-songs-list > div > div[style*="position: relative"] {
@@ -808,6 +811,7 @@
         flex-shrink: 0 !important;
     }
     
+    .top-songs-thumbnail-img,
     .top-songs-list > div > div:nth-child(2) img,
     .top-songs-list > div > div[style*="position: relative"] img {
         width: 2rem !important;
@@ -848,6 +852,7 @@
 /* Desktop - Thumbnails das top músicas */
 @media (min-width: 1024px) {
     /* Thumbnails maiores em desktop */
+    .top-songs-thumbnail-container,
     .top-songs-list > div > div[style*="width: 2.5rem"],
     .top-songs-list > div > div:nth-child(2),
     .top-songs-list > div > div[style*="position: relative"] {
@@ -860,6 +865,7 @@
         flex-shrink: 0 !important;
     }
     
+    .top-songs-thumbnail-img,
     .top-songs-list > div > div:nth-child(2) img,
     .top-songs-list > div > div[style*="position: relative"] img {
         width: 2.25rem !important;
