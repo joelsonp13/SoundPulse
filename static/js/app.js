@@ -141,11 +141,31 @@ document.addEventListener('alpine:init', () => {
                             }
                         });
                     }, {
-                        rootMargin: '200px 0px', // Começar a carregar 200px antes
+                        rootMargin: '400px 0px', // Começar a carregar 400px antes (mais agressivo)
                         threshold: 0.01
                     });
                     
+                    // Observar elemento
                     observer.observe(el);
+                    
+                    // Se já estiver visível, carregar imediatamente
+                    const rect = el.getBoundingClientRect();
+                    const isVisible = (
+                        rect.top >= -400 && 
+                        rect.bottom <= (window.innerHeight + 400)
+                    );
+                    
+                    if (isVisible) {
+                        setTimeout(() => {
+                            if (el.getAttribute('data-src')) {
+                                el.src = el.getAttribute('data-src');
+                                el.removeAttribute('data-src');
+                                el.classList.remove('lazy');
+                                el.classList.add('lazy-loaded');
+                                observer.unobserve(el);
+                            }
+                        }, 50);
+                    }
                 } else {
                     // Fallback para navegadores sem IntersectionObserver
                     el.src = src;
