@@ -23,6 +23,9 @@
     <!-- Alpine.js (Local) -->
     <script defer src="{{ url_for('static', filename='js/alpine.min.js') }}"></script>
     
+    <!-- YouTube IFrame Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    
     <!-- Debug Helpers (Desenvolvimento) -->
     <script src="{{ url_for('static', filename='js/tailwind-debug.js') }}"></script>
     <script src="{{ url_for('static', filename='js/htmx-debug.js') }}"></script>
@@ -51,6 +54,9 @@
     </script>
 </head>
 <body class="text-white">
+    <!-- YouTube Player (Invisível) -->
+    <div id="youtube-player" style="display: none;"></div>
+    
     <!-- Background Animation -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
         <div class="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse-slow"></div>

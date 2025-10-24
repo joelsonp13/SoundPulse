@@ -1,20 +1,11 @@
 from flask import Flask, render_template, jsonify, request, stream_with_context, Response
 from flask_cors import CORS
 from ytmusicapi import YTMusic
-import yt_dlp
 import json
 import os
 import requests
-import time
-from collections import OrderedDict
 
 app = Flask(__name__)
-
-# Cache de URLs de stream (LRU Cache simples)
-# Formato: {videoId: {'url': stream_url, 'content_type': mime, 'expires_at': timestamp}}
-STREAM_CACHE = OrderedDict()
-STREAM_CACHE_MAX_SIZE = 50
-STREAM_CACHE_TTL = 3600  # 1 hora (URLs do YouTube expiram em ~6 horas)
 
 # Configuração CORS mais robusta
 CORS(app, 
@@ -139,13 +130,7 @@ try:
             print(f"[ERRO] Erro ao parsear OAUTH_JSON: {e}")
             print("[AVISO] Usando modo público...")
             yt = YTMusic()
-        except Exception as e:
-            print(f"[ERRO] Erro ao inicializar OAuth: {e}")
-            import traceback
-            traceback.print_exc()
-            print("[AVISO] Usando modo público...")
-            yt = YTMusic()
-            
+    
     elif os.path.exists('oauth.json'):
         print("[OAuth] OAuth encontrado em arquivo local...")
         try:
@@ -171,16 +156,18 @@ try:
             traceback.print_exc()
             print("[AVISO] Usando modo público...")
             yt = YTMusic()
-        
+    
     else:
         print("[AVISO] oauth.json não encontrado, usando modo público...")
         yt = YTMusic()
         print("[OK] YTMusic conectado com sucesso (modo público)!")
-        
+
 except Exception as e:
-    print(f"[ERRO] Erro ao conectar YTMusic: {e}")
+    print(f"[ERRO] Erro ao inicializar OAuth: {e}")
     import traceback
     traceback.print_exc()
+    print("[AVISO] Usando modo público...")
+    yt = YTMusic()
     yt = None
 
 # Criar instância pública como fallback para quando OAuth der 403
@@ -397,59 +384,6 @@ def search():
         print(f"[ERRO] ERRO na busca: {str(e)}")
         return jsonify({'error': f'Erro na busca: {str(e)}'}), 500
 
-@app.route('/api/stream/<videoId>')
-def get_stream_url(videoId):
-    """Obter URL de stream de áudio usando yt-dlp"""
-    if not yt:
-        print("[ERRO] YTMusic não conectado")
-        return jsonify({'error': 'YTMusic não conectado'}), 500
-    
-    try:
-        print(f"[Musica] Tentando obter stream para: {videoId}")
-        
-        url = f"https://www.youtube.com/watch?v={videoId}"
-        print(f"[Video] URL do YouTube: {url}")
-        
-        # Configuração do yt-dlp
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'quiet': True,
-            'no_warnings': True,
-            'extract_flat': False,
-            'socket_timeout': 30,
-        }
-        
-        print(f"[Tool] Iniciando yt-dlp...")
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            print(f"[Download] Extraindo informações do vídeo...")
-            info = ydl.extract_info(url, download=False)
-            
-            if info and 'url' in info:
-                stream_url = info['url']
-                print(f"[OK] Stream de áudio encontrado!")
-                print(f"[Stats] Formato: {info.get('format', 'unknown')}")
-                print(f"[Link] URL: {stream_url[:100]}...")
-                
-                return jsonify({
-                    'success': True, 
-                    'url': stream_url,
-                    'title': info.get('title', ''),
-                    'duration': info.get('duration', 0)
-                })
-            else:
-                print(f"[ERRO] Nenhum stream de áudio disponível")
-                return jsonify({'error': 'Stream não encontrado'}), 404
-                
-    except yt_dlp.utils.DownloadError as e:
-        print(f"[ERRO] ERRO yt-dlp DownloadError: {str(e)}")
-        return jsonify({'error': f'Vídeo indisponível: {str(e)}'}), 404
-    except Exception as e:
-        print(f"[ERRO] ERRO ao obter stream: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Erro ao obter stream: {str(e)}'}), 500
-
 @app.route('/api/watch/<videoId>')
 def get_watch_playlist(videoId):
     """Obter playlist de watch (músicas relacionadas)"""
@@ -649,327 +583,6 @@ def get_radio_playlist(videoId):
     except Exception as e:
         return jsonify({'error': f'Erro ao obter rádio: {str(e)}'}), 500
 
-def get_cached_stream(videoId):
-    """Verifica se existe URL em cache e se ainda é válida"""
-    if videoId in STREAM_CACHE:
-        cached = STREAM_CACHE[videoId]
-        current_time = time.time()
-        
-        # Verificar se ainda não expirou
-        if cached['expires_at'] > current_time:
-            # Mover para o fim (LRU)
-            STREAM_CACHE.move_to_end(videoId)
-            time_left = cached['expires_at'] - current_time
-            print(f"[OK] Cache HIT! URL válida por mais {time_left/60:.1f} minutos")
-            return cached
-        else:
-            print(f"[AVISO] Cache expirado, removendo...")
-            del STREAM_CACHE[videoId]
-    
-    print(f"[ERRO] Cache MISS")
-    return None
-
-def add_to_cache(videoId, stream_url, content_type):
-    """Adiciona URL ao cache"""
-    global STREAM_CACHE
-    
-    # Remover mais antigo se cache cheio (LRU)
-    if len(STREAM_CACHE) >= STREAM_CACHE_MAX_SIZE:
-        oldest = next(iter(STREAM_CACHE))
-        print(f"[Delete] Cache cheio, removendo: {oldest}")
-        STREAM_CACHE.pop(oldest)
-    
-    # Calcular tempo de expiração (1 hora ou usar expire da URL se disponível)
-    expires_at = time.time() + STREAM_CACHE_TTL
-    
-    # Tentar extrair expire da URL do YouTube
-    if 'expire=' in stream_url:
-        import re
-        expire_match = re.search(r'expire=(\d+)', stream_url)
-        if expire_match:
-            youtube_expire = int(expire_match.group(1))
-            # Usar o menor entre TTL do cache e expire do YouTube
-            expires_at = min(expires_at, youtube_expire)
-    
-    STREAM_CACHE[videoId] = {
-        'url': stream_url,
-        'content_type': content_type,
-        'expires_at': expires_at
-    }
-    
-    time_left = expires_at - time.time()
-    print(f"[Cache] Adicionado ao cache (válido por {time_left/60:.1f} minutos)")
-    print(f"[Stats] Cache size: {len(STREAM_CACHE)}/{STREAM_CACHE_MAX_SIZE}")
-
-@app.route('/api/proxy/<videoId>')
-def proxy_stream(videoId):
-    """Proxy para streaming de áudio usando ytmusicapi (OAuth) como primário e yt-dlp como fallback"""
-    import traceback
-    try:
-        print(f"\n{'='*80}")
-        print(f"[Musica] PROXY SOLICITADO PARA: {videoId}")
-        print(f"{'='*80}")
-        
-        # Verificar cache primeiro
-        cached = get_cached_stream(videoId)
-        if cached:
-            stream_url = cached['url']
-            content_type_hint = cached['content_type']
-            print(f"[Fast] Usando URL do cache (resposta instantânea!)")
-        else:
-            # Verificar estado do ytmusicapi
-            print(f"[Debug] Estado do ytmusicapi: {yt}")
-            print(f"[Debug] Tipo do yt: {type(yt)}")
-            
-            # Verificar se OAuth está ativo (verifica se _token existe e não é None)
-            oauth_ativo = False
-            if yt and hasattr(yt, '_token') and yt._token is not None:
-                # Verifica se _token tem os atributos de RefreshingToken
-                oauth_ativo = hasattr(yt._token, 'refresh_token') or 'RefreshingToken' in str(type(yt._token))
-            
-            print(f"[Debug] OAuth configurado: {oauth_ativo}")
-            
-            stream_url = None
-            content_type_hint = 'audio/webm'
-            
-            # Debug: verificar se OAuth está realmente funcionando
-            if oauth_ativo:
-                print(f"[OK] OAuth ATIVO e funcional!")
-            else:
-                print(f"[AVISO] OAuth NÃO está ativo - vai usar modo público")
-            
-            # MÉTODO 1: Tentar ytmusicapi PRIMEIRO (modo PÚBLICO para streaming!)
-            # NOTA: get_song() com OAuth NÃO retorna streamingData, só metadados!
-            # Para streaming, SEMPRE usar modo público (yt_public)
-            try:
-                print(f"\n{'─'*80}")
-                print(f"[Streaming] MÉTODO 1: Tentando obter stream via ytmusicapi PÚBLICO...")
-                print(f"{'─'*80}")
-                
-                # USAR yt_public para streaming (não requer OAuth)
-                ytm_to_use = yt_public if yt_public else yt
-                print(f"[Info] Usando instância: {'yt_public' if ytm_to_use == yt_public else 'yt (OAuth)'}")
-                
-                song_data = ytm_to_use.get_song(videoId)
-                
-                print(f"[Data] Resposta do get_song recebida:")
-                print(f"   - Tipo: {type(song_data)}")
-                print(f"   - Keys disponíveis: {list(song_data.keys()) if isinstance(song_data, dict) else 'N/A'}")
-                
-                if song_data and 'streamingData' in song_data:
-                    print(f"[OK] streamingData encontrado!")
-                    
-                    # Procurar melhor formato de áudio
-                    formats = song_data['streamingData'].get('adaptiveFormats', [])
-                    print(f"[Stats] Total de formatos encontrados: {len(formats)}")
-                    
-                    # Filtrar apenas formatos de áudio e ordenar por qualidade
-                    audio_formats = [f for f in formats if f.get('mimeType', '').startswith('audio/')]
-                    print(f"[Stats] Formatos de áudio disponíveis: {len(audio_formats)}")
-                    
-                    if audio_formats:
-                        # Listar todos os formatos de áudio
-                        for i, fmt in enumerate(audio_formats):
-                            print(f"   [{i}] {fmt.get('mimeType', 'unknown')} - {fmt.get('bitrate', 'unknown')} bps")
-                        
-                        # Preferir opus > aac > mp4a
-                        best_format = None
-                        for fmt in audio_formats:
-                            mime = fmt.get('mimeType', '')
-                            if 'opus' in mime.lower():
-                                best_format = fmt
-                                print(f"[OK] Selecionado formato OPUS")
-                                break
-                        
-                        if not best_format:
-                            for fmt in audio_formats:
-                                mime = fmt.get('mimeType', '')
-                                if 'mp4a' in mime.lower() or 'aac' in mime.lower():
-                                    best_format = fmt
-                                    print(f"[OK] Selecionado formato AAC/MP4A")
-                                    break
-                        
-                        if not best_format:
-                            best_format = audio_formats[0]
-                            print(f"[OK] Selecionado primeiro formato disponível")
-                        
-                        stream_url = best_format.get('url')
-                        content_type_hint = best_format.get('mimeType', 'audio/webm')
-                        
-                        if stream_url:
-                            print(f"[OK] Stream URL obtida via ytmusicapi!")
-                            print(f"[Stats] Formato selecionado: {content_type_hint}")
-                            print(f"[Stats] Bitrate: {best_format.get('bitrate', 'unknown')} bps")
-                            print(f"[Stats] URL (primeiros 150 chars): {stream_url[:150]}...")
-                            
-                            # Verificar se URL tem parâmetros de expiração
-                            if 'expire=' in stream_url:
-                                import re
-                                expire_match = re.search(r'expire=(\d+)', stream_url)
-                                if expire_match:
-                                    expire_timestamp = int(expire_match.group(1))
-                                    current_time = int(time.time())
-                                    time_until_expire = expire_timestamp - current_time
-                                    print(f"⏰ URL expira em: {time_until_expire} segundos ({time_until_expire/60:.1f} minutos)")
-                        else:
-                            print(f"[ERRO] URL não encontrada no formato selecionado")
-                    else:
-                        print(f"[ERRO] Nenhum formato de áudio encontrado")
-                else:
-                    print(f"[ERRO] streamingData não encontrado na resposta")
-                    print(f"   Dados disponíveis: {list(song_data.keys()) if isinstance(song_data, dict) else 'N/A'}")
-                    
-            except Exception as e:
-                print(f"[ERRO] ytmusicapi falhou com exceção:")
-                print(f"   Tipo: {type(e).__name__}")
-                print(f"   Mensagem: {str(e)}")
-                traceback.print_exc()
-        
-        # MÉTODO 2: Fallback para yt-dlp se ytmusicapi falhar
-        if not stream_url:
-            try:
-                print(f"\n{'─'*80}")
-                print(f"[Tool] MÉTODO 2: Fallback para yt-dlp...")
-                print(f"{'─'*80}")
-                
-                url = f"https://www.youtube.com/watch?v={videoId}"
-                print(f"[Video] URL: {url}")
-                
-                ydl_opts = {
-                    'format': 'bestaudio/best',
-                    'quiet': False,  # Mudado para ver mais logs
-                    'no_warnings': False,
-                    'extract_flat': False,
-                    'socket_timeout': 60,  # Aumentado para 60s
-                    'verbose': True,
-                }
-                
-                print(f"[Tool] Iniciando extração com yt-dlp...")
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(url, download=False)
-                    
-                    if info:
-                        print(f"[OK] Info extraída do yt-dlp")
-                        print(f"   Keys disponíveis: {list(info.keys())[:20]}...")  # Primeiras 20 keys
-                        
-                        if 'url' in info:
-                            stream_url = info['url']
-                            content_type_hint = info.get('ext', 'webm')
-                            print(f"[OK] Stream URL obtida via yt-dlp!")
-                            print(f"[Stats] Formato: {info.get('format', 'unknown')}")
-                            print(f"[Stats] Extension: {info.get('ext', 'unknown')}")
-                            print(f"[Stats] URL (primeiros 150 chars): {stream_url[:150]}...")
-                        else:
-                            print(f"[ERRO] Key 'url' não encontrada no info")
-                    else:
-                        print(f"[ERRO] extract_info retornou None")
-                        
-            except Exception as e:
-                print(f"[ERRO] yt-dlp falhou com exceção:")
-                print(f"   Tipo: {type(e).__name__}")
-                print(f"   Mensagem: {str(e)}")
-                traceback.print_exc()
-        
-            # Se nenhum método funcionou
-            if not stream_url:
-                print(f"\n{'='*80}")
-                print(f"[ERRO] FALHA TOTAL: Nenhum método conseguiu obter stream")
-                print(f"{'='*80}\n")
-                return jsonify({'error': 'Stream não disponível'}), 404
-            
-            # Adicionar ao cache se extraiu com sucesso
-            add_to_cache(videoId, stream_url, content_type_hint)
-        
-        # Fazer requisição para o stream
-        print(f"\n{'─'*80}")
-        print(f"[Network] FAZENDO REQUISIÇÃO AO STREAM")
-        print(f"{'─'*80}")
-        
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Origin': 'https://music.youtube.com',
-            'Referer': 'https://music.youtube.com/',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Sec-Fetch-Dest': 'audio',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'cross-site',
-        }
-        
-        print(f"[Network] Requisitando stream do YouTube...")
-        response = requests.get(stream_url, headers=headers, stream=True, timeout=60)
-        
-        # Pegar Content-Type real
-        content_type = response.headers.get('Content-Type', content_type_hint)
-        print(f"[Stats] Resposta recebida:")
-        print(f"   - Status Code: {response.status_code}")
-        print(f"   - Content-Type: {content_type}")
-        print(f"   - Content-Length: {response.headers.get('Content-Length', 'N/A')}")
-        print(f"   - Headers completos: {dict(response.headers)}")
-        
-        if response.status_code != 200:
-            print(f"[ERRO] Status code inválido: {response.status_code}")
-            return jsonify({'error': f'Erro HTTP {response.status_code}'}), 500
-        
-        def generate():
-            try:
-                chunk_count = 0
-                total_bytes = 0
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        chunk_count += 1
-                        total_bytes += len(chunk)
-                        
-                        # Log dos primeiros 5 chunks
-                        if chunk_count <= 5:
-                            print(f"[Data] Chunk #{chunk_count}: {len(chunk)} bytes (Total: {total_bytes} bytes)")
-                        # Depois, a cada 100 chunks
-                        elif chunk_count % 100 == 0:
-                            print(f"[Data] Chunk #{chunk_count}: Total transferido: {total_bytes} bytes ({total_bytes/1024/1024:.2f} MB)")
-                        
-                        yield chunk
-                        
-                print(f"[OK] Streaming concluído: {chunk_count} chunks, {total_bytes} bytes ({total_bytes/1024/1024:.2f} MB)")
-            except Exception as e:
-                print(f"[ERRO] Erro durante streaming:")
-                print(f"   Tipo: {type(e).__name__}")
-                print(f"   Mensagem: {str(e)}")
-                traceback.print_exc()
-        
-        response_headers = {
-            'Content-Type': content_type,
-            'Accept-Ranges': 'bytes',
-            'Cache-Control': 'no-cache',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Range, Content-Type',
-        }
-        
-        # Adicionar Content-Length se disponível
-        if 'Content-Length' in response.headers:
-            response_headers['Content-Length'] = response.headers['Content-Length']
-        
-        print(f"[OK] Iniciando streaming do proxy para o cliente")
-        print(f"{'='*80}\n")
-        
-        return Response(
-            stream_with_context(generate()),
-            headers=response_headers,
-            status=200
-        )
-        
-    except Exception as e:
-        print(f"\n{'='*80}")
-        print(f"[ERRO] ERRO FATAL NO PROXY:")
-        print(f"   Tipo: {type(e).__name__}")
-        print(f"   Mensagem: {str(e)}")
-        print(f"{'='*80}")
-        traceback.print_exc()
-        print(f"{'='*80}\n")
-        return jsonify({'error': f'Erro no proxy: {str(e)}'}), 500
-
 # ===== PAGE ENDPOINTS (Return HTML Partials) =====
 
 @app.route('/pages/home')
@@ -1104,68 +717,6 @@ def charts_songs(country):
                              title='Erro ao carregar charts',
                              message=str(e))
 
-@app.route('/api/charts/artists/<country>')
-def charts_artists(country):
-    """Charts artists by country"""
-    if not yt:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
-    
-    try:
-        # Usar busca direta ao invés de get_charts (mais confiável)
-        country_names = {
-            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
-            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
-            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
-        }
-        
-        country_name = country_names.get(country.upper(), 'trending')
-        query = f'top artists {country_name} 2024'
-        
-        artists = yt.search(query, filter='artists', limit=10)
-        
-        # Filtrar apenas artistas válidos
-        artists = [a for a in artists if a.get('browseId')]
-        
-        return render_template('components/cards_grid.html', items=artists, type='artist')
-    except Exception as e:
-        print(f"Erro em charts_artists: {str(e)}")
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar charts',
-                             message=str(e))
-
-@app.route('/api/charts/videos/<country>')
-def charts_videos(country):
-    """Charts videos by country"""
-    if not yt:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
-    
-    try:
-        # Usar busca direta ao invés de get_charts (mais confiável)
-        country_names = {
-            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
-            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
-            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
-        }
-        
-        country_name = country_names.get(country.upper(), 'trending')
-        query = f'top music videos {country_name} 2024'
-        
-        videos = yt.search(query, filter='videos', limit=10)
-        
-        # Filtrar apenas vídeos válidos
-        videos = [v for v in videos if v.get('videoId')]
-        
-        return render_template('components/cards_grid.html', items=videos, type='music')
-    except Exception as e:
-        print(f"Erro em charts_videos: {str(e)}")
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar charts',
-                             message=str(e))
-
 # ===== HOME SECTION ENDPOINTS =====
 
 @app.route('/api/trending-songs')
@@ -1182,59 +733,6 @@ def trending_songs_endpoint():
     except Exception as e:
         return render_template('components/error_state.html',
                              title='Erro ao carregar músicas',
-                             message=str(e))
-
-@app.route('/api/new-releases')
-def new_releases_endpoint():
-    """New album releases"""
-    if not yt and not yt_public:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
-    
-    try:
-        results = safe_ytmusic_call(lambda ytm: ytm.search('new releases albums 2024', filter='albums', limit=10))
-        return render_template('components/cards_grid.html', items=results, type='album')
-    except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar lançamentos',
-                             message=str(e))
-
-@app.route('/api/trending-podcasts')
-def trending_podcasts_endpoint():
-    """Trending podcasts"""
-    if not yt:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
-    
-    try:
-        # Search for popular podcasts
-        results = yt.search('best podcasts 2024', limit=15)
-        
-        # Filtrar e processar podcasts
-        podcasts = []
-        for r in results:
-            # Verificar se é podcast ou playlist
-            if ('podcast' in str(r.get('resultType', '')).lower() or 
-                'podcast' in str(r.get('category', '')).lower() or
-                r.get('resultType') == 'playlist'):
-                
-                # Melhorar thumbnails se possível
-                if r.get('thumbnails'):
-                    # Pegar a maior thumbnail disponível
-                    thumbnails = sorted(r['thumbnails'], key=lambda x: x.get('width', 0) * x.get('height', 0), reverse=True)
-                    r['thumbnails'] = thumbnails
-                
-                podcasts.append(r)
-                
-                if len(podcasts) >= 10:
-                    break
-        
-        return render_template('components/cards_grid.html', items=podcasts, type='podcast')
-    except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar podcasts',
                              message=str(e))
 
 # ===== ARTIST ENDPOINTS =====
@@ -1254,56 +752,6 @@ def artist_top_songs_endpoint(browseId):
     except Exception as e:
         return render_template('components/error_state.html',
                              title='Erro ao carregar músicas',
-                             message=str(e))
-
-@app.route('/api/artist/<browseId>/albums')
-def artist_albums_endpoint(browseId):
-    """Artist albums"""
-    if not yt:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
-    
-    try:
-        albums = yt.get_artist_albums(browseId)
-        return render_template('components/cards_grid.html', items=albums, type='album')
-    except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar álbuns',
-                             message=str(e))
-
-@app.route('/api/artist/<browseId>/singles')
-def artist_singles_endpoint(browseId):
-    """Artist singles"""
-    if not yt:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
-    
-    try:
-        albums = yt.get_artist_albums(browseId)
-        singles = [a for a in albums if a.get('type') == 'Single' or a.get('browseId', '').startswith('MPRE')]
-        return render_template('components/cards_grid.html', items=singles, type='album')
-    except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar singles',
-                             message=str(e))
-
-@app.route('/api/artist/<browseId>/related')
-def artist_related_endpoint(browseId):
-    """Related artists"""
-    if not yt:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
-    
-    try:
-        artist = yt.get_artist(browseId)
-        related = artist.get('related', {}).get('results', [])
-        return render_template('components/cards_grid.html', items=related, type='artist')
-    except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar artistas relacionados',
                              message=str(e))
 
 # ===== ALBUM ENDPOINTS =====

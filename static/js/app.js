@@ -65,257 +65,141 @@ document.addEventListener('alpine:init', () => {
         currentTime: 0,
         duration: 0,
         progress: 0,
-        volume: 1,
+        volume: 100,
         showRelated: false,
         relatedSongs: [],
         showLyricsModal: false,
         lyricsText: '',
         lyricsLoading: false,
         lyricsError: null,
-        audio: null,
+        youtubePlayer: null,
+        youtubeReady: false,
+        updateInterval: null,
 
         init() {
-            console.log('🎵 Player store inicializado');
-            this.audio = new Audio();
-            
-            // Otimizações de performance
-            this.audio.preload = 'auto'; // Começar a carregar imediatamente
-            this.audio.autoplay = false; // Controlar manualmente
-            
-            // Reduzir delay inicial
-            if (this.audio.fastSeek) {
-                console.log('✅ fastSeek disponível');
-            }
-            
-            this.setupAudioListeners();
+            console.log('🎵 Player store inicializado - YouTube IFrame API');
+            // YouTube player será inicializado quando onYouTubeIframeAPIReady() for chamado
+            console.log('⏳ Aguardando YouTube IFrame API...');
         },
 
-        logAudioState() {
-            console.log('📊 Audio State:', {
-                src: this.audio.src,
-                readyState: this.audio.readyState,
-                readyStateText: ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT_DATA', 'HAVE_FUTURE_DATA', 'HAVE_ENOUGH_DATA'][this.audio.readyState],
-                networkState: this.audio.networkState,
-                networkStateText: ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'][this.audio.networkState],
-                error: this.audio.error,
-                errorCode: this.audio.error ? this.audio.error.code : null,
-                errorMessage: this.audio.error ? this.audio.error.message : null,
-                paused: this.audio.paused,
-                duration: this.audio.duration,
-                currentTime: this.audio.currentTime,
-                buffered: this.audio.buffered.length > 0 ? {
-                    start: this.audio.buffered.start(0),
-                    end: this.audio.buffered.end(0)
-                } : 'empty'
-            });
-        },
-
-        setupAudioListeners() {
-            console.log('🔧 Configurando listeners do áudio...');
+        initYouTubePlayer() {
+            console.log('🔧 Inicializando YouTube Player...');
             
-            this.audio.addEventListener('loadstart', () => {
-                console.log('🎵 [EVENT] loadstart - Começando a carregar áudio');
-                this.isLoading = true;
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('loadedmetadata', () => {
-                console.log('🎵 [EVENT] loadedmetadata - Metadados carregados');
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('loadeddata', () => {
-                console.log('🎵 [EVENT] loadeddata - Primeiros dados carregados');
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('canplay', () => {
-                console.log('🎵 [EVENT] canplay - Pode começar a tocar');
-                this.isLoading = false;
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('canplaythrough', () => {
-                console.log('🎵 [EVENT] canplaythrough - Pode tocar até o fim sem parar');
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('playing', () => {
-                console.log('🎵 [EVENT] playing - Áudio está tocando');
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('waiting', () => {
-                console.log('⏳ [EVENT] waiting - Aguardando mais dados');
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('seeking', () => {
-                console.log('⏩ [EVENT] seeking - Procurando nova posição');
-            });
-
-            this.audio.addEventListener('seeked', () => {
-                console.log('✅ [EVENT] seeked - Nova posição encontrada');
-            });
-
-            this.audio.addEventListener('timeupdate', () => {
-                this.currentTime = this.audio.currentTime;
-                this.duration = this.audio.duration;
-                this.progress = this.duration ? (this.currentTime / this.duration) * 100 : 0;
-            });
-
-            this.audio.addEventListener('ended', () => {
-                console.log('🏁 [EVENT] ended - Áudio terminou');
-                this.next();
-            });
-
-            this.audio.addEventListener('error', (e) => {
-                this.isLoading = false;
-                console.error('❌ [EVENT] error - Erro no player de áudio');
-                console.error('❌ Error Code:', this.audio.error?.code);
-                console.error('❌ Error Message:', this.audio.error?.message);
-                console.error('❌ Error Details:', {
-                    code: this.audio.error?.code,
-                    message: this.audio.error?.message,
-                    MEDIA_ERR_ABORTED: this.audio.error?.code === 1 ? 'User aborted' : false,
-                    MEDIA_ERR_NETWORK: this.audio.error?.code === 2 ? 'Network error' : false,
-                    MEDIA_ERR_DECODE: this.audio.error?.code === 3 ? 'Decode error' : false,
-                    MEDIA_ERR_SRC_NOT_SUPPORTED: this.audio.error?.code === 4 ? 'Source not supported' : false,
-                });
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('stalled', () => {
-                console.warn('⚠️ [EVENT] stalled - Download parou');
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('suspend', () => {
-                console.log('⏸️ [EVENT] suspend - Download suspenso');
-            });
-
-            this.audio.addEventListener('abort', () => {
-                console.warn('🛑 [EVENT] abort - Download abortado');
-                this.logAudioState();
-            });
-
-            this.audio.addEventListener('emptied', () => {
-                console.log('🗑️ [EVENT] emptied - Áudio esvaziado');
-            });
-
-            this.audio.addEventListener('progress', () => {
-                if (this.audio.buffered.length > 0) {
-                    const bufferedEnd = this.audio.buffered.end(this.audio.buffered.length - 1);
-                    const duration = this.audio.duration;
-                    if (duration > 0) {
-                        const bufferedPercent = (bufferedEnd / duration) * 100;
-                        console.log(`📊 [EVENT] progress - Buffered: ${bufferedPercent.toFixed(1)}% (${bufferedEnd.toFixed(1)}s / ${duration.toFixed(1)}s)`);
+            const player = Alpine.store('player');
+            
+            player.youtubePlayer = new YT.Player('youtube-player', {
+                height: '0',
+                width: '0',
+                playerVars: {
+                    'controls': 0,
+                    'disablekb': 1,
+                    'fs': 0,
+                    'modestbranding': 1,
+                    'playsinline': 1,
+                    'rel': 0,
+                    'showinfo': 0
+                },
+                events: {
+                    'onReady': () => {
+                        console.log('✅ YouTube Player pronto!');
+                        player.youtubeReady = true;
+                        player.youtubePlayer.setVolume(player.volume);
+                    },
+                    'onStateChange': (event) => {
+                        console.log('🎵 YouTube State Changed:', event.data);
+                        
+                        // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+                        if (event.data === YT.PlayerState.PLAYING) {
+                            console.log('▶️ Playing');
+                            player.isPlaying = true;
+                            player.isLoading = false;
+                            player.startUpdateInterval();
+                        } else if (event.data === YT.PlayerState.PAUSED) {
+                            console.log('⏸️ Paused');
+                            player.isPlaying = false;
+                            player.stopUpdateInterval();
+                        } else if (event.data === YT.PlayerState.ENDED) {
+                            console.log('🏁 Ended');
+                            player.isPlaying = false;
+                            player.stopUpdateInterval();
+                            player.next();
+                        } else if (event.data === YT.PlayerState.BUFFERING) {
+                            console.log('⏳ Buffering');
+                            player.isLoading = true;
+                        }
+                    },
+                    'onError': (event) => {
+                        console.error('❌ YouTube Player Error:', event.data);
+                        player.isLoading = false;
+                        player.isPlaying = false;
                     }
                 }
             });
             
-            console.log('✅ Listeners configurados com sucesso');
+            console.log('✅ YouTube Player inicializado');
+        },
+
+        startUpdateInterval() {
+            if (this.updateInterval) return;
+            
+            this.updateInterval = setInterval(() => {
+                if (this.youtubePlayer && this.youtubeReady) {
+                    try {
+                        this.currentTime = this.youtubePlayer.getCurrentTime() || 0;
+                        this.duration = this.youtubePlayer.getDuration() || 0;
+                        this.progress = this.duration ? (this.currentTime / this.duration) * 100 : 0;
+                    } catch (e) {
+                        // Silenciar erros de atualização
+                    }
+                }
+            }, 100);
+        },
+
+        stopUpdateInterval() {
+            if (this.updateInterval) {
+                clearInterval(this.updateInterval);
+                this.updateInterval = null;
+            }
         },
 
         async playTrack(track) {
             console.log('\n' + '='.repeat(80));
-            console.log('🎵 PLAYTRACK INICIADO');
+            console.log('🎵 PLAYTRACK INICIADO - YouTube IFrame API');
             console.log('='.repeat(80));
-            console.log('📦 Track recebido:', JSON.stringify(track, null, 2));
-            
-            const startTime = performance.now();
+            console.log('📦 Track:', track.title);
+            console.log('🎬 VideoID:', track.videoId);
             
             try {
+                if (!this.youtubeReady || !this.youtubePlayer) {
+                    console.warn('⚠️ YouTube player não está pronto ainda');
+                    return;
+                }
+                
                 this.currentTrack = track;
                 this.isLoading = true;
                 
-                console.log('\n' + '─'.repeat(80));
-                console.log('🔧 CONFIGURANDO ÁUDIO');
-                console.log('─'.repeat(80));
+                console.log('▶️ Carregando vídeo no YouTube Player...');
+                this.youtubePlayer.loadVideoById(track.videoId);
                 
-                // Construir URL do proxy
-                const timestamp = Date.now();
-                const proxyUrl = `/api/proxy/${track.videoId}?t=${timestamp}`;
-                console.log('🔗 URL do proxy construída:', proxyUrl);
-                
-                // Atribuir src E load() para iniciar carregamento imediatamente
-                console.log('\n⚙️ Atribuindo src e iniciando load()...');
-                this.audio.src = proxyUrl;
-                this.audio.load(); // Força início do carregamento
-                console.log('✅ src atribuído e load() iniciado');
-                
-                const loadTime = performance.now() - startTime;
-                console.log(`⏱️ Tempo até load(): ${loadTime.toFixed(0)}ms`);
-                
-                // Tentar reproduzir assim que possível
-                console.log('\n▶️ Tentando chamar audio.play()...');
-                
-                // Play retorna uma Promise que resolve quando consegue tocar
-                const playPromise = this.audio.play();
-                console.log('✅ audio.play() chamado');
-                
-                // Aguardar a Promise, mas com timeout
-                const playTimeout = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Play timeout')), 10000)
-                );
-                
-                await Promise.race([playPromise, playTimeout]);
-                
-                const playTime = performance.now() - startTime;
-                console.log(`⏱️ Tempo total até começar a tocar: ${playTime.toFixed(0)}ms (${(playTime/1000).toFixed(1)}s)`);
-                
-                this.isPlaying = true;
-                this.isLoading = false;
-                
-                console.log('\n' + '='.repeat(80));
-                console.log('✅ MÚSICA INICIADA COM SUCESSO!');
-                console.log('='.repeat(80));
-                console.log(`⚡ Performance: ${playTime.toFixed(0)}ms`);
+                console.log('✅ MÚSICA CARREGADA!');
                 console.log('='.repeat(80) + '\n');
                 
                 // Load related songs em background
                 this.loadRelatedSongs(track.videoId);
                 
             } catch (error) {
-                const errorTime = performance.now() - startTime;
-                
-                console.log('\n' + '='.repeat(80));
-                console.error('❌ ERRO AO REPRODUZIR');
-                console.log('='.repeat(80));
-                console.error('❌ Tipo do erro:', error.constructor.name);
-                console.error('❌ Mensagem:', error.message);
-                console.error(`⏱️ Tempo até erro: ${errorTime.toFixed(0)}ms`);
-                
-                // Log estado no momento do erro
-                console.log('📊 Estado do áudio no momento do erro:');
-                this.logAudioState();
-                
-                // Informações adicionais sobre o erro
-                if (error.name === 'NotSupportedError') {
-                    console.error('⚠️ NotSupportedError detectado!');
-                    console.error('   - O navegador não consegue reproduzir o formato de áudio');
-                    console.error('   - src atual:', this.audio.src);
-                } else if (error.name === 'NotAllowedError') {
-                    console.error('⚠️ NotAllowedError detectado!');
-                    console.error('   - O navegador bloqueou a reprodução automática');
-                } else if (error.message === 'Play timeout') {
-                    console.error('⚠️ Timeout ao tentar reproduzir');
-                    console.error('   - Demorou mais de 10 segundos');
-                }
-                
-                console.log('='.repeat(80) + '\n');
-                
+                console.error('❌ ERRO AO REPRODUZIR:', error);
                 this.isLoading = false;
             }
         },
 
         togglePlay() {
+            if (!this.youtubeReady || !this.youtubePlayer) return;
+            
             if (this.isPlaying) {
-                this.audio.pause();
-                this.isPlaying = false;
+                this.youtubePlayer.pauseVideo();
             } else {
-                this.audio.play();
-                this.isPlaying = true;
+                this.youtubePlayer.playVideo();
             }
         },
 
@@ -356,12 +240,14 @@ document.addEventListener('alpine:init', () => {
 
         setVolume(value) {
             this.volume = parseFloat(value);
-            if (this.audio) {
-                this.audio.volume = this.volume;
+            if (this.youtubeReady && this.youtubePlayer) {
+                this.youtubePlayer.setVolume(this.volume);
             }
         },
 
         seek(event) {
+            if (!this.youtubeReady || !this.youtubePlayer) return;
+            
             const progressBar = event.currentTarget;
             const rect = progressBar.getBoundingClientRect();
             const clickX = event.clientX - rect.left;
@@ -369,7 +255,7 @@ document.addEventListener('alpine:init', () => {
             const newTime = this.duration * percentage;
             
             if (!isNaN(newTime) && isFinite(newTime)) {
-                this.audio.currentTime = newTime;
+                this.youtubePlayer.seekTo(newTime, true);
                 console.log(`⏩ Seek para: ${this.formatTime(newTime)}`);
             }
         },
@@ -1047,3 +933,25 @@ document.addEventListener('alpine:initialized', () => {
     console.log('🎵 Player store disponível:', !!Alpine.store('player'));
     console.log('🎵 App store disponível:', !!Alpine.store('app'));
 });
+
+// ========================================
+// YOUTUBE IFRAME API INITIALIZATION
+// ========================================
+
+// Esta função é chamada automaticamente quando a YouTube IFrame API está pronta
+window.onYouTubeIframeAPIReady = function() {
+    console.log('🎬 YouTube IFrame API pronta!');
+    
+    // Aguardar Alpine.js estar pronto
+    const initPlayer = () => {
+        if (window.Alpine && Alpine.store('player')) {
+            console.log('🔧 Inicializando YouTube Player...');
+            Alpine.store('player').initYouTubePlayer();
+        } else {
+            console.log('⏳ Aguardando Alpine.js...');
+            setTimeout(initPlayer, 100);
+        }
+    };
+    
+    initPlayer();
+};
