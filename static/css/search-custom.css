@@ -527,13 +527,7 @@
     width: 100%;
 }
 
-/* Imagem do artista principal */
-#artist-hero-layout img {
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    object-fit: cover;
-}
+/* Imagem do artista principal já tem border-radius inline no HTML */
 
 /* Container de top músicas */
 .top-songs-list {
@@ -610,11 +604,6 @@
     }
     
     /* Imagem menor em mobile */
-    #artist-hero-layout img {
-        width: 140px !important;
-        height: 140px !important;
-    }
-    
     /* Badge "Artista Principal" */
     #artist-hero-layout p[style*="text-transform: uppercase"] {
         font-size: 0.75rem !important;
@@ -739,11 +728,6 @@
     }
     
     /* Imagem ligeiramente menor em tablet */
-    #artist-hero-layout img {
-        width: 160px !important;
-        height: 160px !important;
-    }
-    
     /* Container da coluna direita */
     #artist-hero-layout .flex-1 {
         width: 100% !important;
