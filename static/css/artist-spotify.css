@@ -1,0 +1,301 @@
+/* ========================================
+   PERFIL DO ARTISTA - ESTILO SPOTIFY
+   Com Glassmorphism do Site
+   ======================================== */
+
+/* ====== VARIÁVEIS ====== */
+:root {
+    --spotify-bg: #121212;
+    --spotify-surface: rgba(31, 41, 55, 0.3);
+    --spotify-surface-hover: rgba(31, 41, 55, 0.5);
+    --spotify-text-primary: #ffffff;
+    --spotify-text-secondary: #9ca3af;
+    --spotify-cyan: #06b6d4;
+    --spotify-blue: #3b82f6;
+    --spotify-green: #10b981;
+    --spotify-border: rgba(255, 255, 255, 0.05);
+}
+
+/* ====== BASE (Mobile-First) ====== */
+
+.artist-page-spotify {
+    background: #121212;
+    min-height: 100vh;
+}
+
+/* Hero Header - Mobile */
+.artist-hero-spotify {
+    padding: 4rem 1rem 1.5rem 1rem !important;
+}
+
+.artist-hero-spotify > div:first-child {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+}
+
+.artist-hero-spotify img {
+    width: 150px !important;
+    height: 150px !important;
+    margin: 0 auto 1.5rem auto !important;
+}
+
+.artist-hero-spotify h1 {
+    font-size: 2rem !important;
+}
+
+.artist-hero-spotify .spotify-follow-button {
+    width: 100%;
+    max-width: 300px;
+}
+
+/* Seção Popular - Mobile */
+.spotify-popular-list .spotify-song-row {
+    grid-template-columns: 24px 36px 1fr !important;
+    gap: 0.75rem !important;
+}
+
+.spotify-popular-list .spotify-song-row img {
+    width: 36px !important;
+    height: 36px !important;
+}
+
+/* Esconder duração no mobile */
+.spotify-popular-list .spotify-song-row > div:last-child {
+    display: none !important;
+}
+
+/* Cards - Mobile */
+.spotify-card,
+.spotify-artist-card {
+    min-height: 220px;
+}
+
+/* ====== TABLET (640px+) ====== */
+@media (min-width: 640px) {
+    .artist-hero-spotify {
+        padding: 5rem 1.5rem 2rem 1.5rem !important;
+    }
+    
+    .artist-hero-spotify img {
+        width: 200px !important;
+        height: 200px !important;
+    }
+    
+    .artist-hero-spotify h1 {
+        font-size: 3rem !important;
+    }
+    
+    /* Mostrar duração no tablet */
+    .spotify-popular-list .spotify-song-row {
+        grid-template-columns: 32px 40px 1fr auto !important;
+    }
+    
+    .spotify-popular-list .spotify-song-row img {
+        width: 40px !important;
+        height: 40px !important;
+    }
+    
+    .spotify-popular-list .spotify-song-row > div:last-child {
+        display: block !important;
+    }
+}
+
+/* ====== DESKTOP (1024px+) ====== */
+@media (min-width: 1024px) {
+    .artist-hero-spotify {
+        padding: 6rem 2rem 2rem 2rem !important;
+    }
+    
+    .artist-hero-spotify > div:first-child {
+        flex-direction: row !important;
+        align-items: flex-end !important;
+        text-align: left !important;
+    }
+    
+    .artist-hero-spotify img {
+        width: 232px !important;
+        height: 232px !important;
+        margin: 0 !important;
+    }
+    
+    .artist-hero-spotify h1 {
+        font-size: 4rem !important;
+    }
+    
+    .artist-hero-spotify .spotify-follow-button {
+        width: auto;
+    }
+}
+
+/* ====== ANIMAÇÕES E EFEITOS ====== */
+
+/* Botão Play Verde (hover nos cards) */
+.spotify-card:hover::after,
+.spotify-artist-card:hover::after {
+    content: "▶";
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    width: 48px;
+    height: 48px;
+    background: var(--spotify-green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.spotify-card:hover::after,
+.spotify-artist-card:hover::after {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Glassmorphism enhanc
+
+ements */
+.spotify-card,
+.spotify-artist-card {
+    -webkit-backdrop-filter: blur(20px);
+    will-change: transform;
+}
+
+/* Scroll suave */
+.spotify-popular-list,
+.artist-page-spotify {
+    scroll-behavior: smooth;
+}
+
+/* Gradiente do header com blur */
+.artist-hero-spotify::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 400px;
+    background: radial-gradient(ellipse at top, rgba(6, 182, 212, 0.4) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.artist-hero-spotify > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Badge "RÁDIO" com glow */
+.spotify-card div[style*="RÁDIO"] {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+/* Hover states aprimorados */
+.spotify-song-row:hover {
+    backdrop-filter: blur(10px);
+}
+
+/* Loading states */
+.spotify-popular-list:empty::before,
+.spotify-card:empty::before,
+.spotify-artist-card:empty::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: loading-shimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes loading-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Scrollbar personalizada */
+.spotify-popular-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.spotify-popular-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.spotify-popular-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.spotify-popular-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Text ellipsis com tooltip (futuro) */
+[style*="text-overflow: ellipsis"] {
+    cursor: default;
+}
+
+/* Badge "Artista" nos cards */
+.spotify-artist-card p:last-child {
+    opacity: 0.8;
+}
+
+/* Efeito de glow nas fotos dos artistas */
+.artist-hero-spotify img,
+.spotify-artist-card img[style*="border-radius: 50%"] {
+    transition: all 0.3s ease;
+}
+
+.artist-hero-spotify img:hover,
+.spotify-artist-card:hover img[style*="border-radius: 50%"] {
+    box-shadow: 0 12px 24px rgba(6, 182, 212, 0.4);
+}
+
+/* Link "Ver tudo" */
+a[style*="color: #9ca3af"]:active {
+    color: var(--spotify-cyan) !important;
+}
+
+/* Footer com fade-in */
+footer {
+    animation: fade-in-up 0.6s ease-out;
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Performance optimizations */
+.spotify-card,
+.spotify-artist-card,
+.spotify-song-row {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
