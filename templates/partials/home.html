@@ -70,3 +70,38 @@
     </section>
 </div>
 
+<!-- Script para forçar carregamento automático quando a página home é acessada diretamente -->
+<script>
+// Função para forçar carregamento de elementos HTMX
+function forceLoadHTMXElements() {
+    // Aguardar um pouco para garantir que o HTMX está pronto
+    setTimeout(() => {
+        // Forçar carregamento de todos os elementos com hx-trigger="load"
+        const loadElements = document.querySelectorAll('[hx-trigger="load"]');
+        console.log('🔄 Forçando carregamento de', loadElements.length, 'elementos HTMX');
+        
+        loadElements.forEach(element => {
+            if (element.getAttribute('hx-get')) {
+                console.log('🔄 Carregando:', element.getAttribute('hx-get'));
+                htmx.trigger(element, 'load');
+            }
+        });
+    }, 200);
+}
+
+// Executar quando o DOM estiver pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', forceLoadHTMXElements);
+} else {
+    forceLoadHTMXElements();
+}
+
+// Também executar quando o HTMX terminar de processar
+document.addEventListener('htmx:afterSwap', function(event) {
+    if (event.target.id === 'main-content') {
+        console.log('🔄 HTMX afterSwap detectado, forçando carregamento...');
+        forceLoadHTMXElements();
+    }
+});
+</script>
+

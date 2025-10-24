@@ -645,8 +645,8 @@ def page_home():
     # Se for requisição HTMX, retorna apenas o partial
     if request.headers.get('HX-Request'):
         return render_template('partials/home.html')
-    # Se for acesso direto, retorna página completa
-    return render_template('index.html')
+    # Se for acesso direto, retorna página completa com conteúdo home
+    return render_template('index.html', initial_content='home')
 
 @app.route('/pages/search')
 def page_search():
