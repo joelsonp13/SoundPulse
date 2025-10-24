@@ -699,11 +699,10 @@
                                              x-text="index + 1"></div>
                                         
                                         <!-- Thumbnail -->
-                                        <div class="top-songs-thumbnail-container" style="position: relative; flex-shrink: 0;">
+                                        <div class="thumbnail-wrapper">
                                             <img :src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
                                                  :alt="song.title"
-                                                 class="top-songs-thumbnail-img"
-                                                 style="border-radius: 0.375rem; object-fit: cover; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);"
+                                                 class="thumbnail-img"
                                                  onerror="this.src='/static/images/placeholder.jpg'">
                                         </div>
                                         

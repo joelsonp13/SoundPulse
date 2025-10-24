@@ -697,46 +697,20 @@
         flex-shrink: 0 !important;
     }
     
-    /* FORÇA ULTRA BRUTAL - SOBRESCREVE TUDO */
-    .top-songs-list > div > div[style*="2.5rem"] {
-        width: 1.75rem !important;
-        height: 1.75rem !important;
-        min-width: 1.75rem !important;
-        max-width: 1.75rem !important;
-        min-height: 1.75rem !important;
-        max-height: 1.75rem !important;
+    /* Thumbnails das Top Músicas - Tamanhos Fixos */
+    .thumbnail-wrapper {
+        position: relative;
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
     }
     
-    .top-songs-list img[style*="width: 100%"] {
-        width: 1.75rem !important;
-        height: 1.75rem !important;
-        min-width: 1.75rem !important;
-        max-width: 1.75rem !important;
-        min-height: 1.75rem !important;
-        max-height: 1.75rem !important;
-    }
-    
-    /* Thumbnails menores - FORÇAR SOBRESCRITA MOBILE */
-    .top-songs-thumbnail-container,
-    .top-songs-list > div > div[style*="width: 2.5rem"],
-    .top-songs-list > div > div:nth-child(2),
-    .top-songs-list > div > div[style*="position: relative"] {
-        width: 1.75rem !important;
-        height: 1.75rem !important;
-        min-width: 1.75rem !important;
-        max-width: 1.75rem !important;
-        min-height: 1.75rem !important;
-        max-height: 1.75rem !important;
-        flex-shrink: 0 !important;
-    }
-    
-    .top-songs-thumbnail-img,
-    .top-songs-list > div > div:nth-child(2) img,
-    .top-songs-list > div > div[style*="position: relative"] img {
-        width: 1.75rem !important;
-        height: 1.75rem !important;
-        object-fit: cover !important;
-        border-radius: 0.375rem !important;
+    .thumbnail-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
     
     /* Container de info - flex para não cortar */
@@ -816,46 +790,10 @@
         width: 100% !important;
     }
     
-    /* FORÇA ULTRA BRUTAL TABLET - SOBRESCREVE TUDO */
-    .top-songs-list > div > div[style*="2.5rem"] {
-        width: 2rem !important;
-        height: 2rem !important;
-        min-width: 2rem !important;
-        max-width: 2rem !important;
-        min-height: 2rem !important;
-        max-height: 2rem !important;
-    }
-    
-    .top-songs-list img[style*="width: 100%"] {
-        width: 2rem !important;
-        height: 2rem !important;
-        min-width: 2rem !important;
-        max-width: 2rem !important;
-        min-height: 2rem !important;
-        max-height: 2rem !important;
-    }
-    
-    /* Thumbnails menores em tablet - FORÇAR SOBRESCRITA */
-    .top-songs-thumbnail-container,
-    .top-songs-list > div > div[style*="width: 2.5rem"],
-    .top-songs-list > div > div:nth-child(2),
-    .top-songs-list > div > div[style*="position: relative"] {
-        width: 2rem !important;
-        height: 2rem !important;
-        min-width: 2rem !important;
-        max-width: 2rem !important;
-        min-height: 2rem !important;
-        max-height: 2rem !important;
-        flex-shrink: 0 !important;
-    }
-    
-    .top-songs-thumbnail-img,
-    .top-songs-list > div > div:nth-child(2) img,
-    .top-songs-list > div > div[style*="position: relative"] img {
-        width: 2rem !important;
-        height: 2rem !important;
-        object-fit: cover !important;
-        border-radius: 0.375rem !important;
+    /* Thumbnails das Top Músicas - Tablet */
+    .thumbnail-wrapper {
+        width: 32px;
+        height: 32px;
     }
 }
 
@@ -889,46 +827,9 @@
 
 /* Desktop - Thumbnails das top músicas */
 @media (min-width: 1024px) {
-    /* FORÇA ULTRA BRUTAL DESKTOP - SOBRESCREVE TUDO */
-    .top-songs-list > div > div[style*="2.5rem"] {
-        width: 2.25rem !important;
-        height: 2.25rem !important;
-        min-width: 2.25rem !important;
-        max-width: 2.25rem !important;
-        min-height: 2.25rem !important;
-        max-height: 2.25rem !important;
-    }
-    
-    .top-songs-list img[style*="width: 100%"] {
-        width: 2.25rem !important;
-        height: 2.25rem !important;
-        min-width: 2.25rem !important;
-        max-width: 2.25rem !important;
-        min-height: 2.25rem !important;
-        max-height: 2.25rem !important;
-    }
-    
-    /* Thumbnails maiores em desktop */
-    .top-songs-thumbnail-container,
-    .top-songs-list > div > div[style*="width: 2.5rem"],
-    .top-songs-list > div > div:nth-child(2),
-    .top-songs-list > div > div[style*="position: relative"] {
-        width: 2.25rem !important;
-        height: 2.25rem !important;
-        min-width: 2.25rem !important;
-        max-width: 2.25rem !important;
-        min-height: 2.25rem !important;
-        max-height: 2.25rem !important;
-        flex-shrink: 0 !important;
-    }
-    
-    .top-songs-thumbnail-img,
-    .top-songs-list > div > div:nth-child(2) img,
-    .top-songs-list > div > div[style*="position: relative"] img {
-        width: 2.25rem !important;
-        height: 2.25rem !important;
-        object-fit: cover !important;
-        border-radius: 0.375rem !important;
+    .thumbnail-wrapper {
+        width: 36px;
+        height: 36px;
     }
 }
 
