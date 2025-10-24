@@ -133,6 +133,8 @@
         'sidebar',
         'sidebar-link',
         'sidebar-country-selector',
+        'sidebar-overlay',
+        'menu-toggle',
         'main-content',
         'main-header',
         // Pages
@@ -144,6 +146,14 @@
         'artist-page',
         'artist-header',
         'artist-header-content',
+        'artist-page-spotify',
+        'artist-hero-spotify',
+        'spotify-follow-button',
+        'spotify-popular-list',
+        'spotify-song-row',
+        'spotify-card',
+        'spotify-artist-card',
+        'home-page',
         // Header
         'header-nav-buttons',
         'header-actions',
@@ -179,12 +189,16 @@
         'animate-gradient-shift',
         'animate-gradient-x',
         'animate-spin-custom-slow',
+        'animate-pulse-slow',
         'search-icon-hero',
         'search-icon-container',
         // Botões
         'load-more-btn',
         'btn-primary',
         'btn-secondary',
+        // Utility
+        'sr-only',
+        'group',
         // Outros
         'nav-link',
         'active',

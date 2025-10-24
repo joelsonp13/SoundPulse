@@ -32,6 +32,30 @@
     <script src="{{ url_for('static', filename='js/htmx-debug.js') }}"></script>
     <script src="{{ url_for('static', filename='js/alpine-debug.js') }}"></script>
     
+    <!-- Filtro de Erros do YouTube (Desenvolvimento) -->
+    <script>
+        // Suprimir avisos conhecidos do YouTube IFrame API que não afetam a funcionalidade
+        (function() {
+            const originalError = console.error;
+            console.error = function(...args) {
+                const message = args.join(' ');
+                
+                // Ignorar erros de CORS do YouTube em desenvolvimento local
+                if (message.includes('postMessage') && 
+                    message.includes('youtube.com') && 
+                    message.includes('origin')) {
+                    // Silenciar - esse é um aviso conhecido em desenvolvimento local
+                    console.log('%c🔇 Aviso do YouTube CORS silenciado (não afeta funcionalidade)', 
+                               'color: #9ca3af; font-style: italic; font-size: 0.85em;');
+                    return;
+                }
+                
+                // Passar outros erros normalmente
+                originalError.apply(console, args);
+            };
+        })();
+    </script>
+    
     <!-- CSS Crítico (Apenas Animações) -->
     <style>
         /* Animações de background */
@@ -46,17 +70,25 @@
     
     <!-- HTMX Configuration -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configure HTMX for better performance
-            htmx.config.defaultSwapStyle = 'innerHTML';
-            htmx.config.defaultSwapDelay = 100;
-            htmx.config.defaultSettleDelay = 100;
-            
-            // DESABILITAR CACHE para evitar erros Alpine.js ao voltar
-            // Sempre busca conteúdo fresco do servidor
-            htmx.config.historyCacheSize = 0;  // ← SEM CACHE
-            htmx.config.historyEnabled = true;
-        });
+        // Aguardar HTMX estar carregado antes de configurar
+        (function configureHTMX() {
+            if (typeof htmx !== 'undefined') {
+                console.log('⚙️ Configurando HTMX...');
+                // Configure HTMX for better performance
+                htmx.config.defaultSwapStyle = 'innerHTML';
+                htmx.config.defaultSwapDelay = 100;
+                htmx.config.defaultSettleDelay = 100;
+                
+                // DESABILITAR CACHE para evitar erros Alpine.js ao voltar
+                // Sempre busca conteúdo fresco do servidor
+                htmx.config.historyCacheSize = 0;  // ← SEM CACHE
+                htmx.config.historyEnabled = true;
+                console.log('✅ HTMX configurado com sucesso');
+            } else {
+                console.log('⏳ Aguardando HTMX carregar...');
+                setTimeout(configureHTMX, 50);
+            }
+        })();
     </script>
 </head>
 <body class="text-white">
@@ -627,21 +659,38 @@
         };
         
         function playTrackFromCard(card) {
+            console.log('🎵 playTrackFromCard chamado');
+            
             const videoId = card.dataset.videoId;
-            const title = card.querySelector('h4').textContent;
-            const artist = card.querySelector('p').textContent;
-            const thumbnail = card.querySelector('img').src;
+            const titleElement = card.querySelector('h4, .music-card-title, .track-title');
+            const artistElement = card.querySelector('p, .music-card-artist, .track-artist');
+            const imgElement = card.querySelector('img');
+            
+            if (!videoId) {
+                console.error('❌ videoId não encontrado no card');
+                return;
+            }
+            
+            if (!titleElement || !artistElement || !imgElement) {
+                console.error('❌ Elementos não encontrados no card');
+                return;
+            }
             
             const track = {
                 videoId: videoId,
-                title: title,
-                artist: artist,
-                thumbnails: [{ url: thumbnail }]
+                title: titleElement.textContent.trim(),
+                artist: artistElement.textContent.trim(),
+                thumbnails: [{ url: imgElement.src }]
             };
+            
+            console.log('🎵 Track preparada:', track);
             
             // Use Alpine store to play track
             if (window.Alpine && Alpine.store('player')) {
+                console.log('🎵 Chamando Alpine.store(player).playTrack()');
                 Alpine.store('player').playTrack(track);
+            } else {
+                console.error('❌ Alpine ou player store não disponível');
             }
         }
         
@@ -706,21 +755,38 @@
         }
         
         function playTrackFromTracklist(element) {
+            console.log('🎵 playTrackFromTracklist chamado');
+            
             const videoId = element.dataset.videoId;
-            const title = element.querySelector('.track-title').textContent;
-            const artist = element.querySelector('.track-artist').textContent;
-            const thumbnail = element.querySelector('.track-thumbnail img').src;
+            const titleElement = element.querySelector('.track-title');
+            const artistElement = element.querySelector('.track-artist');
+            const thumbnailElement = element.querySelector('.track-thumbnail img');
+            
+            if (!videoId) {
+                console.error('❌ videoId não encontrado');
+                return;
+            }
+            
+            if (!titleElement || !artistElement || !thumbnailElement) {
+                console.error('❌ Elementos da track não encontrados');
+                return;
+            }
             
             const track = {
                 videoId: videoId,
-                title: title,
-                artist: artist,
-                thumbnails: [{ url: thumbnail }]
+                title: titleElement.textContent.trim(),
+                artist: artistElement.textContent.trim(),
+                thumbnails: [{ url: thumbnailElement.src }]
             };
+            
+            console.log('🎵 Track preparada:', track);
             
             // Use Alpine store to play track
             if (window.Alpine && Alpine.store('player')) {
+                console.log('🎵 Chamando Alpine.store(player).playTrack()');
                 Alpine.store('player').playTrack(track);
+            } else {
+                console.error('❌ Alpine ou player store não disponível');
             }
         }
         
@@ -744,55 +810,98 @@
         
         // Sistema de Navegação com Histórico de URL
         document.addEventListener('DOMContentLoaded', function() {
-            const currentPath = window.location.pathname;
-            const queryString = window.location.search;
-            const mainContent = document.getElementById('main-content');
+            console.log('🚀 Navegação: DOMContentLoaded disparado');
             
-            if (!mainContent) {
-                console.error('❌ #main-content não encontrado');
-                return;
-            }
+            let htmxCheckAttempts = 0;
+            const maxAttempts = 100; // 5 segundos (50ms * 100)
             
-            let targetUrl = '/pages/home';
-            let section = 'home';
-            
-            // Se estamos em uma rota /pages/*, carrega o conteúdo via HTMX
-            if (currentPath.startsWith('/pages/')) {
-                targetUrl = currentPath + queryString;  // Incluir query string
-                section = currentPath.split('/')[2] || 'home';
+            // Aguardar HTMX estar disponível
+            const waitForHTMX = setInterval(() => {
+                htmxCheckAttempts++;
                 
-                // IMPORTANTE: Salvar estado atual no histórico ao recarregar (F5)
-                // Isso garante que o botão voltar funcione após recarregar
-                if (!history.state || history.state.url !== targetUrl) {
+                if (typeof htmx !== 'undefined') {
+                    clearInterval(waitForHTMX);
+                    console.log('✅ HTMX disponível, iniciando navegação...');
+                    initializeNavigation();
+                } else if (htmxCheckAttempts >= maxAttempts) {
+                    clearInterval(waitForHTMX);
+                    console.error('❌ HTMX não carregou após 5 segundos. Recarregando página...');
+                    // Fallback: Redirecionar para a raiz
+                    window.location.href = '/';
+                }
+            }, 50);
+            
+            function initializeNavigation() {
+                const currentPath = window.location.pathname;
+                const queryString = window.location.search;
+                const mainContent = document.getElementById('main-content');
+                
+                console.log('📍 Path atual:', currentPath);
+                
+                if (!mainContent) {
+                    console.error('❌ #main-content não encontrado');
+                    return;
+                }
+                
+                let targetUrl = '/pages/home';
+                let section = 'home';
+                
+                // Se estamos em uma rota /pages/*, carrega o conteúdo via HTMX
+                if (currentPath.startsWith('/pages/')) {
+                    targetUrl = currentPath + queryString;  // Incluir query string
+                    section = currentPath.split('/')[2] || 'home';
+                    
+                    console.log('🎯 Carregando seção:', section);
+                    
+                    // IMPORTANTE: Salvar estado atual no histórico ao recarregar (F5)
+                    // Isso garante que o botão voltar funcione após recarregar
+                    if (!history.state || history.state.url !== targetUrl) {
+                        history.replaceState({url: targetUrl}, '', targetUrl);
+                    }
+                } else if (currentPath === '/') {
+                    targetUrl = '/pages/home';
+                    section = 'home';
                     history.replaceState({url: targetUrl}, '', targetUrl);
                 }
-            } else if (currentPath === '/') {
-                targetUrl = '/pages/home';
-                section = 'home';
-                history.replaceState({url: targetUrl}, '', targetUrl);
+                
+                console.log('📥 Fazendo request HTMX para:', targetUrl);
+                
+                // Carrega o conteúdo (sem pushState pois é carregamento inicial)
+                // IMPORTANTE: Usar HTMX nativo para garantir header HX-Request
+                const tempElement = document.createElement('div');
+                tempElement.setAttribute('hx-get', targetUrl);
+                tempElement.setAttribute('hx-target', '#main-content');
+                tempElement.setAttribute('hx-swap', 'innerHTML');
+                
+                // Processar elemento e fazer request
+                htmx.process(tempElement);
+                htmx.trigger(tempElement, 'click');
+                
+                console.log('✅ Request HTMX disparado');
+                console.log('⏳ Aguardando htmx:afterSettle processar elementos...');
+                
+                // ✅ BACKUP: Se afterSettle não disparar, forçar após 2 segundos
+                setTimeout(() => {
+                    const mainContent = document.getElementById('main-content');
+                    if (mainContent) {
+                        const loadTriggers = mainContent.querySelectorAll('[hx-trigger*="load"]');
+                        if (loadTriggers.length > 0) {
+                            console.log('🔄 BACKUP: Disparando', loadTriggers.length, 'elementos manualmente');
+                            loadTriggers.forEach(element => {
+                                htmx.process(element);
+                                htmx.trigger(element, 'load');
+                            });
+                        }
+                    }
+                }, 2000);
             }
-            
-            // Carrega o conteúdo (sem pushState pois é carregamento inicial)
-            // IMPORTANTE: Usar HTMX nativo para garantir header HX-Request
-            const tempElement = document.createElement('div');
-            tempElement.setAttribute('hx-get', targetUrl);
-            tempElement.setAttribute('hx-target', '#main-content');
-            tempElement.setAttribute('hx-swap', 'innerHTML');
-            
-            // Processar elemento e fazer request
-            htmx.process(tempElement);
-            htmx.trigger(tempElement, 'click');
-            
-            // Atualiza a seção ativa na sidebar
-            setTimeout(() => {
-                if (window.Alpine && Alpine.store('app')) {
-                    Alpine.store('app').currentSection = section;
-                }
-            }, 100);
         });
         
         // Atualizar seção ativa da sidebar após navegação HTMX
         document.body.addEventListener('htmx:afterSettle', function(event) {
+            console.log('✅ htmx:afterSettle disparado!');
+            console.log('📦 Event target:', event.detail.target);
+            
             const currentPath = window.location.pathname;
             if (currentPath.startsWith('/pages/')) {
                 const section = currentPath.split('/')[2] || 'home';
@@ -801,8 +910,24 @@
                 // Só atualiza se for uma seção válida da sidebar
                 if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
                     Alpine.store('app').currentSection = section;
+                    console.log('📍 Seção ativa atualizada:', section);
                 }
             }
+            
+            // IMPORTANTE: Forçar HTMX a processar elementos com hx-trigger="load" que foram carregados
+            // Isso garante que conteúdo dinâmico seja carregado APÓS o HTMX inserir o HTML no DOM
+            console.log('🔄 Processando elementos HTMX após settle...');
+            const loadTriggers = event.detail.target.querySelectorAll('[hx-trigger*="load"]');
+            console.log('🔄 Encontrados', loadTriggers.length, 'elementos com hx-trigger="load"');
+            
+            loadTriggers.forEach(element => {
+                const url = element.getAttribute('hx-get');
+                console.log('  ▶️ Disparando load para:', url);
+                htmx.process(element);
+                htmx.trigger(element, 'load');
+            });
+            
+            console.log('✅ Processamento de elementos concluído!');
         });
         
         // Listener para botão voltar/avançar do navegador
@@ -830,6 +955,8 @@
                 if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
                     Alpine.store('app').currentSection = section;
                 }
+                
+                // NÃO processar aqui! O evento htmx:afterSettle fará isso automaticamente
             }
         });
     </script>
