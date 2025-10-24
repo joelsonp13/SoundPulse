@@ -530,69 +530,42 @@
 /* Imagem do artista principal já tem border-radius inline no HTML */
 
 /* ========================================
-   CARD HERO - ARTISTA PRINCIPAL
+   CARD HERO - ESTILO SPOTIFY (2 COLUNAS)
    Mobile-First Approach
    ======================================== */
 
 /* ====== BASE (MOBILE - < 640px) ====== */
 
-/* Container principal */
-#artist-hero-layout {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 1rem;
-    width: 100%;
-}
-
-/* Foto do artista - pequena no mobile */
-#artist-hero-layout > div:first-child img {
-    width: 120px !important;
-    height: 120px !important;
-}
-
-/* Badge "Artista Principal" */
-#artist-hero-layout p[style*="text-transform: uppercase"] {
-    font-size: 0.7rem;
-}
-
-/* Nome do artista - compacto */
-#artist-hero-layout h2 {
-    font-size: 1.5rem !important;
-    text-align: center;
-    width: 100%;
-    word-break: break-word;
-}
-
-/* Container botões - grid 2 colunas */
-#artist-hero-layout .flex.flex-wrap {
+/* Layout principal - coluna única no mobile */
+#spotify-layout {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 2rem;
 }
 
-/* Botões compactos */
-#artist-hero-layout button {
-    font-size: 0.65rem;
-    padding: 0.5rem 0.4rem;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.2;
-    min-height: 2.5rem;
-    justify-content: center;
+/* Coluna "Melhor resultado" */
+#best-result-column h3 {
+    font-size: 0.75rem;
+    text-align: center;
 }
 
-#artist-hero-layout button i {
-    font-size: 0.8rem;
-    flex-shrink: 0;
+#best-result-column > div {
+    text-align: center;
 }
 
-/* Título "Top Músicas" */
-#artist-hero-layout h3 {
-    font-size: 0.875rem;
-    justify-content: center;
+#best-result-column img {
+    margin: 0 auto;
+    width: 100px !important;
+    height: 100px !important;
+}
+
+#best-result-column h2 {
+    font-size: 1.5rem;
+}
+
+/* Coluna "Músicas" */
+#songs-column h3 {
+    font-size: 0.75rem;
 }
 
 /* Lista de músicas - compacta */
@@ -711,33 +684,18 @@
         height: 270px !important;
     }
     
-    /* Layout ainda em coluna, mas mais espaçoso */
-    #artist-hero-layout {
-        gap: 1.5rem;
+    /* Layout ainda em coluna no tablet */
+    #spotify-layout {
+        grid-template-columns: 1fr;
     }
     
-    /* Foto maior */
-    #artist-hero-layout > div:first-child img {
-        width: 160px !important;
-        height: 160px !important;
+    #best-result-column img {
+        width: 140px !important;
+        height: 140px !important;
     }
     
-    /* Nome maior */
-    #artist-hero-layout h2 {
-        font-size: 2rem !important;
-    }
-    
-    /* Botões em linha no tablet */
-    #artist-hero-layout .flex.flex-wrap {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    
-    /* Botões maiores */
-    #artist-hero-layout button {
-        font-size: 0.75rem;
-        padding: 0.6rem 1rem;
+    #best-result-column h2 {
+        font-size: 2rem;
     }
     
     /* Thumbnails médios */
@@ -745,77 +703,45 @@
         width: 28px !important;
         height: 28px !important;
     }
-    
-    /* Mostrar duração */
-    .top-songs-list > div > div:last-child {
-        display: block !important;
-    }
 }
 
 /* ====== DESKTOP (1024px+) ====== */
 @media (min-width: 1024px) {
-    /* Layout em linha (horizontal) */
-    #artist-hero-layout {
-        flex-direction: row;
-        align-items: flex-start;
-        text-align: left;
-        gap: 1.5rem;
+    /* Layout 2 colunas no desktop */
+    #spotify-layout {
+        grid-template-columns: 1fr 2fr;
+        gap: 2rem;
     }
     
-    /* Foto grande */
-    #artist-hero-layout > div:first-child img {
-        width: 200px !important;
-        height: 200px !important;
-    }
-    
-    /* Nome grande e à esquerda */
-    #artist-hero-layout h2 {
-        font-size: 2.5rem !important;
-        text-align: left;
-    }
-    
-    /* Badge à esquerda */
-    #artist-hero-layout p[style*="text-transform: uppercase"] {
+    /* Coluna esquerda - alinhamento à esquerda */
+    #best-result-column h3 {
         font-size: 0.875rem;
         text-align: left;
     }
     
-    /* Botões à esquerda */
-    #artist-hero-layout .flex.flex-wrap {
-        justify-content: flex-start;
+    #best-result-column > div {
+        text-align: left;
     }
     
-    /* Botões tamanho completo */
-    #artist-hero-layout button {
+    #best-result-column img {
+        margin: 0;
+        width: 120px !important;
+        height: 120px !important;
+    }
+    
+    #best-result-column h2 {
+        font-size: 2rem;
+    }
+    
+    /* Coluna direita */
+    #songs-column h3 {
         font-size: 0.875rem;
-        padding: 0.625rem 1.5rem;
-        white-space: nowrap;
     }
     
-    /* Título à esquerda */
-    #artist-hero-layout h3 {
-        font-size: 1rem;
-        justify-content: flex-start;
-    }
-    
-    /* Lista maior */
-    .top-songs-list {
-        max-height: 300px;
-    }
-    
-    /* Thumbnails maiores */
+    /* Thumbnails maiores no desktop */
     .thumbnail-wrapper {
-        width: 32px !important;
-        height: 32px !important;
-    }
-    
-    /* Textos maiores */
-    .top-songs-list p:first-child {
-        font-size: 0.875rem !important;
-    }
-    
-    .top-songs-list p:last-child {
-        font-size: 0.75rem !important;
+        width: 40px !important;
+        height: 40px !important;
     }
 }
 

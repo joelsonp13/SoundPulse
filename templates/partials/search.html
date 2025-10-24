@@ -615,119 +615,100 @@
              x-cloak
              class="mb-12 transition-all duration-300">
             
-            <!-- CARD HERO - ARTISTA PRINCIPAL -->
+            <!-- CARD HERO - ESTILO SPOTIFY (2 COLUNAS) -->
             <div x-show="mainArtist"
                  x-init="if (mainArtist) { console.log('🎨 CARD HERO RENDERIZANDO:', mainArtist); console.log('🎨 Nome que será exibido:', mainArtist?.artist || mainArtist?.name); }"
                  style="margin-bottom: 2rem; background: linear-gradient(135deg, rgba(31, 41, 55, 0.5), rgba(17, 24, 39, 0.5)); backdrop-filter: blur(40px); border-radius: 1rem; padding: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.1);"
                  class="mb-8 bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
                 
-                <div id="artist-hero-layout" class="flex flex-row gap-4 items-start" style="display: flex; flex-direction: row; gap: 1rem; align-items: flex-start;">
+                <div id="spotify-layout" style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: start;">
                     
-                    <!-- Imagem do Artista Principal - ESQUERDA -->
-                    <div class="relative group flex-shrink-0" style="position: relative; flex-shrink: 0;">
-                        <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3)); border-radius: 50%; filter: blur(50px);"></div>
-                        <img :src="getHighResThumbnail(mainArtist?.thumbnails?.[0]?.url)"
-                             :alt="mainArtist?.artist || mainArtist?.name || 'Artista Principal'"
-                             style="position: relative; width: 200px; height: 200px; border-radius: 50%; object-fit: cover; box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5); border: 3px solid rgba(6, 182, 212, 0.3);"
-                             class="relative w-50 h-50 rounded-full object-cover shadow-2xl ring-3 ring-cyan-500/30 group-hover:ring-cyan-400/50 transition-all duration-300"
-                             onerror="this.src='/static/images/placeholder.jpg'">
+                    <!-- COLUNA ESQUERDA: Melhor resultado -->
+                    <div id="best-result-column">
+                        <!-- Título "Melhor resultado" -->
+                        <h3 style="font-size: 0.875rem; font-weight: 700; color: white; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                            Melhor resultado
+                        </h3>
+                        
+                        <!-- Card do Artista -->
+                        <div @click="handleItemClick(mainArtist)" 
+                             style="background: rgba(255, 255, 255, 0.05); border-radius: 0.5rem; padding: 1.5rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.05);"
+                             onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='scale(1.02)'"
+                             onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='scale(1)'">
+                            
+                            <!-- Foto redonda grande -->
+                            <div class="relative group flex-shrink-0" style="position: relative; flex-shrink: 0; margin-bottom: 1.5rem;">
+                                <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3)); border-radius: 50%; filter: blur(50px);"></div>
+                                <img :src="getHighResThumbnail(mainArtist?.thumbnails?.[0]?.url)"
+                                     :alt="mainArtist?.artist || mainArtist?.name || 'Artista'"
+                                     style="position: relative; width: 120px; height: 120px; border-radius: 50%; object-fit: cover; box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5); border: 3px solid rgba(6, 182, 212, 0.3);"
+                                     onerror="this.src='/static/images/placeholder.jpg'">
+                            </div>
+                            
+                            <!-- Nome do artista -->
+                            <h2 style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem; line-height: 1.2;" 
+                                x-text="mainArtist?.artist || mainArtist?.name || 'Artista'"></h2>
+                            
+                            <!-- Badge "Artista" -->
+                            <p style="color: #9ca3af; font-size: 0.875rem; font-weight: 600; text-transform: capitalize;">
+                                Artista
+                            </p>
+                        </div>
                     </div>
                     
-                    <!-- Coluna Direita: Info + Botões + Top Músicas -->
-                    <div class="flex-1 min-w-0 flex flex-col gap-4" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- COLUNA DIREITA: Músicas -->
+                    <div id="songs-column">
+                        <!-- Título "Músicas" -->
+                        <h3 style="font-size: 0.875rem; font-weight: 700; color: white; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                            Músicas
+                        </h3>
                         
-                        <!-- Informações do Artista -->
-                        <div>
-                            <!-- Nome do Artista -->
-                            <div class="mb-4" style="margin-bottom: 1rem;">
-                                <p style="color: #22d3ee; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Artista Principal</p>
-                                <h2 style="font-size: 2.5rem; font-weight: bold; color: white; margin-bottom: 0.5rem;" 
-                                    class="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-white via-cyan-100 to-blue-100 bg-clip-text text-transparent" 
-                                    x-text="mainArtist?.artist || mainArtist?.name || 'Artista'"></h2>
-                            </div>
-                            
-                            <!-- Botões de Ação -->
-                            <div class="flex flex-wrap gap-2" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                <button @click="handleItemClick(mainArtist)"
-                                        style="padding: 0.625rem 1.5rem; background: linear-gradient(135deg, #06b6d4, #3b82f6); color: white; font-weight: bold; border-radius: 9999px; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.3s; font-size: 0.875rem;"
-                                        onmouseover="this.style.background='linear-gradient(135deg, #0891b2, #2563eb)'; this.style.transform='scale(1.05)'"
-                                        onmouseout="this.style.background='linear-gradient(135deg, #06b6d4, #3b82f6)'; this.style.transform='scale(1)'">
-                                    <i class="fas fa-user-music"></i>
-                                    <span>Ver Perfil</span>
-                                </button>
-                                <button @click="if (topSongs[0]) { playItem(topSongs[0]) }"
-                                        style="padding: 0.625rem 1.5rem; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); color: white; font-weight: 600; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.3s; font-size: 0.875rem;"
-                                        onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.transform='scale(1.05)'"
-                                        onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='scale(1)'">
-                                    <i class="fas fa-play"></i>
-                                    <span>Reproduzir</span>
-                                </button>
-                                <button @click="if (mainArtist?.radioId && window.htmx) { htmx.ajax('GET', `/pages/artist/${mainArtist?.browseId}`, { target: '#main-content', swap: 'innerHTML' }) }"
-                                        style="padding: 0.625rem 1.5rem; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); color: white; font-weight: 600; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.3s; font-size: 0.875rem;"
-                                        onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.transform='scale(1.05)'"
-                                        onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='scale(1)'">
-                                    <i class="fas fa-broadcast-tower"></i>
-                                    <span>Rádio</span>
-                                </button>
-                            </div>
+                        <!-- Loading State -->
+                        <div x-show="loadingSongs" style="display: flex; align-items: center; gap: 0.5rem; color: #9ca3af;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Carregando...</span>
                         </div>
                         
-                        <!-- Top Músicas - Abaixo dos botões -->
-                        <div>
-                            <h3 style="font-size: 1rem; font-weight: bold; color: white; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="fas fa-fire" style="color: #fb923c;"></i>
-                                <span>Top Músicas</span>
-                            </h3>
-                            
-                            <!-- Loading State -->
-                            <div x-show="loadingSongs" style="display: flex; align-items: center; gap: 0.5rem; color: #9ca3af;">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <span>Carregando...</span>
-                            </div>
-                            
-                            <!-- Lista de Músicas -->
-                            <div x-show="!loadingSongs && topSongs.length > 0" 
-                                 class="top-songs-list"
-                                 style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
-                                <template x-for="(song, index) in topSongs" :key="song.videoId || index">
-                                    <div @click="playItem(song)"
-                                         style="display: flex; align-items: center; gap: 0.625rem; padding: 0.625rem; border-radius: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer; transition: all 0.2s;"
-                                         onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(6, 182, 212, 0.3)'; this.style.transform='translateX(4px)'"
-                                         onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)'">
-                                        <!-- Número -->
-                                        <div :style="`flex-shrink: 0; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: 0.5rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2)); color: #22d3ee; font-weight: bold; font-size: 0.875rem;`"
-                                             x-text="index + 1"></div>
-                                        
-                                        <!-- Thumbnail -->
-                                        <div class="thumbnail-wrapper">
-                                            <img :src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
-                                                 :alt="song.title"
-                                                 class="thumbnail-img"
-                                                 onerror="this.src='/static/images/placeholder.jpg'">
-                                        </div>
-                                        
-                                        <!-- Info -->
-                                        <div style="flex: 1; min-width: 0;">
-                                            <p style="color: white; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; margin-bottom: 0.125rem;"
-                                               x-text="song.title"></p>
-                                            <p style="color: #9ca3af; font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                                               x-text="song.artists?.[0]?.name || mainArtist?.artist || mainArtist?.name"></p>
-                                        </div>
-                                        
-                                        <!-- Duration -->
-                                        <div style="flex-shrink: 0; color: #9ca3af; font-size: 0.75rem; font-weight: 500;"
-                                             x-text="song.duration || ''"></div>
+                        <!-- Lista de Músicas -->
+                        <div x-show="!loadingSongs && topSongs.length > 0" 
+                             class="top-songs-list"
+                             style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <template x-for="(song, index) in topSongs.slice(0, 5)" :key="song.videoId || index">
+                                <div @click="playItem(song)"
+                                     style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; border-radius: 0.375rem; cursor: pointer; transition: all 0.2s;"
+                                     onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'"
+                                     onmouseout="this.style.background='transparent'">
+                                    
+                                    <!-- Número -->
+                                    <div style="flex-shrink: 0; width: 1.5rem; color: #9ca3af; font-size: 0.875rem; font-weight: 500;"
+                                         x-text="index + 1"></div>
+                                    
+                                    <!-- Thumbnail quadrada pequena -->
+                                    <div class="thumbnail-wrapper">
+                                        <img :src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
+                                             :alt="song.title"
+                                             class="thumbnail-img"
+                                             onerror="this.src='/static/images/placeholder.jpg'">
                                     </div>
-                                </template>
-                            </div>
-                            
-                            <!-- Empty State -->
-                            <div x-show="!loadingSongs && topSongs.length === 0" 
-                                 style="color: #6b7280; font-size: 0.875rem; font-style: italic; text-align: center; padding: 2rem;">
-                                Nenhuma música encontrada
-                            </div>
+                                    
+                                    <!-- Info -->
+                                    <div style="flex: 1; min-width: 0;">
+                                        <p style="color: white; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem;"
+                                           x-text="song.title"></p>
+                                    </div>
+                                    
+                                    <!-- Duration à direita -->
+                                    <div style="flex-shrink: 0; color: #9ca3af; font-size: 0.875rem; font-weight: 400;"
+                                         x-text="song.duration || ''"></div>
+                                </div>
+                            </template>
                         </div>
                         
+                        <!-- Empty State -->
+                        <div x-show="!loadingSongs && topSongs.length === 0" 
+                             style="color: #6b7280; font-size: 0.875rem; font-style: italic; text-align: center; padding: 2rem;">
+                            Nenhuma música encontrada
+                        </div>
                     </div>
                     
                 </div>
