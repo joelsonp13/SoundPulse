@@ -4,6 +4,8 @@ from ytmusicapi import YTMusic
 import json
 import os
 import requests
+from functools import lru_cache
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -178,6 +180,14 @@ except:
     yt_public = None
     print("[AVISO] Falha ao criar YTMusic público")
 
+# ========================================
+# CACHE DE IMAGENS (LRU)
+# ========================================
+# Cache para armazenar imagens em memória (reduz requisições repetidas)
+image_cache = {}
+IMAGE_CACHE_MAX_SIZE = 200  # Máximo de 200 imagens em cache
+IMAGE_CACHE_TTL = 3600  # 1 hora de TTL
+
 def safe_ytmusic_call(func, *args, use_fallback=True, **kwargs):
     """
     Executa uma chamada do ytmusicapi com fallback automático.
@@ -229,7 +239,7 @@ def create_svg_placeholder():
 
 @app.route('/api/image-proxy', methods=['GET', 'OPTIONS'])
 def image_proxy():
-    """Proxy para imagens externas (resolve CORB e CORS)"""
+    """Proxy para imagens externas (resolve CORB e CORS) - COM CACHE"""
     
     # Handle CORS preflight
     if request.method == 'OPTIONS':
@@ -245,6 +255,31 @@ def image_proxy():
         # Retorna SVG placeholder inline (nunca causa CORB)
         return create_svg_placeholder()
     
+    # ==== CACHE: Verificar se imagem já está no cache ====
+    cache_key = image_url
+    if cache_key in image_cache:
+        cached_data = image_cache[cache_key]
+        # Verificar se cache ainda é válido (TTL)
+        if datetime.now().timestamp() - cached_data['timestamp'] < IMAGE_CACHE_TTL:
+            print(f"[CACHE] Imagem recuperada do cache: {image_url[:60]}...")
+            return Response(
+                cached_data['content'],
+                mimetype=cached_data['content_type'],
+                headers={
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Cache-Control': 'public, max-age=86400',
+                    'X-Content-Type-Options': 'nosniff',
+                    'Content-Type': cached_data['content_type'],
+                    'Vary': 'Origin',
+                    'X-Cache': 'HIT'  # Indica que veio do cache
+                }
+            )
+        else:
+            # Cache expirado, remover
+            del image_cache[cache_key]
+    
     try:
         # Headers para simular navegador e evitar bloqueio
         headers = {
@@ -256,8 +291,8 @@ def image_proxy():
             'Connection': 'keep-alive'
         }
         
-        # Faz a requisição da imagem com timeout maior
-        response = requests.get(image_url, headers=headers, timeout=15, stream=True)
+        # Faz a requisição da imagem com timeout REDUZIDO (5s ao invés de 15s)
+        response = requests.get(image_url, headers=headers, timeout=5, stream=True)
         
         # Verifica se foi bem-sucedido
         if response.status_code != 200:
@@ -304,9 +339,27 @@ def image_proxy():
         # Log de sucesso
         print(f"[OK] Imagem carregada: {content_type} - {image_url[:60]}...")
         
+        # ==== CACHE: Salvar imagem no cache ====
+        image_content = response.content
+        
+        # Limitar tamanho do cache (FIFO - remover mais antigo se estiver cheio)
+        if len(image_cache) >= IMAGE_CACHE_MAX_SIZE:
+            # Remover o item mais antigo (primeira chave)
+            oldest_key = next(iter(image_cache))
+            del image_cache[oldest_key]
+            print(f"[CACHE] Cache cheio, removendo item mais antigo")
+        
+        # Adicionar ao cache
+        image_cache[cache_key] = {
+            'content': image_content,
+            'content_type': content_type,
+            'timestamp': datetime.now().timestamp()
+        }
+        print(f"[CACHE] Imagem adicionada ao cache ({len(image_cache)}/{IMAGE_CACHE_MAX_SIZE})")
+        
         # Retorna a imagem com headers CORRETOS para evitar CORB
         return Response(
-            response.content,
+            image_content,
             mimetype=content_type,
             headers={
                 'Access-Control-Allow-Origin': '*',
@@ -315,11 +368,12 @@ def image_proxy():
                 'Cache-Control': 'public, max-age=86400',
                 'X-Content-Type-Options': 'nosniff',
                 'Content-Type': content_type,  # Garantir Content-Type explícito
-                'Vary': 'Origin'
+                'Vary': 'Origin',
+                'X-Cache': 'MISS'  # Indica que foi baixado (não estava no cache)
             }
         )
     except requests.exceptions.Timeout:
-        print(f"⏱️ TIMEOUT ao carregar imagem (15s): {image_url[:60]}...")
+        print(f"[TIMEOUT] Imagem demorou mais de 5s para carregar: {image_url[:60]}...")
         return create_svg_placeholder()
     except requests.exceptions.RequestException as e:
         print(f"[Web] ERRO de rede ao carregar imagem: {type(e).__name__}")
