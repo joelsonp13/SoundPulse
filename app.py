@@ -689,7 +689,7 @@ def page_podcast(browseId):
 @app.route('/api/charts/songs/<country>')
 def charts_songs(country):
     """Charts songs by country"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html', 
                              title='Erro',
                              message='YTMusic não conectado')
@@ -705,7 +705,7 @@ def charts_songs(country):
         country_name = country_names.get(country.upper(), 'trending')
         query = f'top hits {country_name} 2024'
         
-        songs = yt.search(query, filter='songs', limit=10)
+        songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=10))
         
         # Filtrar apenas músicas válidas
         songs = [s for s in songs if s.get('videoId') and s.get('title')]
@@ -791,7 +791,7 @@ def trending_podcasts_endpoint():
 @app.route('/api/charts/artists/<country>')
 def charts_artists(country):
     """Charts artists by country"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
@@ -807,7 +807,7 @@ def charts_artists(country):
         country_name = country_names.get(country.upper(), 'trending')
         query = f'top artists {country_name} 2024'
         
-        artists = yt.search(query, filter='artists', limit=10)
+        artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=10))
         
         # Filtrar apenas artistas válidos
         artists = [a for a in artists if a.get('browseId')]
@@ -822,7 +822,7 @@ def charts_artists(country):
 @app.route('/api/charts/videos/<country>')
 def charts_videos(country):
     """Charts videos by country"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
@@ -838,7 +838,7 @@ def charts_videos(country):
         country_name = country_names.get(country.upper(), 'trending')
         query = f'top music videos {country_name} 2024'
         
-        videos = yt.search(query, filter='videos', limit=10)
+        videos = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='videos', limit=10))
         
         # Filtrar apenas vídeos válidos
         videos = [v for v in videos if v.get('videoId')]
