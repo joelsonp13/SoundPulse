@@ -804,6 +804,18 @@ def page_artist(browseId):
     if not request.headers.get('HX-Request'):
         return render_template('index.html')
     
+    # Verificar se é um browseId de álbum ao invés de artista
+    if browseId.startswith('MPREb_') or browseId.startswith('OLAK'):
+        print(f"⚠️ ID de ÁLBUM detectado ({browseId}), redirecionando para página de álbum")
+        # Redirecionar para a página de álbum (mesmo formato que /pages/album/)
+        return render_template('partials/album.html', album={'browseId': browseId})
+    
+    # Verificar se é um browseId de playlist
+    if browseId.startswith('RDCLAK') or browseId.startswith('VLPL') or browseId.startswith('PL'):
+        print(f"⚠️ ID de PLAYLIST detectado ({browseId}), redirecionando para página de playlist")
+        # Redirecionar para a página de playlist (mesmo formato que /pages/playlist/)
+        return render_template('partials/playlist.html', playlist={'id': browseId})
+    
     try:
         artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(browseId))
         if not artist:
@@ -1243,9 +1255,17 @@ def mood_playlists_endpoint(params):
                              message='YTMusic não conectado')
     
     try:
-        playlists = safe_ytmusic_call(lambda ytm: ytm.get_mood_playlists(params))
+        # IMPORTANTE: get_mood_playlists sempre dá 403 com OAuth
+        # Usar APENAS yt_public (sem autenticação) para evitar erro 403
+        ytm_instance = yt_public if yt_public else yt
+        playlists = ytm_instance.get_mood_playlists(params)
+        
+        # Garantir thumbnails em todas as playlists
+        playlists = [ensure_thumbnail(p) for p in playlists] if isinstance(playlists, list) else playlists
+        
         return render_template('components/cards_grid.html', items=playlists, type='playlist')
     except Exception as e:
+        print(f"❌ Erro ao carregar mood playlists ({params}): {str(e)}")
         return render_template('components/error_state.html',
                              title='Erro ao carregar playlists',
                              message=str(e))

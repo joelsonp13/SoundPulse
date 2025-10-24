@@ -1504,14 +1504,30 @@ window.searchComponent = function() {
         
         handleItemClick(item) {
             console.log('🎵 Item clicado:', item);
-            const type = (item.resultType || item.category || '').toLowerCase();
-            console.log('🔍 Tipo detectado:', type, '| browseId:', item.browseId);
+            let type = (item.resultType || item.category || '').toLowerCase();
+            const browseId = item.browseId;
+            
+            // Se não tem tipo definido, detectar pelo browseId ou por outras propriedades
+            if (!type && browseId) {
+                if (browseId.startsWith('UC')) {
+                    type = 'artist';
+                    console.log('🎤 Detectado como ARTISTA pelo browseId (UC...)');
+                } else if (browseId.startsWith('MPREb_') || browseId.startsWith('OLAK') || item.year) {
+                    type = 'album';
+                    console.log('💿 Detectado como ÁLBUM pelo browseId (MPREb_/OLAK) ou propriedade year');
+                } else if (browseId.startsWith('RDCLAK') || browseId.startsWith('VLPL') || browseId.startsWith('PL')) {
+                    type = 'playlist';
+                    console.log('📀 Detectado como PLAYLIST pelo browseId');
+                }
+            }
+            
+            console.log('🔍 Tipo final:', type, '| browseId:', browseId);
             
             if (type === 'song' || type === 'video') {
                 this.playItem(item);
-            } else if ((type === 'artist' || type === 'artists') && item.browseId) {
-                console.log('🎤 Navegando para artista:', item.browseId);
-                const url = `/pages/artist/${item.browseId}`;
+            } else if ((type === 'artist' || type === 'artists') && browseId) {
+                console.log('🎤 Navegando para artista:', browseId);
+                const url = `/pages/artist/${browseId}`;
                 
                 if (window.navigateTo) {
                     console.log('✅ Usando window.navigateTo');
@@ -1526,26 +1542,32 @@ window.searchComponent = function() {
                 } else {
                     console.error('❌ Nenhum método de navegação disponível');
                 }
-            } else if (type === 'album' && item.browseId) {
+            } else if (type === 'album' && browseId) {
+                console.log('💿 Navegando para álbum:', browseId);
+                const url = `/pages/album/${browseId}`;
                 if (window.navigateTo) {
-                    window.navigateTo(`/pages/album/${item.browseId}`);
+                    window.navigateTo(url);
                 } else {
-                    htmx.ajax('GET', `/pages/album/${item.browseId}`, {
+                    htmx.ajax('GET', url, {
                         target: '#main-content',
                         swap: 'innerHTML'
                     });
-                    history.pushState({url: `/pages/album/${item.browseId}`}, '', `/pages/album/${item.browseId}`);
+                    history.pushState({url: url}, '', url);
                 }
-            } else if (type === 'playlist' && item.browseId) {
+            } else if (type === 'playlist' && browseId) {
+                console.log('📀 Navegando para playlist:', browseId);
+                const url = `/pages/playlist/${browseId}`;
                 if (window.navigateTo) {
-                    window.navigateTo(`/pages/playlist/${item.browseId}`);
+                    window.navigateTo(url);
                 } else {
-                    htmx.ajax('GET', `/pages/playlist/${item.browseId}`, {
+                    htmx.ajax('GET', url, {
                         target: '#main-content',
                         swap: 'innerHTML'
                     });
-                    history.pushState({url: `/pages/playlist/${item.browseId}`}, '', `/pages/playlist/${item.browseId}`);
+                    history.pushState({url: url}, '', url);
                 }
+            } else {
+                console.warn('⚠️ Tipo de item não reconhecido:', type, item);
             }
         }
     };

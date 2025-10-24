@@ -401,14 +401,17 @@
             
             // Processar tracks
             if (tracksData.success) {
-                this.tracks = tracksData.tracks;
+                this.tracks = tracksData.tracks || [];
                 console.log('✅ Tracks carregadas:', this.tracks.length);
             } else {
                 console.error('❌ Erro ao carregar tracks:', tracksData.error);
+                this.tracks = []; // Garantir que seja array vazio
             }
             
         } catch (error) {
             console.error('❌ Erro ao carregar playlist:', error);
+            this.tracks = []; // Garantir que tracks seja sempre um array
+            this.playlist = null;
         } finally {
             this.loading = false;
         }
@@ -508,7 +511,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="(track, index) in tracks" :key="track.videoId">
+                    <template x-for="(track, index) in tracks" :key="track.videoId || 'track-' + index">
                         <tr class="spotify-track-row" @click="playTrack(track, index)">
                             <!-- Número / Play -->
                             <td class="spotify-track-number">
