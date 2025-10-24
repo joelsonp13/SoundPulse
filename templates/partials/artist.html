@@ -1,62 +1,151 @@
 <div class="artist-page-spotify" 
      x-data="{
-         artist: {},
-         topSongs: [],
-         albums: [],
-         relatedArtists: [],
+        artist: {},
+        topSongs: [],
+        allSongs: [],
+        albums: [],
+        relatedArtists: [],
          
-         // Função para iniciar rádio do artista
-         async playArtistRadio() {
-             if (!this.topSongs || this.topSongs.length === 0) {
-                 console.error('Nenhuma música disponível para iniciar rádio');
-                 return;
-             }
-             
-             const firstSong = this.topSongs[0];
-             console.log('[Rádio] Iniciando rádio baseada em:', firstSong.title);
-             
-             try {
-                 const response = await fetch(`/api/radio/${firstSong.videoId}`);
-                 const data = await response.json();
-                 
-                 if (data.success && data.radio && data.radio.tracks) {
-                     console.log(`[Rádio] ${data.radio.tracks.length} músicas carregadas`);
-                     
-                     // Adicionar todas as músicas à fila
-                     Alpine.store('player').clearQueue();
-                     data.radio.tracks.forEach(track => {
-                         Alpine.store('player').addToQueue(track);
-                     });
-                     
-                     // Iniciar primeira música
-                     Alpine.store('player').playTrack(data.radio.tracks[0]);
-                 } else {
-                     console.error('[Rádio] Resposta inválida:', data);
-                 }
-             } catch (error) {
-                 console.error('[Rádio] Erro ao carregar:', error);
-             }
-         }
+        playThisIs: async function() {
+            if (!this.allSongs || this.allSongs.length === 0) {
+                console.error('[This Is] Nenhuma música disponível');
+                return;
+            }
+            
+            console.log('[This Is] Tocando essenciais de ' + this.artist.name + '...');
+            console.log('[This Is] ' + this.allSongs.length + ' músicas do artista carregadas');
+            
+            Alpine.store('player').setQueue(this.allSongs);
+            Alpine.store('player').playTrack(this.allSongs[0]);
+        },
+        
+        playArtistRadio: async function(type) {
+            type = type || 'mix';
+            
+            if (!this.topSongs || this.topSongs.length === 0) {
+                console.error('Nenhuma música disponível para iniciar rádio');
+                return;
+            }
+            
+            const typeNames = {
+                'hits': 'Rádio Popular',
+                'deep': 'Rádio Profundo', 
+                'mix': 'Rádio Mix'
+            };
+            
+            console.log('[Rádio] Iniciando ' + typeNames[type] + '...');
+            
+            try {
+                const response = await fetch('/api/radio/' + this.topSongs[0].videoId);
+                const data = await response.json();
+                
+                if (data.success && data.radio && data.radio.tracks) {
+                    let tracks = data.radio.tracks;
+                    
+                    if (type === 'hits') {
+                        tracks = tracks.slice(0, 30);
+                        console.log('[Rádio Popular] ' + tracks.length + ' hits carregados');
+                    } else if (type === 'deep') {
+                        tracks = tracks.slice(10, 50);
+                        console.log('[Rádio Profundo] ' + tracks.length + ' músicas menos conhecidas carregadas');
+                    } else {
+                        console.log('[Rádio Mix] ' + tracks.length + ' músicas variadas carregadas');
+                    }
+                    
+                    Alpine.store('player').setQueue(tracks);
+                    Alpine.store('player').playTrack(tracks[0]);
+                } else {
+                    console.error('[Rádio] Resposta inválida:', data);
+                }
+            } catch (error) {
+                console.error('[Rádio] Erro ao carregar:', error);
+            }
+        },
+        
+        playItem: function(item) {
+            if (item.videoId && window.Alpine && Alpine.store('player')) {
+                var track = {
+                    videoId: item.videoId,
+                    title: item.title,
+                    artist: this.getArtistName(item),
+                    thumbnails: item.thumbnails || []
+                };
+                Alpine.store('player').playTrack(track);
+            }
+        },
+        
+        getArtistName: function(item) {
+            if (item.artists && item.artists.length > 0) {
+                return item.artists[0].name;
+            }
+            return 'Artista desconhecido';
+        },
+        
+        handleItemClick: function(item) {
+            console.log('Item clicado:', item);
+            
+            // Detectar artista: tem browseId mas não tem videoId, ou tem subscribers
+            var isArtist = (item.browseId && !item.videoId) || item.subscribers;
+            
+            if (isArtist && item.browseId) {
+                console.log('Navegando para artista:', item.title || item.name);
+                if (window.navigateTo) {
+                    window.navigateTo('/pages/artist/' + item.browseId);
+                } else if (window.htmx) {
+                    htmx.ajax('GET', '/pages/artist/' + item.browseId, {
+                        target: '#main-content',
+                        swap: 'innerHTML'
+                    });
+                    history.pushState({url: '/pages/artist/' + item.browseId}, '', '/pages/artist/' + item.browseId);
+                }
+            } else if (item.browseId && !item.videoId) {
+                console.log('Abrindo álbum/playlist:', item.title);
+            } else if (item.videoId) {
+                console.log('Tocando música:', item.title);
+                this.playItem(item);
+            }
+        },
+        
+        getHighResThumbnail: function(url) {
+            if (!url) return '/static/images/placeholder.jpg';
+            return '/api/image-proxy?url=' + encodeURIComponent(url);
+        }
      }"
     x-init='
         artist = {{ artist|tojson }};
         topSongs = {{ topSongs|tojson }};
+        allSongs = {{ allSongs|tojson }};
         albums = {{ albums|tojson }};
         relatedArtists = {{ relatedArtists|tojson }};
+        
+        // Scroll automático para o topo ao carregar novo artista
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        
+        // Debug: Verificar artistas relacionados
+        if (relatedArtists && relatedArtists.length > 0) {
+            console.log("[DEBUG] Artistas Relacionados:");
+            console.log("  - Total:", relatedArtists.length);
+            console.log("  - Primeiro artista:", relatedArtists[0]);
+            console.log("  - Nome do primeiro:", relatedArtists[0].name || relatedArtists[0].title || "SEM NOME");
+        }
+        
+        console.log("[DEBUG] Músicas disponíveis:");
+        console.log("  - topSongs (para exibir):", topSongs.length);
+        console.log("  - allSongs (para This Is):", allSongs.length);
      '>
    
    <!-- ==================== HEADER/HERO ESTILO SPOTIFY ==================== -->
    <header class="artist-hero-spotify" 
            style="background: linear-gradient(180deg, rgba(6, 182, 212, 0.3) 0%, rgba(18, 18, 18, 1) 100%); padding: 6rem 2rem 2rem 2rem;">
        <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: flex-end; gap: 1.5rem;">
-           <!-- Foto do artista -->
-           <div style="position: relative; flex-shrink: 0;">
-               <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(59, 130, 246, 0.4)); border-radius: 50%; filter: blur(60px);"></div>
-               <img :src="getHighResThumbnail(artist.thumbnails?.[0]?.url)"
-                    :alt="artist.name"
-                    style="position: relative; width: 232px; height: 232px; border-radius: 50%; object-fit: cover; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);"
-                    onerror="this.src='/static/images/placeholder.jpg'">
-           </div>
+          <!-- Foto do artista -->
+          <div style="position: relative; flex-shrink: 0; width: 232px; height: 232px;">
+              <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(59, 130, 246, 0.4)); border-radius: 50%; filter: blur(60px); z-index: 0;"></div>
+              <img :src="getHighResThumbnail(artist.thumbnails?.[0]?.url)"
+                   :alt="artist.name"
+                   style="position: relative; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: center; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); z-index: 1; background: rgba(31, 41, 55, 0.5);"
+                   onerror="this.src='/static/images/placeholder.jpg'">
+          </div>
            
            <!-- Info do artista -->
            <div style="flex: 1;">
@@ -172,75 +261,113 @@
            </div>
        </section>
 
-       <!-- ==================== SEÇÃO "Featuring [Artista]" ==================== -->
-       <section style="margin-bottom: 3rem;">
-           <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;"
-               x-text="`Featuring ${artist.name || 'Artista'}`">
-               Featuring Artista
-           </h2>
+      <!-- ==================== SEÇÃO "Apresentando [Artista]" ==================== -->
+      <section style="margin-bottom: 3rem;">
+          <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;"
+              x-text="`Apresentando ${artist.name || 'Artista'}`">
+              Apresentando Artista
+          </h2>
            
            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-               <!-- Card "This Is [Artist]" -->
-               <div @click="if (artist.channelId && window.htmx) { htmx.ajax('GET', `/pages/artist/${artist.channelId}`, { target: '#main-content', swap: 'innerHTML' }) }"
-                    style="background: linear-gradient(135deg, #0891b2, #2563eb); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
-                    onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                   
-                   <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;"
-                      x-text="`This Is ${artist.name || 'Artista'}`">This Is Artista</p>
-                   <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
-                       Os maiores sucessos do artista.
-                   </p>
-               </div>
+              <!-- Card "This Is [Artist]" -->
+              <div @click="playThisIs()"
+                   style="background: linear-gradient(135deg, #0891b2, #2563eb); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
+                   onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                  
+                  <div style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 0.25rem 0.75rem; border-radius: 500px; font-size: 0.7rem; font-weight: 700; color: white;">
+                      ⭐ ESSENCIAL
+                  </div>
+                  
+                  <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;"
+                     x-text="`This Is ${artist.name || 'Artista'}`">This Is Artista</p>
+                  <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
+                      As essenciais do artista.
+                  </p>
+              </div>
                
-               <!-- Card "Rádio de [Artist]" -->
-               <div @click="playArtistRadio()"
-                    style="background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
-                    onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                   
-                   <div style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 0.25rem 0.75rem; border-radius: 500px; font-size: 0.7rem; font-weight: 700; color: white;">
-                       RÁDIO
-                   </div>
-                   
-                   <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;"
-                      x-text="`Rádio de ${artist.name || 'Artista'}`">Rádio de Artista</p>
-                   <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
-                       Músicas parecidas com este artista.
-                   </p>
-               </div>
+              <!-- Card "Rádio Popular" -->
+              <div @click="playArtistRadio('hits')"
+                   style="background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
+                   onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                  
+                  <div style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 0.25rem 0.75rem; border-radius: 500px; font-size: 0.7rem; font-weight: 700; color: white;">
+                      🔥 HITS
+                  </div>
+                  
+                  <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;">
+                      Rádio Popular</p>
+                  <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
+                      Hits + artistas similares.
+                  </p>
+              </div>
+              
+              <!-- Card "Rádio Profundo" -->
+              <div @click="playArtistRadio('deep')"
+                   style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
+                   onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                  
+                  <div style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 0.25rem 0.75rem; border-radius: 500px; font-size: 0.7rem; font-weight: 700; color: white;">
+                      🎧 DEEP
+                  </div>
+                  
+                  <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;">
+                      Rádio Profundo</p>
+                  <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
+                      Descubra músicas menos conhecidas.
+                  </p>
+              </div>
+              
+              <!-- Card "Rádio Mix" -->
+              <div @click="playArtistRadio('mix')"
+                   style="background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
+                   onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                  
+                  <div style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 0.25rem 0.75rem; border-radius: 500px; font-size: 0.7rem; font-weight: 700; color: white;">
+                      🎵 MIX
+                  </div>
+                  
+                  <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;">
+                      Rádio Mix</p>
+                  <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
+                      Variedade balanceada de músicas.
+                  </p>
+              </div>
            </div>
        </section>
 
-       <!-- ==================== SEÇÃO "Fans also like" ==================== -->
-       <section style="margin-bottom: 3rem;">
-           <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;">
-               Fans also like
-           </h2>
-           
-           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.5rem;">
-               <template x-for="relatedArtist in relatedArtists.slice(0, 8)" :key="relatedArtist.browseId">
-                   <div @click="handleItemClick(relatedArtist)"
-                        class="spotify-artist-card"
-                        style="background: rgba(31, 41, 55, 0.3); backdrop-filter: blur(20px); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.05); text-align: center;"
-                        onmouseover="this.style.background='rgba(31, 41, 55, 0.5)'; this.style.transform='translateY(-4px)'"
-                        onmouseout="this.style.background='rgba(31, 41, 55, 0.3)'; this.style.transform='translateY(0)'">
-                       
-                       <!-- Foto REDONDA -->
-                       <img :src="getHighResThumbnail(relatedArtist.thumbnails?.[0]?.url)"
-                            :alt="relatedArtist.name"
-                            style="width: 100%; aspect-ratio: 1/1; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);"
-                            onerror="this.src='/static/images/placeholder.jpg'">
-                       
-                       <!-- Nome -->
-                       <p style="color: white; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                          x-text="relatedArtist.name"></p>
-                       
-                       <!-- Badge "Artista" -->
-                       <p style="color: #9ca3af; font-size: 0.875rem; font-weight: 400; text-transform: capitalize;">
-                           Artista
-                       </p>
-                   </div>
+      <!-- ==================== SEÇÃO "Fãs também curtem" ==================== -->
+      <section style="margin-bottom: 3rem;">
+          <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;">
+              Fãs também curtem
+          </h2>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.5rem;">
+              <template x-for="relatedArtist in relatedArtists.slice(0, 8)" :key="relatedArtist.browseId">
+                  <div @click="handleItemClick(relatedArtist)"
+                       class="spotify-artist-card"
+                       style="background: rgba(31, 41, 55, 0.3); backdrop-filter: blur(20px); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.05); text-align: center;"
+                       onmouseover="this.style.background='rgba(31, 41, 55, 0.5)'; this.style.transform='translateY(-4px)'"
+                       onmouseout="this.style.background='rgba(31, 41, 55, 0.3)'; this.style.transform='translateY(0)'">
+                      
+                      <!-- Foto REDONDA -->
+                      <img :src="getHighResThumbnail(relatedArtist.thumbnails?.[0]?.url)"
+                           :alt="relatedArtist.name || relatedArtist.title"
+                           style="width: 100%; aspect-ratio: 1/1; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);"
+                           onerror="this.src='/static/images/placeholder.jpg'">
+                      
+                      <!-- Nome -->
+                      <p style="color: white; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                         x-text="relatedArtist.name || relatedArtist.title || 'Artista'"></p>
+                      
+                      <!-- Badge "Artista" -->
+                      <p style="color: #9ca3af; font-size: 0.875rem; font-weight: 400; text-transform: capitalize;">
+                          Artista
+                      </p>
+                  </div>
                </template>
                
                <!-- Empty State -->

@@ -13,11 +13,14 @@
     padding: 16px;
     min-width: 180px;
     max-width: 220px;
+    min-height: 280px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     box-shadow: 0 8px 32px rgba(0, 188, 212, 0.15);
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .music-card::before {
@@ -51,6 +54,7 @@
     border-radius: 6px;
     margin-bottom: 12px;
     background: rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
 }
 
 .music-card-image {
@@ -101,10 +105,19 @@
     font-weight: 700;
     color: white;
     margin-bottom: 4px;
-    overflow: hidden;
+    overflow: hidden !important;
     text-overflow: ellipsis;
-    white-space: nowrap;
     letter-spacing: 0.2px;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    white-space: normal !important;
+    word-break: break-word;
+    line-height: 1.25rem !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    height: 2.5rem !important;
 }
 
 .music-card-artist {
@@ -113,6 +126,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* ===== ALBUM CARD - Glassmorphism Blue-Purple ===== */
@@ -125,11 +139,14 @@
     padding: 16px;
     min-width: 180px;
     max-width: 220px;
+    min-height: 280px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .album-card::before {
@@ -163,6 +180,7 @@
     border-radius: 6px;
     margin-bottom: 12px;
     background: rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
 }
 
 .album-card-image {
@@ -213,10 +231,19 @@
     font-weight: 700;
     color: white;
     margin-bottom: 4px;
-    overflow: hidden;
+    overflow: hidden !important;
     text-overflow: ellipsis;
-    white-space: nowrap;
     letter-spacing: 0.2px;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    white-space: normal !important;
+    word-break: break-word;
+    line-height: 1.25rem !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    height: 2.5rem !important;
 }
 
 .album-card-artist {
@@ -225,6 +252,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* ===== ARTIST CARD - Circular with Radial Gradient ===== */
@@ -237,12 +265,15 @@
     padding: 16px;
     min-width: 180px;
     max-width: 220px;
+    min-height: 280px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     box-shadow: 0 8px 32px rgba(0, 188, 212, 0.15);
     text-align: center;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .artist-card::before {
@@ -278,6 +309,7 @@
     background: rgba(0, 0, 0, 0.3);
     border: 3px solid rgba(0, 255, 255, 0.2);
     transition: border-color 0.3s ease;
+    flex-shrink: 0;
 }
 
 .artist-card:hover .artist-card-image-wrapper {
@@ -303,10 +335,19 @@
     font-weight: 700;
     color: white;
     margin-bottom: 4px;
-    overflow: hidden;
+    overflow: hidden !important;
     text-overflow: ellipsis;
-    white-space: nowrap;
     letter-spacing: 0.2px;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    white-space: normal !important;
+    word-break: break-word;
+    line-height: 1.25rem !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    height: 2.5rem !important;
 }
 
 .artist-card p,
@@ -316,6 +357,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* ===== PLAYLIST CARD - Glassmorphism Purple-Pink ===== */
@@ -328,11 +370,14 @@
     padding: 16px;
     min-width: 180px;
     max-width: 220px;
+    min-height: 280px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     box-shadow: 0 8px 32px rgba(236, 72, 153, 0.15);
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .playlist-card::before {
@@ -366,6 +411,7 @@
     border-radius: 6px;
     margin-bottom: 12px;
     background: rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
 }
 
 .playlist-card-image {
@@ -416,10 +462,19 @@
     font-weight: 700;
     color: white;
     margin-bottom: 4px;
-    overflow: hidden;
+    overflow: hidden !important;
     text-overflow: ellipsis;
-    white-space: nowrap;
     letter-spacing: 0.2px;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    white-space: normal !important;
+    word-break: break-word;
+    line-height: 1.25rem !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    height: 2.5rem !important;
 }
 
 .playlist-card-author {
@@ -428,6 +483,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* ===== PODCAST CARD - Badge + Glassmorphism Green-Cyan ===== */
@@ -440,11 +496,14 @@
     padding: 16px;
     min-width: 180px;
     max-width: 220px;
+    min-height: 280px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     box-shadow: 0 8px 32px rgba(16, 185, 129, 0.15);
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .podcast-card::before {
@@ -478,6 +537,7 @@
     border-radius: 6px;
     margin-bottom: 12px;
     background: rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
 }
 
 .podcast-card-badge {
@@ -544,10 +604,19 @@
     font-weight: 700;
     color: white;
     margin-bottom: 4px;
-    overflow: hidden;
+    overflow: hidden !important;
     text-overflow: ellipsis;
-    white-space: nowrap;
     letter-spacing: 0.2px;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    white-space: normal !important;
+    word-break: break-word;
+    line-height: 1.25rem !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    height: 2.5rem !important;
 }
 
 .podcast-card-author {
@@ -556,6 +625,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* ===== CARDS GRID ===== */
@@ -564,6 +634,18 @@
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 20px;
     width: 100%;
+    align-items: start;
+}
+
+/* Garantir altura uniforme dos cards no grid */
+.cards-grid > .music-card,
+.cards-grid > .album-card,
+.cards-grid > .artist-card,
+.cards-grid > .playlist-card,
+.cards-grid > .podcast-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ===== RESPONSIVE BREAKPOINTS ===== */

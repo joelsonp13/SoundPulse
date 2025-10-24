@@ -51,6 +51,11 @@
             htmx.config.defaultSwapStyle = 'innerHTML';
             htmx.config.defaultSwapDelay = 100;
             htmx.config.defaultSettleDelay = 100;
+            
+            // DESABILITAR CACHE para evitar erros Alpine.js ao voltar
+            // Sempre busca conteúdo fresco do servidor
+            htmx.config.historyCacheSize = 0;  // ← SEM CACHE
+            htmx.config.historyEnabled = true;
         });
     </script>
 </head>
@@ -66,7 +71,7 @@
     </div>
 
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" :class="{'active': sidebarOpen}">
         <div class="p-6">
             <div class="flex items-center space-x-3 mb-8">
                 <div class="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
@@ -86,7 +91,7 @@
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'home'"
+                       @click="currentSection = 'home'; closeSidebar()"
                        :class="{'active': currentSection === 'home'}">
                         <i class="fas fa-home w-5"></i>
                         <span>Início</span>
@@ -98,7 +103,7 @@
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'search'"
+                       @click="currentSection = 'search'; closeSidebar()"
                        :class="{'active': currentSection === 'search'}">
                         <i class="fas fa-search w-5"></i>
                         <span>Buscar</span>
@@ -110,7 +115,7 @@
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'library'"
+                       @click="currentSection = 'library'; closeSidebar()"
                        :class="{'active': currentSection === 'library'}">
                         <i class="fas fa-music w-5"></i>
                         <span>Sua Biblioteca</span>
@@ -122,7 +127,7 @@
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'charts'"
+                       @click="currentSection = 'charts'; closeSidebar()"
                        :class="{'active': currentSection === 'charts'}">
                         <i class="fas fa-chart-line w-5"></i>
                         <span>Charts</span>
@@ -134,7 +139,7 @@
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'explore'"
+                       @click="currentSection = 'explore'; closeSidebar()"
                        :class="{'active': currentSection === 'explore'}">
                         <i class="fas fa-compass w-5"></i>
                         <span>Explorar</span>
@@ -205,10 +210,26 @@
         </div>
     </aside>
 
+    <!-- Overlay para fechar sidebar no mobile -->
+    <div class="sidebar-overlay" 
+         x-show="sidebarOpen" 
+         @click="closeSidebar()"
+         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"></div>
+
     <!-- Main Content -->
     <main class="main-content">
         <!-- Header Spotify -->
         <header class="main-header">
+            <!-- Botão Hamburguer (Mobile) -->
+            <button class="menu-toggle" @click="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            
             <div class="header-nav-buttons">
                 <button class="nav-button" @click="history.back()">
                     <i class="fas fa-chevron-left"></i>
@@ -368,6 +389,8 @@
                 <span class="time-current" x-text="$store.player.formatTime($store.player.currentTime)">0:00</span>
                 <div class="progress-bar" 
                      @click="$store.player.seek($event)"
+                     @mousedown.prevent="$store.player.startProgressDrag($event)"
+                     @touchstart.prevent="$store.player.startProgressDrag($event)"
                      role="slider"
                      aria-label="Barra de progresso da música"
                      aria-valuemin="0"
@@ -586,6 +609,23 @@
     
     <!-- HTMX Helper Functions -->
     <script>
+        // Wrapper para navegação que sempre atualiza a URL
+        // Disponível globalmente para uso em todos os componentes
+        window.navigateTo = function(url) {
+            // Usar HTMX nativo para garantir header HX-Request
+            const tempElement = document.createElement('div');
+            tempElement.setAttribute('hx-get', url);
+            tempElement.setAttribute('hx-target', '#main-content');
+            tempElement.setAttribute('hx-swap', 'innerHTML');
+            
+            // Processar elemento e fazer request
+            htmx.process(tempElement);
+            htmx.trigger(tempElement, 'click');
+            
+            // Atualizar URL manualmente
+            history.pushState({url: url}, '', url);
+        };
+        
         function playTrackFromCard(card) {
             const videoId = card.dataset.videoId;
             const title = card.querySelector('h4').textContent;
@@ -629,21 +669,13 @@
             const name = card.querySelector('h4, .artist-card-title').textContent;
             const thumbnail = card.querySelector('img').src;
             
-            // Navigate to artist page via HTMX
-            htmx.ajax('GET', `/pages/artist/${browseId}`, {
-                target: '#main-content',
-                swap: 'innerHTML'
-            });
+            console.log('🎤 Abrindo artista:', name);
+            navigateTo(`/pages/artist/${browseId}`);
         }
         
         function openAlbumFromCard(card) {
             const browseId = card.dataset.browseId;
-            
-            // Navigate to album page via HTMX
-            htmx.ajax('GET', `/pages/album/${browseId}`, {
-                target: '#main-content',
-                swap: 'innerHTML'
-            });
+            navigateTo(`/pages/album/${browseId}`);
         }
         
         function playAlbumFromCard(card) {
@@ -653,22 +685,12 @@
         
         function playPlaylistFromCard(card) {
             const browseId = card.dataset.browseId;
-            
-            // Navigate to playlist page via HTMX
-            htmx.ajax('GET', `/pages/playlist/${browseId}`, {
-                target: '#main-content',
-                swap: 'innerHTML'
-            });
+            navigateTo(`/pages/playlist/${browseId}`);
         }
         
         function openPodcastFromCard(card) {
             const browseId = card.dataset.browseId;
-            
-            // Navigate to podcast page via HTMX
-            htmx.ajax('GET', `/pages/podcast/${browseId}`, {
-                target: '#main-content',
-                swap: 'innerHTML'
-            });
+            navigateTo(`/pages/podcast/${browseId}`);
         }
         
         function playPodcastFromCard(card) {
@@ -720,27 +742,46 @@
             }
         }
         
-        // Detect current URL and load appropriate content
+        // Sistema de Navegação com Histórico de URL
         document.addEventListener('DOMContentLoaded', function() {
             const currentPath = window.location.pathname;
+            const queryString = window.location.search;
             const mainContent = document.getElementById('main-content');
             
-            if (!mainContent) return;
+            if (!mainContent) {
+                console.error('❌ #main-content não encontrado');
+                return;
+            }
             
             let targetUrl = '/pages/home';
             let section = 'home';
             
             // Se estamos em uma rota /pages/*, carrega o conteúdo via HTMX
             if (currentPath.startsWith('/pages/')) {
-                targetUrl = currentPath;
-                section = currentPath.split('/')[2] || 'home'; // extrai 'home', 'charts', etc.
+                targetUrl = currentPath + queryString;  // Incluir query string
+                section = currentPath.split('/')[2] || 'home';
+                
+                // IMPORTANTE: Salvar estado atual no histórico ao recarregar (F5)
+                // Isso garante que o botão voltar funcione após recarregar
+                if (!history.state || history.state.url !== targetUrl) {
+                    history.replaceState({url: targetUrl}, '', targetUrl);
+                }
+            } else if (currentPath === '/') {
+                targetUrl = '/pages/home';
+                section = 'home';
+                history.replaceState({url: targetUrl}, '', targetUrl);
             }
             
-            // Carrega o conteúdo
-            htmx.ajax('GET', targetUrl, {
-                target: '#main-content',
-                swap: 'innerHTML'
-            });
+            // Carrega o conteúdo (sem pushState pois é carregamento inicial)
+            // IMPORTANTE: Usar HTMX nativo para garantir header HX-Request
+            const tempElement = document.createElement('div');
+            tempElement.setAttribute('hx-get', targetUrl);
+            tempElement.setAttribute('hx-target', '#main-content');
+            tempElement.setAttribute('hx-swap', 'innerHTML');
+            
+            // Processar elemento e fazer request
+            htmx.process(tempElement);
+            htmx.trigger(tempElement, 'click');
             
             // Atualiza a seção ativa na sidebar
             setTimeout(() => {
@@ -748,6 +789,48 @@
                     Alpine.store('app').currentSection = section;
                 }
             }, 100);
+        });
+        
+        // Atualizar seção ativa da sidebar após navegação HTMX
+        document.body.addEventListener('htmx:afterSettle', function(event) {
+            const currentPath = window.location.pathname;
+            if (currentPath.startsWith('/pages/')) {
+                const section = currentPath.split('/')[2] || 'home';
+                const validSections = ['home', 'search', 'library', 'charts', 'explore'];
+                
+                // Só atualiza se for uma seção válida da sidebar
+                if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
+                    Alpine.store('app').currentSection = section;
+                }
+            }
+        });
+        
+        // Listener para botão voltar/avançar do navegador
+        // Como o cache está desabilitado, sempre busca conteúdo fresco
+        window.addEventListener('popstate', function(event) {
+            const currentPath = window.location.pathname;
+            const fullUrl = currentPath + window.location.search;  // Incluir query string!
+            
+            if (currentPath.startsWith('/pages/')) {
+                // Buscar conteúdo fresco do servidor (com query string se houver)
+                // IMPORTANTE: Criar elemento temporário para trigger HTMX com header correto
+                const tempElement = document.createElement('div');
+                tempElement.setAttribute('hx-get', fullUrl);
+                tempElement.setAttribute('hx-target', '#main-content');
+                tempElement.setAttribute('hx-swap', 'innerHTML');
+                
+                // Processar elemento e fazer request
+                htmx.process(tempElement);
+                htmx.trigger(tempElement, 'click');
+                
+                // Atualizar sidebar APENAS se for uma seção válida
+                const section = currentPath.split('/')[2] || 'home';
+                const validSections = ['home', 'search', 'library', 'charts', 'explore'];
+                
+                if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
+                    Alpine.store('app').currentSection = section;
+                }
+            }
         });
     </script>
 </body>

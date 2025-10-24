@@ -441,11 +441,11 @@ def search():
 @app.route('/api/watch/<videoId>')
 def get_watch_playlist(videoId):
     """Obter playlist de watch (músicas relacionadas)"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
-        watch_playlist = yt.get_watch_playlist(videoId)
+        watch_playlist = safe_ytmusic_call(lambda ytm: ytm.get_watch_playlist(videoId))
         return jsonify({'success': True, 'related': watch_playlist.get('tracks', [])})
     except Exception as e:
         return jsonify({'error': f'Erro ao obter watch playlist: {str(e)}'}), 500
@@ -453,11 +453,11 @@ def get_watch_playlist(videoId):
 @app.route('/api/song/<videoId>')
 def get_song_info(videoId):
     """Obter informações detalhadas da música"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
-        song_info = yt.get_song(videoId)
+        song_info = safe_ytmusic_call(lambda ytm: ytm.get_song(videoId))
         return jsonify({'success': True, 'song': song_info})
     except Exception as e:
         return jsonify({'error': f'Erro ao obter informações da música: {str(e)}'}), 500
@@ -465,11 +465,11 @@ def get_song_info(videoId):
 @app.route('/api/playlist/<playlistId>')
 def get_playlist(playlistId):
     """Obter playlist completa"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
-        playlist = yt.get_playlist(playlistId, limit=100)
+        playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId, limit=100))
         return jsonify({'success': True, 'playlist': playlist, 'tracks': playlist.get('tracks', [])})
     except Exception as e:
         return jsonify({'error': f'Erro ao obter playlist: {str(e)}'}), 500
@@ -477,14 +477,14 @@ def get_playlist(playlistId):
 @app.route('/api/playlist/<playlistId>/more-songs')
 def get_more_playlist_songs(playlistId):
     """Obter mais músicas da playlist (paginação)"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
         page = int(request.args.get('page', 1))
         limit = 10
         
-        playlist = yt.get_playlist(playlistId, limit=limit, offset=(page-1)*limit)
+        playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId, limit=limit, offset=(page-1)*limit))
         tracks = playlist.get('tracks', [])
         
         return jsonify({
@@ -588,12 +588,12 @@ def get_more_artist_songs(artistId):
 @app.route('/api/lyrics/<videoId>')
 def get_lyrics(videoId):
     """Obter letras da música"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
         print(f"Tentando obter letras para: {videoId}")
-        lyrics = yt.get_lyrics(videoId)
+        lyrics = safe_ytmusic_call(lambda ytm: ytm.get_lyrics(videoId))
         print(f"Resposta do yt.get_lyrics: {type(lyrics)} - {lyrics}")
         
         # Verificar se as letras existem e não estão vazias
@@ -612,12 +612,12 @@ def get_lyrics(videoId):
 @app.route('/api/related/<videoId>')
 def get_related_songs(videoId):
     """Obter músicas relacionadas"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
         # Tenta usar get_watch_playlist ao invés de get_song_related
-        watch_playlist = yt.get_watch_playlist(videoId)
+        watch_playlist = safe_ytmusic_call(lambda ytm: ytm.get_watch_playlist(videoId))
         related = watch_playlist.get('tracks', [])[:10]  # Pega apenas 10 músicas relacionadas
         return jsonify({'success': True, 'related': related})
     except Exception as e:
@@ -628,11 +628,11 @@ def get_related_songs(videoId):
 @app.route('/api/radio/<videoId>')
 def get_radio_playlist(videoId):
     """Obter playlist de rádio baseada na música"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
-        radio_playlist = yt.get_watch_playlist(videoId, radio=True)
+        radio_playlist = safe_ytmusic_call(lambda ytm: ytm.get_watch_playlist(videoId, radio=True))
         return jsonify({'success': True, 'radio': radio_playlist})
     except Exception as e:
         return jsonify({'error': f'Erro ao obter rádio: {str(e)}'}), 500
@@ -651,8 +651,10 @@ def page_home():
 @app.route('/pages/search')
 def page_search():
     """Search page"""
+    search_query = request.args.get('q', '')
+    
     if request.headers.get('HX-Request'):
-        return render_template('partials/search.html')
+        return render_template('partials/search.html', initial_query=search_query)
     return render_template('index.html')
 
 @app.route('/pages/library')
@@ -709,8 +711,11 @@ def page_artist(browseId):
         
         # Preparar dados para evitar problemas de sintaxe no template
         top_songs = []
+        all_songs = []  # Para "This Is" (mais músicas)
         if artist.get('songs') and artist.get('songs').get('results'):
-            top_songs = artist['songs']['results'][:5]
+            all_results = artist['songs']['results']
+            top_songs = all_results[:5]  # Apenas 5 para mostrar na lista
+            all_songs = all_results[:30]  # Até 30 para "This Is"
         
         # Combinar albums + singles para ter mais releases
         albums = []
@@ -724,15 +729,22 @@ def page_artist(browseId):
         related_artists = []
         if artist.get('related') and artist.get('related').get('results'):
             related_artists = artist['related']['results'][:8]
+            # Debug: Mostrar estrutura de um artista relacionado
+            if related_artists:
+                print(f"[DEBUG] Exemplo de artista relacionado:")
+                print(f"  - Keys disponíveis: {list(related_artists[0].keys())}")
+                print(f"  - Dados: {related_artists[0]}")
         
         print(f"[DEBUG] Dados processados para template:")
         print(f"  - topSongs: {len(top_songs)}")
+        print(f"  - allSongs: {len(all_songs)}")
         print(f"  - albums (albums + singles): {len(albums)}")
         print(f"  - relatedArtists: {len(related_artists)}")
         
         return render_template('partials/artist.html', 
                              artist=artist,
                              topSongs=top_songs,
+                             allSongs=all_songs,
                              albums=albums,
                              relatedArtists=related_artists)
     except Exception as e:
@@ -964,13 +976,13 @@ def charts_videos(country):
 @app.route('/api/artist/<browseId>/top-songs')
 def artist_top_songs_endpoint(browseId):
     """Artist top songs"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        artist = yt.get_artist(browseId)
+        artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(browseId))
         songs = artist.get('songs', {}).get('results', [])[:10]
         return render_template('components/cards_grid.html', items=songs, type='music')
     except Exception as e:
@@ -983,13 +995,13 @@ def artist_top_songs_endpoint(browseId):
 @app.route('/api/album/<browseId>/tracks')
 def album_tracks_endpoint(browseId):
     """Album tracks"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        album = yt.get_album(browseId)
+        album = safe_ytmusic_call(lambda ytm: ytm.get_album(browseId))
         tracks = album.get('tracks', [])
         return render_template('partials/tracklist.html', tracks=tracks)
     except Exception as e:
@@ -1002,13 +1014,13 @@ def album_tracks_endpoint(browseId):
 @app.route('/api/playlist/<playlistId>/tracks')
 def playlist_tracks_endpoint(playlistId):
     """Playlist tracks"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        playlist = yt.get_playlist(playlistId)
+        playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId))
         tracks = playlist.get('tracks', [])
         return render_template('partials/tracklist.html', tracks=tracks)
     except Exception as e:
@@ -1021,13 +1033,13 @@ def playlist_tracks_endpoint(playlistId):
 @app.route('/api/podcast/<browseId>/episodes')
 def podcast_episodes_endpoint(browseId):
     """Podcast episodes"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        episodes = yt.get_channel_episodes(browseId)
+        episodes = safe_ytmusic_call(lambda ytm: ytm.get_channel_episodes(browseId))
         return render_template('partials/episode_list.html', episodes=episodes)
     except Exception as e:
         return render_template('components/error_state.html',
@@ -1105,7 +1117,7 @@ def mood_playlists_endpoint(params):
 @app.route('/api/search-suggestions')
 def search_suggestions_endpoint():
     """Search suggestions"""
-    if not yt:
+    if not yt and not yt_public:
         return ''
     
     query = request.args.get('q', '')
@@ -1113,7 +1125,7 @@ def search_suggestions_endpoint():
         return ''
     
     try:
-        suggestions = yt.get_search_suggestions(query)
+        suggestions = safe_ytmusic_call(lambda ytm: ytm.get_search_suggestions(query))
         html = '<div class="suggestions-list">'
         for suggestion in suggestions[:5]:
             html += f'<div class="suggestion-item p-2 hover:bg-white/10 cursor-pointer">{suggestion}</div>'

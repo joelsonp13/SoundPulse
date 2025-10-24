@@ -219,12 +219,50 @@ body {
 
 /* ========== Responsividade Layout ========== */
 
+/* Botão Hamburguer (Mobile Menu Toggle) */
+.menu-toggle {
+    display: none; /* Esconder por padrão (desktop) */
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    margin-right: 12px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Overlay escuro quando sidebar está aberta (mobile) */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 150;  /* Entre conteúdo (0) e sidebar mobile (200) */
+    bottom: 88px;  /* Não cobrir o player */
+    cursor: pointer;  /* Indicar que é clicável */
+}
+
 /* Tablets Portrait (max 768px) */
 @media (max-width: 768px) {
+    .menu-toggle {
+        display: block; /* Mostrar botão hamburguer */
+    }
+    
     .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s;
         z-index: 200;
+        bottom: 88px;  /* Não cobrir o player (altura do player) */
     }
     
     .sidebar.active {

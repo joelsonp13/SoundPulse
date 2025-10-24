@@ -20,7 +20,7 @@
     padding: 0 20px;
     align-items: center;
     gap: 24px;
-    z-index: 100;
+    z-index: 300;  /* Sempre por cima de tudo (sidebar mobile = 200) */
 }
 
 /* Coluna Esquerda - Info da Música */
@@ -234,6 +234,9 @@
     cursor: pointer;
     transition: height 0.1s;
     overflow: visible;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
 }
 
 .progress-bar:hover {

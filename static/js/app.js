@@ -186,7 +186,8 @@ document.addEventListener('alpine:init', () => {
         currentTime: 0,
         duration: 0,
         progress: 0,
-        volume: 100,
+        volume: 1.0,  // 0-1 para corresponder ao slider (1.0 = 100%)
+        isDraggingProgress: false,  // Rastrear se está arrastando a barra de progresso
         showRelated: false,
         relatedSongs: [],
         showLyricsModal: false,
@@ -205,65 +206,93 @@ document.addEventListener('alpine:init', () => {
 
         initYouTubePlayer() {
             console.log('🔧 Inicializando YouTube Player...');
+            console.log('🔍 YT disponível:', typeof YT !== 'undefined');
+            console.log('🔍 YT.Player disponível:', typeof YT?.Player !== 'undefined');
             
             const player = Alpine.store('player');
             
-            player.youtubePlayer = new YT.Player('youtube-player', {
-                height: '0',
-                width: '0',
-                playerVars: {
-                    'controls': 0,
-                    'disablekb': 1,
-                    'fs': 0,
-                    'modestbranding': 1,
-                    'playsinline': 1,
-                    'rel': 0,
-                    'showinfo': 0
-                },
-                events: {
-                    'onReady': () => {
-                        console.log('✅ YouTube Player pronto!');
-                        player.youtubeReady = true;
-                        player.youtubePlayer.setVolume(player.volume);
+            try {
+                console.log('🎬 Criando instância YT.Player...');
+                player.youtubePlayer = new YT.Player('youtube-player', {
+                    height: '0',
+                    width: '0',
+                    playerVars: {
+                        'controls': 0,
+                        'disablekb': 1,
+                        'fs': 0,
+                        'modestbranding': 1,
+                        'playsinline': 1,
+                        'rel': 0,
+                        'showinfo': 0
                     },
-                    'onStateChange': (event) => {
-                        console.log('🎵 YouTube State Changed:', event.data);
-                        
-                        // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
-                        if (event.data === YT.PlayerState.PLAYING) {
-                            console.log('▶️ Playing');
-                            player.isPlaying = true;
+                    events: {
+                        'onReady': () => {
+                            console.log('✅ YouTube Player pronto!');
+                            player.youtubeReady = true;
+                            
+                            // Definir volume com verificação (converter 0-1 para 0-100)
+                            try {
+                                const youtubeVolume = Math.round(player.volume * 100);
+                                if (player.youtubePlayer && typeof player.youtubePlayer.setVolume === 'function') {
+                                    player.youtubePlayer.setVolume(youtubeVolume);
+                                    console.log('🔊 Volume definido para:', youtubeVolume + '%');
+                                } else {
+                                    console.warn('⚠️ setVolume não disponível ainda, tentando novamente...');
+                                    setTimeout(() => {
+                                        if (player.youtubePlayer && typeof player.youtubePlayer.setVolume === 'function') {
+                                            player.youtubePlayer.setVolume(youtubeVolume);
+                                            console.log('🔊 Volume definido (retry):', youtubeVolume + '%');
+                                        }
+                                    }, 100);
+                                }
+                            } catch (error) {
+                                console.error('❌ Erro ao definir volume:', error);
+                            }
+                        },
+                        'onStateChange': (event) => {
+                            console.log('🎵 YouTube State Changed:', event.data);
+                            
+                            // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+                            if (event.data === YT.PlayerState.PLAYING) {
+                                console.log('▶️ Playing');
+                                player.isPlaying = true;
+                                player.isLoading = false;
+                                player.startUpdateInterval();
+                            } else if (event.data === YT.PlayerState.PAUSED) {
+                                console.log('⏸️ Paused');
+                                player.isPlaying = false;
+                                player.stopUpdateInterval();
+                            } else if (event.data === YT.PlayerState.ENDED) {
+                                console.log('🏁 Ended');
+                                player.isPlaying = false;
+                                player.stopUpdateInterval();
+                                player.next();
+                            } else if (event.data === YT.PlayerState.BUFFERING) {
+                                console.log('⏳ Buffering');
+                                player.isLoading = true;
+                            }
+                        },
+                        'onError': (event) => {
+                            console.error('❌ YouTube Player Error:', event.data);
                             player.isLoading = false;
-                            player.startUpdateInterval();
-                        } else if (event.data === YT.PlayerState.PAUSED) {
-                            console.log('⏸️ Paused');
                             player.isPlaying = false;
-                            player.stopUpdateInterval();
-                        } else if (event.data === YT.PlayerState.ENDED) {
-                            console.log('🏁 Ended');
-                            player.isPlaying = false;
-                            player.stopUpdateInterval();
-                            player.next();
-                        } else if (event.data === YT.PlayerState.BUFFERING) {
-                            console.log('⏳ Buffering');
-                            player.isLoading = true;
                         }
-                    },
-                    'onError': (event) => {
-                        console.error('❌ YouTube Player Error:', event.data);
-                        player.isLoading = false;
-                        player.isPlaying = false;
                     }
-                }
-            });
-            
-            console.log('✅ YouTube Player inicializado');
+                });
+                
+                console.log('✅ YouTube Player criado, aguardando onReady...');
+            } catch (error) {
+                console.error('❌ Erro ao criar YouTube Player:', error);
+            }
         },
 
         startUpdateInterval() {
             if (this.updateInterval) return;
             
             this.updateInterval = setInterval(() => {
+                // NÃO atualizar se o usuário estiver arrastando a barra
+                if (this.isDraggingProgress) return;
+                
                 if (this.youtubePlayer && this.youtubeReady) {
                     try {
                         this.currentTime = this.youtubePlayer.getCurrentTime() || 0;
@@ -291,9 +320,23 @@ document.addEventListener('alpine:init', () => {
             console.log('🎬 VideoID:', track.videoId);
             
             try {
+                // Aguardar YouTube player estar pronto (com timeout de 10 segundos)
                 if (!this.youtubeReady || !this.youtubePlayer) {
-                    console.warn('⚠️ YouTube player não está pronto ainda');
-                    return;
+                    console.warn('⚠️ YouTube player não está pronto ainda. Aguardando...');
+                    const maxWait = 10000; // 10 segundos
+                    const startTime = Date.now();
+                    
+                    while ((!this.youtubeReady || !this.youtubePlayer) && (Date.now() - startTime < maxWait)) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                    
+                    if (!this.youtubeReady || !this.youtubePlayer) {
+                        console.error('❌ Timeout: YouTube player não ficou pronto a tempo');
+                        alert('Erro ao carregar o player. Por favor, recarregue a página.');
+                        return;
+                    }
+                    
+                    console.log('✅ YouTube player agora está pronto!');
                 }
                 
                 this.currentTrack = track;
@@ -339,7 +382,20 @@ document.addEventListener('alpine:init', () => {
         },
 
         addToQueue(tracks) {
-            this.queue = [...this.queue, ...tracks];
+            // Aceita tanto array quanto objeto único
+            const tracksArray = Array.isArray(tracks) ? tracks : [tracks];
+            this.queue = [...this.queue, ...tracksArray];
+        },
+
+        clearQueue() {
+            this.queue = [];
+            this.currentIndex = 0;
+        },
+
+        setQueue(tracks) {
+            // Define a queue com as músicas fornecidas
+            this.queue = Array.isArray(tracks) ? tracks : [tracks];
+            this.currentIndex = 0;
         },
 
         async loadRelatedSongs(videoId) {
@@ -360,20 +416,115 @@ document.addEventListener('alpine:init', () => {
         },
 
         setVolume(value) {
+            // Converter de 0-1 (slider) para 0-100 (YouTube API)
             this.volume = parseFloat(value);
+            const youtubeVolume = Math.round(this.volume * 100);
+            
             if (this.youtubeReady && this.youtubePlayer) {
-                this.youtubePlayer.setVolume(this.volume);
+                try {
+                    if (typeof this.youtubePlayer.setVolume === 'function') {
+                        this.youtubePlayer.setVolume(youtubeVolume);
+                        console.log('🔊 Volume ajustado:', youtubeVolume + '%');
+                    } else {
+                        console.warn('⚠️ setVolume não é uma função');
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao definir volume:', error);
+                }
             }
         },
 
-        seek(event) {
+        // Calcular posição do seek baseado em coordenadas
+        calculateSeekPosition(event, progressBar) {
+            const rect = progressBar.getBoundingClientRect();
+            let clientX;
+            
+            // Suportar tanto mouse quanto touch
+            if (event.type.startsWith('touch')) {
+                clientX = event.touches[0]?.clientX || event.changedTouches[0]?.clientX;
+            } else {
+                clientX = event.clientX;
+            }
+            
+            const clickX = clientX - rect.left;
+            const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+            return this.duration * percentage;
+        },
+
+        // Iniciar arrasto da barra de progresso
+        startProgressDrag(event) {
             if (!this.youtubeReady || !this.youtubePlayer) return;
             
+            event.preventDefault();
+            this.isDraggingProgress = true;
+            
+            // Guardar referência à barra de progresso
+            this.progressBarElement = event.currentTarget;
+            
+            // Criar handlers globais para continuar o arrasto mesmo fora da barra
+            const moveHandler = (e) => this.handleProgressDragGlobal(e);
+            const upHandler = (e) => this.endProgressDragGlobal(e, moveHandler, upHandler);
+            
+            // Adicionar listeners globais
+            if (event.type === 'mousedown') {
+                document.addEventListener('mousemove', moveHandler);
+                document.addEventListener('mouseup', upHandler);
+            } else if (event.type === 'touchstart') {
+                document.addEventListener('touchmove', moveHandler, { passive: false });
+                document.addEventListener('touchend', upHandler);
+            }
+            
+            // Atualizar posição inicial
+            this.handleProgressDragGlobal(event);
+        },
+
+        // Lidar com movimento durante o arrasto (global)
+        handleProgressDragGlobal(event) {
+            if (!this.isDraggingProgress || !this.progressBarElement) return;
+            
+            event.preventDefault();
+            const newTime = this.calculateSeekPosition(event, this.progressBarElement);
+            
+            if (!isNaN(newTime) && isFinite(newTime)) {
+                // Atualizar preview visual sem pular para a posição ainda
+                this.currentTime = newTime;
+                this.progress = (newTime / this.duration) * 100;
+            }
+        },
+
+        // Finalizar arrasto e aplicar o seek (global)
+        endProgressDragGlobal(event, moveHandler, upHandler) {
+            if (!this.isDraggingProgress) return;
+            
+            event.preventDefault();
+            this.isDraggingProgress = false;
+            
+            // Remover listeners globais
+            if (event.type === 'mouseup') {
+                document.removeEventListener('mousemove', moveHandler);
+                document.removeEventListener('mouseup', upHandler);
+            } else if (event.type === 'touchend') {
+                document.removeEventListener('touchmove', moveHandler);
+                document.removeEventListener('touchend', upHandler);
+            }
+            
+            const newTime = this.calculateSeekPosition(event, this.progressBarElement);
+            
+            if (!isNaN(newTime) && isFinite(newTime) && this.youtubePlayer) {
+                this.youtubePlayer.seekTo(newTime, true);
+                console.log(`⏩ Seek para: ${this.formatTime(newTime)}`);
+            }
+            
+            this.progressBarElement = null;
+        },
+
+        // Clique simples na barra (sem arrastar)
+        seek(event) {
+            if (!this.youtubeReady || !this.youtubePlayer) return;
+            if (this.isDraggingProgress) return; // Ignorar se está arrastando
+            
             const progressBar = event.currentTarget;
-            const rect = progressBar.getBoundingClientRect();
-            const clickX = event.clientX - rect.left;
-            const percentage = clickX / rect.width;
-            const newTime = this.duration * percentage;
+            const newTime = this.calculateSeekPosition(event, progressBar);
             
             if (!isNaN(newTime) && isFinite(newTime)) {
                 this.youtubePlayer.seekTo(newTime, true);
@@ -576,9 +727,18 @@ document.addEventListener('alpine:init', () => {
 function app() {
     return {
         currentSection: 'home',
+        sidebarOpen: false,  // Controlar sidebar mobile
 
         init() {
             console.log('🎵 SoundPulse inicializado com HTMX + Alpine.js + Tailwind CSS');
+        },
+
+        toggleSidebar() {
+            this.sidebarOpen = !this.sidebarOpen;
+        },
+
+        closeSidebar() {
+            this.sidebarOpen = false;
         }
     };
 }
@@ -619,12 +779,15 @@ window.openPlaylistFromCard = function(card) {
     
     console.log('📋 Abrindo playlist:', browseId);
     
-    // Use HTMX para navegar para a página da playlist
-    if (window.htmx) {
+    // Use função navigateTo global que atualiza a URL
+    if (window.navigateTo) {
+        window.navigateTo(`/pages/playlist/${browseId}`);
+    } else if (window.htmx) {
         htmx.ajax('GET', `/pages/playlist/${browseId}`, {
             target: '#main-content',
             swap: 'innerHTML'
         });
+        history.pushState({url: `/pages/playlist/${browseId}`}, '', `/pages/playlist/${browseId}`);
     }
 };
 
@@ -644,12 +807,15 @@ window.openArtistFromCard = function(card) {
     
     console.log('🎤 Abrindo artista:', browseId);
     
-    // Use HTMX para navegar para a página do artista
-    if (window.htmx) {
+    // Use função navigateTo global que atualiza a URL
+    if (window.navigateTo) {
+        window.navigateTo(`/pages/artist/${browseId}`);
+    } else if (window.htmx) {
         htmx.ajax('GET', `/pages/artist/${browseId}`, {
             target: '#main-content',
             swap: 'innerHTML'
         });
+        history.pushState({url: `/pages/artist/${browseId}`}, '', `/pages/artist/${browseId}`);
     }
 };
 
@@ -674,12 +840,15 @@ window.openAlbumFromCard = function(card) {
     
     console.log('💿 Abrindo álbum:', album);
     
-    // Use HTMX para navegar para a página do álbum
-    if (window.htmx) {
+    // Use função navigateTo global que atualiza a URL
+    if (window.navigateTo) {
+        window.navigateTo(`/pages/album/${browseId}`);
+    } else if (window.htmx) {
         htmx.ajax('GET', `/pages/album/${browseId}`, {
             target: '#main-content',
             swap: 'innerHTML'
         });
+        history.pushState({url: `/pages/album/${browseId}`}, '', `/pages/album/${browseId}`);
     }
 };
 
@@ -695,12 +864,15 @@ window.playAlbumFromCard = function(buttonElement) {
     const browseId = card.dataset.browseId;
     console.log('▶️ Tentando reproduzir álbum:', browseId);
     
-    // Navegar para a página do álbum (onde o usuário pode clicar em músicas específicas)
-    if (window.htmx) {
+    // Use função navigateTo global que atualiza a URL
+    if (window.navigateTo) {
+        window.navigateTo(`/pages/album/${browseId}`);
+    } else if (window.htmx) {
         htmx.ajax('GET', `/pages/album/${browseId}`, {
             target: '#main-content',
             swap: 'innerHTML'
         });
+        history.pushState({url: `/pages/album/${browseId}`}, '', `/pages/album/${browseId}`);
     }
 };
 
@@ -740,6 +912,16 @@ window.searchComponent = function() {
             albums: []
         },
         
+        // Inicialização: carregar query da URL se existir
+        init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            if (query) {
+                this.searchQuery = query;
+                this.performSearch();
+            }
+        },
+        
         // Getters para limitar resultados no filtro 'all'
         get limitedArtists() {
             if (this.filterType === 'all' && Array.isArray(this.categorizedResults.artists)) {
@@ -777,6 +959,10 @@ window.searchComponent = function() {
             this.displayedSongsCount = 30; // Reset ao fazer nova busca
             this.displayedPlaylistsCount = 20; // Reset ao fazer nova busca
             console.log('🔍 Buscando:', this.searchQuery);
+            
+            // Atualizar URL com a query de busca (sem recarregar a página)
+            const newUrl = `/pages/search?q=${encodeURIComponent(this.searchQuery)}`;
+            history.pushState({url: newUrl}, '', newUrl);
             
             try {
                 // ✅ Sempre busca sem filtro - filtros são aplicados no frontend
@@ -1029,20 +1215,35 @@ window.searchComponent = function() {
             if (type === 'song' || type === 'video') {
                 this.playItem(item);
             } else if (type === 'artist' && item.browseId) {
-                htmx.ajax('GET', `/pages/artist/${item.browseId}`, {
-                    target: '#main-content',
-                    swap: 'innerHTML'
-                });
+                if (window.navigateTo) {
+                    window.navigateTo(`/pages/artist/${item.browseId}`);
+                } else {
+                    htmx.ajax('GET', `/pages/artist/${item.browseId}`, {
+                        target: '#main-content',
+                        swap: 'innerHTML'
+                    });
+                    history.pushState({url: `/pages/artist/${item.browseId}`}, '', `/pages/artist/${item.browseId}`);
+                }
             } else if (type === 'album' && item.browseId) {
-                htmx.ajax('GET', `/pages/album/${item.browseId}`, {
-                    target: '#main-content',
-                    swap: 'innerHTML'
-                });
+                if (window.navigateTo) {
+                    window.navigateTo(`/pages/album/${item.browseId}`);
+                } else {
+                    htmx.ajax('GET', `/pages/album/${item.browseId}`, {
+                        target: '#main-content',
+                        swap: 'innerHTML'
+                    });
+                    history.pushState({url: `/pages/album/${item.browseId}`}, '', `/pages/album/${item.browseId}`);
+                }
             } else if (type === 'playlist' && item.browseId) {
-                htmx.ajax('GET', `/pages/playlist/${item.browseId}`, {
-                    target: '#main-content',
-                    swap: 'innerHTML'
-                });
+                if (window.navigateTo) {
+                    window.navigateTo(`/pages/playlist/${item.browseId}`);
+                } else {
+                    htmx.ajax('GET', `/pages/playlist/${item.browseId}`, {
+                        target: '#main-content',
+                        swap: 'innerHTML'
+                    });
+                    history.pushState({url: `/pages/playlist/${item.browseId}`}, '', `/pages/playlist/${item.browseId}`);
+                }
             }
         }
     };
@@ -1053,20 +1254,35 @@ document.addEventListener('alpine:initialized', () => {
     console.log('✅ Alpine.js inicializado com sucesso!');
     console.log('🎵 Player store disponível:', !!Alpine.store('player'));
     console.log('🎵 App store disponível:', !!Alpine.store('app'));
+    console.log('🎬 YouTube API disponível:', typeof YT !== 'undefined');
+    
+    // Se o YouTube já estiver pronto, inicializar agora
+    if (typeof YT !== 'undefined' && YT.loaded) {
+        console.log('🎬 YouTube API já estava carregada, inicializando player...');
+        if (Alpine.store('player')) {
+            Alpine.store('player').initYouTubePlayer();
+        }
+    }
 });
 
 // ========================================
 // YOUTUBE IFRAME API INITIALIZATION
 // ========================================
 
+// Log quando o script começar a carregar
+console.log('📥 Carregando YouTube IFrame API...');
+
 // Esta função é chamada automaticamente quando a YouTube IFrame API está pronta
 window.onYouTubeIframeAPIReady = function() {
     console.log('🎬 YouTube IFrame API pronta!');
+    console.log('🔍 Verificando YT object:', typeof YT !== 'undefined');
+    console.log('🔍 Verificando YT.Player:', typeof YT?.Player !== 'undefined');
     
     // Aguardar Alpine.js estar pronto
     const initPlayer = () => {
         if (window.Alpine && Alpine.store('player')) {
             console.log('🔧 Inicializando YouTube Player...');
+            console.log('🔍 Elemento #youtube-player existe:', !!document.getElementById('youtube-player'));
             Alpine.store('player').initYouTubePlayer();
         } else {
             console.log('⏳ Aguardando Alpine.js...');
@@ -1076,3 +1292,26 @@ window.onYouTubeIframeAPIReady = function() {
     
     initPlayer();
 };
+
+// Fallback: Tentar inicializar após alguns segundos se o callback não for chamado
+setTimeout(() => {
+    if (window.Alpine && Alpine.store('player') && !Alpine.store('player').youtubeReady) {
+        console.warn('⚠️ YouTube callback não foi chamado, tentando forçar inicialização...');
+        
+        // Verificar se YT está disponível
+        if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
+            console.log('✅ YT disponível, inicializando player...');
+            Alpine.store('player').initYouTubePlayer();
+        } else {
+            console.error('❌ YT não está disponível. Tentando recarregar...');
+            
+            // Última tentativa: recarregar o script do YouTube
+            const script = document.createElement('script');
+            script.src = 'https://www.youtube.com/iframe_api';
+            script.async = true;
+            document.head.appendChild(script);
+            
+            console.log('🔄 Script do YouTube recarregado');
+        }
+    }
+}, 3000);
