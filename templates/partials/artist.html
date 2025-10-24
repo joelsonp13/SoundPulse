@@ -5,11 +5,17 @@
          albums: [],
          relatedArtists: []
      }"
-     x-init="
-         artist = {{ artist|tojson|safe if artist else '{}' }};
-         topSongs = {{ (artist.songs.results[:5] if artist and artist.songs and artist.songs.results else [])|tojson|safe }};
-         albums = {{ (artist.albums.results[:6] if artist and artist.albums and artist.albums.results else [])|tojson|safe }};
-         relatedArtists = {{ (artist.related.results[:8] if artist and artist.related and artist.related.results else [])|tojson|safe }};
+    x-init="
+        artist = {{ artist|tojson|safe if artist else '{}' }};
+        topSongs = {% if artist and artist.get('songs') and artist.get('songs').get('results') %}{{ artist.get('songs').get('results')[:5]|tojson|safe }}{% else %}[]{% endif %};
+        albums = {% if artist and artist.get('albums') and artist.get('albums').get('results') %}{{ artist.get('albums').get('results')[:6]|tojson|safe }}{% else %}[]{% endif %};
+        relatedArtists = {% if artist and artist.get('related') and artist.get('related').get('results') %}{{ artist.get('related').get('results')[:8]|tojson|safe %}{% else %}[]{% endif %};
+        console.log('[Artist Page] Dados carregados:', { 
+            nome: artist.name, 
+            topSongs: topSongs.length, 
+            albums: albums.length, 
+            related: relatedArtists.length 
+        });
      ">
     
     <!-- ==================== HEADER/HERO ESTILO SPOTIFY ==================== -->
@@ -86,6 +92,12 @@
                              x-text="song.duration || ''"></div>
                     </div>
                 </template>
+                
+                <!-- Empty State -->
+                <div x-show="topSongs.length === 0" 
+                     style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic;">
+                    Nenhuma música popular disponível
+                </div>
             </div>
         </section>
 
@@ -126,6 +138,12 @@
                            x-text="(album.year || '2025') + ' • ' + (album.type || 'Album')"></p>
                     </div>
                 </template>
+                
+                <!-- Empty State -->
+                <div x-show="albums.length === 0" 
+                     style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic; grid-column: 1 / -1;">
+                    Nenhum álbum disponível
+                </div>
             </div>
         </section>
 
@@ -204,6 +222,12 @@
                         </p>
                     </div>
                 </template>
+                
+                <!-- Empty State -->
+                <div x-show="relatedArtists.length === 0" 
+                     style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic; grid-column: 1 / -1;">
+                    Nenhum artista relacionado disponível
+                </div>
             </div>
         </section>
 

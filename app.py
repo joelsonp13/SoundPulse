@@ -688,8 +688,28 @@ def page_artist(browseId):
         artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(browseId))
         if not artist:
             raise Exception("Não foi possível carregar os dados do artista")
+        
+        # Debug: Log da estrutura de dados
+        print("[DEBUG] Dados do artista recebidos:")
+        print(f"  - Nome: {artist.get('name', 'N/A')}")
+        print(f"  - channelId: {artist.get('channelId', 'N/A')}")
+        print(f"  - subscribers: {artist.get('subscribers', 'N/A')}")
+        print(f"  - songs: {'SIM' if artist.get('songs') else 'NÃO'}")
+        if artist.get('songs'):
+            print(f"    - songs.results: {len(artist['songs'].get('results', []))} músicas")
+        print(f"  - albums: {'SIM' if artist.get('albums') else 'NÃO'}")
+        if artist.get('albums'):
+            print(f"    - albums.results: {len(artist['albums'].get('results', []))} álbuns")
+        print(f"  - singles: {'SIM' if artist.get('singles') else 'NÃO'}")
+        if artist.get('singles'):
+            print(f"    - singles.results: {len(artist['singles'].get('results', []))} singles")
+        print(f"  - related: {'SIM' if artist.get('related') else 'NÃO'}")
+        if artist.get('related'):
+            print(f"    - related.results: {len(artist['related'].get('results', []))} artistas relacionados")
+        
         return render_template('partials/artist.html', artist=artist)
     except Exception as e:
+        print(f"[ERRO] Falha ao carregar artista: {str(e)}")
         return render_template('components/error_state.html', 
                              title='Erro ao carregar artista',
                              message=str(e),
