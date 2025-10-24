@@ -5,8 +5,16 @@ import yt_dlp
 import json
 import os
 import requests
+import time
+from collections import OrderedDict
 
 app = Flask(__name__)
+
+# Cache de URLs de stream (LRU Cache simples)
+# Formato: {videoId: {'url': stream_url, 'content_type': mime, 'expires_at': timestamp}}
+STREAM_CACHE = OrderedDict()
+STREAM_CACHE_MAX_SIZE = 50
+STREAM_CACHE_TTL = 3600  # 1 hora (URLs do YouTube expiram em ~6 horas)
 
 # Configuração CORS mais robusta
 CORS(app, 
@@ -102,11 +110,43 @@ app.jinja_env.filters['highres'] = highres_thumbnail
 
 # Configurar YTMusic com OAuth existente
 try:
-    # Usar YTMusic sem autenticação primeiro (para busca pública)
-    yt = YTMusic()
-    print("YTMusic conectado com sucesso (modo publico)!")
+    # Tentar carregar OAuth de variável de ambiente primeiro (para Render.com)
+    oauth_json_env = os.getenv('OAUTH_JSON')
+    
+    if oauth_json_env:
+        print("🔐 OAuth encontrado em variável de ambiente...")
+        try:
+            # Parse JSON da variável de ambiente
+            oauth_data = json.loads(oauth_json_env)
+            
+            # Criar arquivo temporário (Render usa /tmp)
+            oauth_temp_path = '/tmp/oauth.json'
+            with open(oauth_temp_path, 'w') as f:
+                json.dump(oauth_data, f)
+            
+            print(f"📝 Arquivo OAuth temporário criado: {oauth_temp_path}")
+            yt = YTMusic(oauth_temp_path)
+            print("✅ YTMusic conectado com sucesso (OAuth via ENV)!")
+            
+        except json.JSONDecodeError as e:
+            print(f"❌ Erro ao parsear OAUTH_JSON: {e}")
+            print("⚠️ Usando modo público...")
+            yt = YTMusic()
+            
+    elif os.path.exists('oauth.json'):
+        print("🔐 OAuth encontrado em arquivo local...")
+        yt = YTMusic('oauth.json')
+        print("✅ YTMusic conectado com sucesso (OAuth via arquivo)!")
+        
+    else:
+        print("⚠️ oauth.json não encontrado, usando modo público...")
+        yt = YTMusic()
+        print("✅ YTMusic conectado com sucesso (modo público)!")
+        
 except Exception as e:
-    print(f"Erro ao conectar YTMusic: {e}")
+    print(f"❌ Erro ao conectar YTMusic: {e}")
+    import traceback
+    traceback.print_exc()
     yt = None
 
 def create_svg_placeholder():
@@ -541,6 +581,58 @@ def get_radio_playlist(videoId):
     except Exception as e:
         return jsonify({'error': f'Erro ao obter rádio: {str(e)}'}), 500
 
+def get_cached_stream(videoId):
+    """Verifica se existe URL em cache e se ainda é válida"""
+    if videoId in STREAM_CACHE:
+        cached = STREAM_CACHE[videoId]
+        current_time = time.time()
+        
+        # Verificar se ainda não expirou
+        if cached['expires_at'] > current_time:
+            # Mover para o fim (LRU)
+            STREAM_CACHE.move_to_end(videoId)
+            time_left = cached['expires_at'] - current_time
+            print(f"✅ Cache HIT! URL válida por mais {time_left/60:.1f} minutos")
+            return cached
+        else:
+            print(f"⚠️ Cache expirado, removendo...")
+            del STREAM_CACHE[videoId]
+    
+    print(f"❌ Cache MISS")
+    return None
+
+def add_to_cache(videoId, stream_url, content_type):
+    """Adiciona URL ao cache"""
+    global STREAM_CACHE
+    
+    # Remover mais antigo se cache cheio (LRU)
+    if len(STREAM_CACHE) >= STREAM_CACHE_MAX_SIZE:
+        oldest = next(iter(STREAM_CACHE))
+        print(f"🗑️ Cache cheio, removendo: {oldest}")
+        STREAM_CACHE.pop(oldest)
+    
+    # Calcular tempo de expiração (1 hora ou usar expire da URL se disponível)
+    expires_at = time.time() + STREAM_CACHE_TTL
+    
+    # Tentar extrair expire da URL do YouTube
+    if 'expire=' in stream_url:
+        import re
+        expire_match = re.search(r'expire=(\d+)', stream_url)
+        if expire_match:
+            youtube_expire = int(expire_match.group(1))
+            # Usar o menor entre TTL do cache e expire do YouTube
+            expires_at = min(expires_at, youtube_expire)
+    
+    STREAM_CACHE[videoId] = {
+        'url': stream_url,
+        'content_type': content_type,
+        'expires_at': expires_at
+    }
+    
+    time_left = expires_at - time.time()
+    print(f"💾 Adicionado ao cache (válido por {time_left/60:.1f} minutos)")
+    print(f"📊 Cache size: {len(STREAM_CACHE)}/{STREAM_CACHE_MAX_SIZE}")
+
 @app.route('/api/proxy/<videoId>')
 def proxy_stream(videoId):
     """Proxy para streaming de áudio usando ytmusicapi (OAuth) como primário e yt-dlp como fallback"""
@@ -550,95 +642,107 @@ def proxy_stream(videoId):
         print(f"🎵 PROXY SOLICITADO PARA: {videoId}")
         print(f"{'='*80}")
         
-        # Verificar estado do ytmusicapi
-        print(f"🔍 Estado do ytmusicapi: {yt}")
-        print(f"🔍 Tipo do yt: {type(yt)}")
-        print(f"🔍 OAuth configurado: {hasattr(yt, '_oauth')}")
-        
-        stream_url = None
-        content_type_hint = 'audio/webm'
-        
-        # MÉTODO 1: Tentar ytmusicapi PRIMEIRO (usa OAuth, não é bloqueado!)
-        try:
-            print(f"\n{'─'*80}")
-            print(f"🔐 MÉTODO 1: Tentando obter stream via ytmusicapi (OAuth)...")
-            print(f"{'─'*80}")
+        # Verificar cache primeiro
+        cached = get_cached_stream(videoId)
+        if cached:
+            stream_url = cached['url']
+            content_type_hint = cached['content_type']
+            print(f"⚡ Usando URL do cache (resposta instantânea!)")
+        else:
+            # Verificar estado do ytmusicapi
+            print(f"🔍 Estado do ytmusicapi: {yt}")
+            print(f"🔍 Tipo do yt: {type(yt)}")
+            print(f"🔍 OAuth configurado: {hasattr(yt, '_oauth')}")
             
-            song_data = yt.get_song(videoId)
+            stream_url = None
+            content_type_hint = 'audio/webm'
             
-            print(f"📦 Resposta do get_song recebida:")
-            print(f"   - Tipo: {type(song_data)}")
-            print(f"   - Keys disponíveis: {list(song_data.keys()) if isinstance(song_data, dict) else 'N/A'}")
+            # Debug: verificar se OAuth está realmente funcionando
+            if yt and hasattr(yt, '_oauth') and yt._oauth:
+                print(f"✅ OAuth ATIVO e funcional!")
+            else:
+                print(f"⚠️ OAuth NÃO está ativo - vai usar modo público")
             
-            if song_data and 'streamingData' in song_data:
-                print(f"✅ streamingData encontrado!")
+            # MÉTODO 1: Tentar ytmusicapi PRIMEIRO (usa OAuth, não é bloqueado!)
+            try:
+                print(f"\n{'─'*80}")
+                print(f"🔐 MÉTODO 1: Tentando obter stream via ytmusicapi (OAuth)...")
+                print(f"{'─'*80}")
                 
-                # Procurar melhor formato de áudio
-                formats = song_data['streamingData'].get('adaptiveFormats', [])
-                print(f"📊 Total de formatos encontrados: {len(formats)}")
+                song_data = yt.get_song(videoId)
                 
-                # Filtrar apenas formatos de áudio e ordenar por qualidade
-                audio_formats = [f for f in formats if f.get('mimeType', '').startswith('audio/')]
-                print(f"📊 Formatos de áudio disponíveis: {len(audio_formats)}")
+                print(f"📦 Resposta do get_song recebida:")
+                print(f"   - Tipo: {type(song_data)}")
+                print(f"   - Keys disponíveis: {list(song_data.keys()) if isinstance(song_data, dict) else 'N/A'}")
                 
-                if audio_formats:
-                    # Listar todos os formatos de áudio
-                    for i, fmt in enumerate(audio_formats):
-                        print(f"   [{i}] {fmt.get('mimeType', 'unknown')} - {fmt.get('bitrate', 'unknown')} bps")
+                if song_data and 'streamingData' in song_data:
+                    print(f"✅ streamingData encontrado!")
                     
-                    # Preferir opus > aac > mp4a
-                    best_format = None
-                    for fmt in audio_formats:
-                        mime = fmt.get('mimeType', '')
-                        if 'opus' in mime.lower():
-                            best_format = fmt
-                            print(f"✅ Selecionado formato OPUS")
-                            break
+                    # Procurar melhor formato de áudio
+                    formats = song_data['streamingData'].get('adaptiveFormats', [])
+                    print(f"📊 Total de formatos encontrados: {len(formats)}")
                     
-                    if not best_format:
+                    # Filtrar apenas formatos de áudio e ordenar por qualidade
+                    audio_formats = [f for f in formats if f.get('mimeType', '').startswith('audio/')]
+                    print(f"📊 Formatos de áudio disponíveis: {len(audio_formats)}")
+                    
+                    if audio_formats:
+                        # Listar todos os formatos de áudio
+                        for i, fmt in enumerate(audio_formats):
+                            print(f"   [{i}] {fmt.get('mimeType', 'unknown')} - {fmt.get('bitrate', 'unknown')} bps")
+                        
+                        # Preferir opus > aac > mp4a
+                        best_format = None
                         for fmt in audio_formats:
                             mime = fmt.get('mimeType', '')
-                            if 'mp4a' in mime.lower() or 'aac' in mime.lower():
+                            if 'opus' in mime.lower():
                                 best_format = fmt
-                                print(f"✅ Selecionado formato AAC/MP4A")
+                                print(f"✅ Selecionado formato OPUS")
                                 break
-                    
-                    if not best_format:
-                        best_format = audio_formats[0]
-                        print(f"✅ Selecionado primeiro formato disponível")
-                    
-                    stream_url = best_format.get('url')
-                    content_type_hint = best_format.get('mimeType', 'audio/webm')
-                    
-                    if stream_url:
-                        print(f"✅ Stream URL obtida via ytmusicapi!")
-                        print(f"📊 Formato selecionado: {content_type_hint}")
-                        print(f"📊 Bitrate: {best_format.get('bitrate', 'unknown')} bps")
-                        print(f"📊 URL (primeiros 150 chars): {stream_url[:150]}...")
                         
-                        # Verificar se URL tem parâmetros de expiração
-                        if 'expire=' in stream_url:
-                            import re
-                            expire_match = re.search(r'expire=(\d+)', stream_url)
-                            if expire_match:
-                                expire_timestamp = int(expire_match.group(1))
-                                import time
-                                current_time = int(time.time())
-                                time_until_expire = expire_timestamp - current_time
-                                print(f"⏰ URL expira em: {time_until_expire} segundos ({time_until_expire/60:.1f} minutos)")
+                        if not best_format:
+                            for fmt in audio_formats:
+                                mime = fmt.get('mimeType', '')
+                                if 'mp4a' in mime.lower() or 'aac' in mime.lower():
+                                    best_format = fmt
+                                    print(f"✅ Selecionado formato AAC/MP4A")
+                                    break
+                        
+                        if not best_format:
+                            best_format = audio_formats[0]
+                            print(f"✅ Selecionado primeiro formato disponível")
+                        
+                        stream_url = best_format.get('url')
+                        content_type_hint = best_format.get('mimeType', 'audio/webm')
+                        
+                        if stream_url:
+                            print(f"✅ Stream URL obtida via ytmusicapi!")
+                            print(f"📊 Formato selecionado: {content_type_hint}")
+                            print(f"📊 Bitrate: {best_format.get('bitrate', 'unknown')} bps")
+                            print(f"📊 URL (primeiros 150 chars): {stream_url[:150]}...")
+                            
+                            # Verificar se URL tem parâmetros de expiração
+                            if 'expire=' in stream_url:
+                                import re
+                                expire_match = re.search(r'expire=(\d+)', stream_url)
+                                if expire_match:
+                                    expire_timestamp = int(expire_match.group(1))
+                                    current_time = int(time.time())
+                                    time_until_expire = expire_timestamp - current_time
+                                    print(f"⏰ URL expira em: {time_until_expire} segundos ({time_until_expire/60:.1f} minutos)")
+                        else:
+                            print(f"❌ URL não encontrada no formato selecionado")
                     else:
-                        print(f"❌ URL não encontrada no formato selecionado")
+                        print(f"❌ Nenhum formato de áudio encontrado")
                 else:
-                    print(f"❌ Nenhum formato de áudio encontrado")
-            else:
-                print(f"❌ streamingData não encontrado na resposta")
-                print(f"   Dados disponíveis: {list(song_data.keys()) if isinstance(song_data, dict) else 'N/A'}")
-                
-        except Exception as e:
-            print(f"❌ ytmusicapi falhou com exceção:")
-            print(f"   Tipo: {type(e).__name__}")
-            print(f"   Mensagem: {str(e)}")
-            traceback.print_exc()
+                    print(f"❌ streamingData não encontrado na resposta")
+                    print(f"   Dados disponíveis: {list(song_data.keys()) if isinstance(song_data, dict) else 'N/A'}")
+                    
+            except Exception as e:
+                print(f"❌ ytmusicapi falhou com exceção:")
+                print(f"   Tipo: {type(e).__name__}")
+                print(f"   Mensagem: {str(e)}")
+                traceback.print_exc()
         
         # MÉTODO 2: Fallback para yt-dlp se ytmusicapi falhar
         if not stream_url:
@@ -685,12 +789,15 @@ def proxy_stream(videoId):
                 print(f"   Mensagem: {str(e)}")
                 traceback.print_exc()
         
-        # Se nenhum método funcionou
-        if not stream_url:
-            print(f"\n{'='*80}")
-            print(f"❌ FALHA TOTAL: Nenhum método conseguiu obter stream")
-            print(f"{'='*80}\n")
-            return jsonify({'error': 'Stream não disponível'}), 404
+            # Se nenhum método funcionou
+            if not stream_url:
+                print(f"\n{'='*80}")
+                print(f"❌ FALHA TOTAL: Nenhum método conseguiu obter stream")
+                print(f"{'='*80}\n")
+                return jsonify({'error': 'Stream não disponível'}), 404
+            
+            # Adicionar ao cache se extraiu com sucesso
+            add_to_cache(videoId, stream_url, content_type_hint)
         
         # Fazer requisição para o stream
         print(f"\n{'─'*80}")

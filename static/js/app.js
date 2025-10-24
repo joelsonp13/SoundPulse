@@ -77,6 +77,16 @@ document.addEventListener('alpine:init', () => {
         init() {
             console.log('🎵 Player store inicializado');
             this.audio = new Audio();
+            
+            // Otimizações de performance
+            this.audio.preload = 'auto'; // Começar a carregar imediatamente
+            this.audio.autoplay = false; // Controlar manualmente
+            
+            // Reduzir delay inicial
+            if (this.audio.fastSeek) {
+                console.log('✅ fastSeek disponível');
+            }
+            
             this.setupAudioListeners();
         },
 
@@ -213,6 +223,8 @@ document.addEventListener('alpine:init', () => {
             console.log('='.repeat(80));
             console.log('📦 Track recebido:', JSON.stringify(track, null, 2));
             
+            const startTime = performance.now();
+            
             try {
                 this.currentTrack = track;
                 this.isLoading = true;
@@ -221,39 +233,36 @@ document.addEventListener('alpine:init', () => {
                 console.log('🔧 CONFIGURANDO ÁUDIO');
                 console.log('─'.repeat(80));
                 
-                // Log estado ANTES
-                console.log('📊 Estado do áudio ANTES de configurar src:');
-                this.logAudioState();
-                
                 // Construir URL do proxy
                 const timestamp = Date.now();
                 const proxyUrl = `/api/proxy/${track.videoId}?t=${timestamp}`;
                 console.log('🔗 URL do proxy construída:', proxyUrl);
-                console.log('   - videoId:', track.videoId);
-                console.log('   - timestamp:', timestamp);
-                console.log('   - URL completa:', window.location.origin + proxyUrl);
                 
-                // Atribuir src
-                console.log('\n⚙️ Atribuindo src ao elemento audio...');
+                // Atribuir src E load() para iniciar carregamento imediatamente
+                console.log('\n⚙️ Atribuindo src e iniciando load()...');
                 this.audio.src = proxyUrl;
-                console.log('✅ src atribuído com sucesso');
+                this.audio.load(); // Força início do carregamento
+                console.log('✅ src atribuído e load() iniciado');
                 
-                // Log estado DEPOIS de atribuir src
-                console.log('📊 Estado do áudio DEPOIS de atribuir src:');
-                this.logAudioState();
+                const loadTime = performance.now() - startTime;
+                console.log(`⏱️ Tempo até load(): ${loadTime.toFixed(0)}ms`);
                 
-                // Verificar readyState antes de play
+                // Tentar reproduzir assim que possível
                 console.log('\n▶️ Tentando chamar audio.play()...');
-                console.log('   - readyState atual:', this.audio.readyState);
-                console.log('   - networkState atual:', this.audio.networkState);
-                console.log('   - paused:', this.audio.paused);
                 
-                // Chamar play() e capturar a Promise
+                // Play retorna uma Promise que resolve quando consegue tocar
                 const playPromise = this.audio.play();
-                console.log('✅ audio.play() chamado, aguardando Promise...');
-                console.log('   - Tipo da Promise:', typeof playPromise);
+                console.log('✅ audio.play() chamado');
                 
-                await playPromise;
+                // Aguardar a Promise, mas com timeout
+                const playTimeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Play timeout')), 10000)
+                );
+                
+                await Promise.race([playPromise, playTimeout]);
+                
+                const playTime = performance.now() - startTime;
+                console.log(`⏱️ Tempo total até começar a tocar: ${playTime.toFixed(0)}ms (${(playTime/1000).toFixed(1)}s)`);
                 
                 this.isPlaying = true;
                 this.isLoading = false;
@@ -261,21 +270,21 @@ document.addEventListener('alpine:init', () => {
                 console.log('\n' + '='.repeat(80));
                 console.log('✅ MÚSICA INICIADA COM SUCESSO!');
                 console.log('='.repeat(80));
-                console.log('📊 Estado final do áudio:');
-                this.logAudioState();
+                console.log(`⚡ Performance: ${playTime.toFixed(0)}ms`);
                 console.log('='.repeat(80) + '\n');
                 
-                // Load related songs
+                // Load related songs em background
                 this.loadRelatedSongs(track.videoId);
                 
             } catch (error) {
+                const errorTime = performance.now() - startTime;
+                
                 console.log('\n' + '='.repeat(80));
                 console.error('❌ ERRO AO REPRODUZIR');
                 console.log('='.repeat(80));
                 console.error('❌ Tipo do erro:', error.constructor.name);
                 console.error('❌ Mensagem:', error.message);
-                console.error('❌ Stack trace:', error.stack);
-                console.error('❌ Erro completo:', error);
+                console.error(`⏱️ Tempo até erro: ${errorTime.toFixed(0)}ms`);
                 
                 // Log estado no momento do erro
                 console.log('📊 Estado do áudio no momento do erro:');
@@ -284,13 +293,14 @@ document.addEventListener('alpine:init', () => {
                 // Informações adicionais sobre o erro
                 if (error.name === 'NotSupportedError') {
                     console.error('⚠️ NotSupportedError detectado!');
-                    console.error('   - Isso geralmente significa que o navegador não consegue reproduzir o formato de áudio');
-                    console.error('   - Verifique o Content-Type do stream');
+                    console.error('   - O navegador não consegue reproduzir o formato de áudio');
                     console.error('   - src atual:', this.audio.src);
                 } else if (error.name === 'NotAllowedError') {
                     console.error('⚠️ NotAllowedError detectado!');
                     console.error('   - O navegador bloqueou a reprodução automática');
-                    console.error('   - Isso geralmente requer interação do usuário primeiro');
+                } else if (error.message === 'Play timeout') {
+                    console.error('⚠️ Timeout ao tentar reproduzir');
+                    console.error('   - Demorou mais de 10 segundos');
                 }
                 
                 console.log('='.repeat(80) + '\n');
