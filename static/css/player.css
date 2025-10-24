@@ -159,19 +159,102 @@
     filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.6));
 }
 
-.player-progress {
+/* ========== ✨ NOVA BARRA DE PROGRESSO MODERNA ========== */
+.modern-progress-wrapper {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     width: 100%;
-    padding: 0 4px;
+    margin-top: 8px;
 }
 
-.time-current, .time-duration {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
-    min-width: 42px;
+.modern-time-display {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    min-width: 40px;
+    text-align: center;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px;
+}
+
+.modern-progress-track {
+    position: relative;
+    flex: 1;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.modern-progress-track:hover {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.modern-progress-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #06b6d4 0%, #22d3ee 100%);
+    border-radius: 10px;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+}
+
+.modern-progress-thumb {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+}
+
+.modern-progress-track:hover .modern-progress-thumb {
+    transform: translateY(-50%) scale(1);
+}
+
+.modern-progress-track:active .modern-progress-thumb {
+    transform: translateY(-50%) scale(1.2);
+}
+
+/* Mobile: ajustes para touch */
+@media (max-width: 768px) {
+    .modern-progress-wrapper {
+        gap: 8px;
+    }
+    
+    .modern-time-display {
+        font-size: 10px;
+        min-width: 35px;
+    }
+    
+    .modern-progress-track {
+        height: 6px;
+    }
+    
+    .modern-progress-track:hover {
+        height: 6px;
+    }
+    
+    .modern-progress-thumb {
+        width: 14px;
+        height: 14px;
+        transform: translateY(-50%) scale(0.8);
+    }
+    
+    .modern-progress-track:hover .modern-progress-thumb {
+        transform: translateY(-50%) scale(1);
+    }
 }
 
 /* Coluna Direita - Extras e Volume */
@@ -252,93 +335,6 @@
 .volume-slider::-moz-range-thumb:hover {
     background: #00e5ff;
     transform: scale(1.2);
-}
-
-/* Progress Bar - Design Clean e Minimalista */
-.progress-bar {
-    flex: 1;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    overflow: visible;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: none;
-    padding: 10px 0;
-    margin: -10px 0;
-}
-
-.progress-bar:hover {
-    background: rgba(255, 255, 255, 0.15);
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-    .progress-bar {
-        height: 5px;
-        padding: 12px 0;
-        margin: -12px 0;
-    }
-}
-
-.progress-fill {
-    height: 100%;
-    background: #06b6d4;
-    border-radius: 4px;
-    position: relative;
-    transition: all 0.2s ease;
-    pointer-events: none;
-}
-
-.progress-bar:hover .progress-fill {
-    background: #22d3ee;
-}
-
-/* Thumb - Clean e simples */
-.progress-fill::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translate(50%, -50%) scale(0);
-    width: 12px;
-    height: 12px;
-    background: #ffffff;
-    border-radius: 50%;
-    opacity: 0;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    pointer-events: none;
-}
-
-.progress-bar:hover .progress-fill::after {
-    opacity: 1;
-    transform: translate(50%, -50%) scale(1);
-}
-
-/* Mobile: thumb sempre visível */
-@media (max-width: 768px) {
-    .progress-fill::after {
-        opacity: 1;
-        transform: translate(50%, -50%) scale(1);
-        width: 14px;
-        height: 14px;
-    }
-}
-
-/* Dragging - feedback simples */
-.progress-bar.dragging .progress-fill {
-    background: #22d3ee;
-}
-
-.progress-bar.dragging .progress-fill::after {
-    opacity: 1;
-    transform: translate(50%, -50%) scale(1.15);
-    box-shadow: 0 3px 8px rgba(6, 182, 212, 0.4);
 }
 
 /* ========== Responsividade Player ========== */
@@ -460,15 +456,6 @@
     
     .play-pause-btn {
         font-size: 26px !important;
-    }
-    
-    .player-progress {
-        gap: 8px;
-    }
-    
-    .time-current, .time-duration {
-        font-size: 10px;
-        min-width: 35px;
     }
     
     .player-right {

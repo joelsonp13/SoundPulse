@@ -213,3 +213,39 @@ img.lazy-loaded {
     }
 }
 
+/* ====================================
+   DETAIL PAGE GRADIENTS & OVERLAYS
+   ==================================== */
+
+/* Header overlays para páginas de detalhe (podcast, playlist, album) */
+.detail-page-header-podcast {
+    background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(10,10,10,0.8));
+}
+
+.detail-page-header-playlist {
+    background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(10,10,10,0.8));
+}
+
+.detail-page-header-album {
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(10,10,10,0.8));
+}
+
+/* Botões com gradiente verde (podcast) */
+.btn-gradient-green {
+    background: linear-gradient(135deg, #10b981, #00bcd4);
+    color: white;
+}
+
+/* Grid layout para mood categories com gradiente dinâmico */
+.mood-card-gradient {
+    /* Gradientes são aplicados dinamicamente via template loop */
+    /* Esta classe serve como base para customização adicional */
+    border-radius: 12px;
+    transition: all 0.3s;
+}
+
+.mood-card-gradient:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+

@@ -11,6 +11,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- CSS Modular -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/cards.css') }}">
@@ -24,13 +25,7 @@
     <!-- Alpine.js (Local) -->
     <script defer src="{{ url_for('static', filename='js/alpine.min.js') }}"></script>
     
-    <!-- YouTube IFrame Player API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
-    
-    <!-- Debug Helpers (Desenvolvimento) -->
-    <script src="{{ url_for('static', filename='js/tailwind-debug.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/htmx-debug.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/alpine-debug.js') }}"></script>
+    <!-- YouTube IFrame Player API - Carregado DEPOIS do Alpine.js via app.js -->
     
     <!-- Filtro de Erros do YouTube (Desenvolvimento) -->
     <script>
@@ -154,60 +149,60 @@
         <nav class="px-4">
             <ul class="space-y-2">
                 <li>
-                    <a href="#" class="sidebar-link" 
+                    <a href="/pages/home" class="sidebar-link" 
                        hx-get="/pages/home" 
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'home'; closeSidebar()"
+                       @click.prevent="currentSection = 'home'; closeSidebar()"
                        :class="{'active': currentSection === 'home'}">
                         <i class="fas fa-home w-5"></i>
                         <span>Início</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="sidebar-link" 
+                    <a href="/pages/search" class="sidebar-link" 
                        hx-get="/pages/search" 
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'search'; closeSidebar()"
+                       @click.prevent="currentSection = 'search'; closeSidebar()"
                        :class="{'active': currentSection === 'search'}">
                         <i class="fas fa-search w-5"></i>
                         <span>Buscar</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="sidebar-link" 
+                    <a href="/pages/library" class="sidebar-link" 
                        hx-get="/pages/library" 
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'library'; closeSidebar()"
+                       @click.prevent="currentSection = 'library'; closeSidebar()"
                        :class="{'active': currentSection === 'library'}">
                         <i class="fas fa-music w-5"></i>
                         <span>Sua Biblioteca</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="sidebar-link" 
+                    <a href="/pages/charts" class="sidebar-link" 
                        hx-get="/pages/charts" 
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'charts'; closeSidebar()"
+                       @click.prevent="currentSection = 'charts'; closeSidebar()"
                        :class="{'active': currentSection === 'charts'}">
                         <i class="fas fa-chart-line w-5"></i>
                         <span>Charts</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="sidebar-link" 
+                    <a href="/pages/explore" class="sidebar-link" 
                        hx-get="/pages/explore" 
                        hx-target="#main-content" 
                        hx-swap="innerHTML"
                        hx-push-url="true"
-                       @click="currentSection = 'explore'; closeSidebar()"
+                       @click.prevent="currentSection = 'explore'; closeSidebar()"
                        :class="{'active': currentSection === 'explore'}">
                         <i class="fas fa-compass w-5"></i>
                         <span>Explorar</span>
@@ -320,8 +315,6 @@
 
         <!-- Main Content Area (populated by HTMX) -->
         <div id="main-content" 
-             hx-get="/pages/home" 
-             hx-trigger="load" 
              hx-swap="innerHTML">
             <!-- Loading state enquanto carrega o conteúdo -->
             <div class="flex items-center justify-center h-screen">
@@ -339,7 +332,7 @@
         <!-- Coluna Esquerda: Info da Música -->
         <div class="player-left">
             <img class="player-album-art" 
-                 :src="getHighResThumbnail($store.player.currentTrack?.thumbnails?.[0]?.url || '/static/images/placeholder.jpg')"
+                 :src="$store.player.currentTrack?.thumbnails?.[0]?.url ? '/api/image-proxy?url=' + encodeURIComponent($store.player.currentTrack.thumbnails[0].url) : '/static/images/placeholder.jpg'"
                  :alt="$store.player.currentTrack?.title"
                  loading="lazy"
                  crossorigin="anonymous"
@@ -381,21 +374,19 @@
                     <span x-show="$store.player.repeatMode === 'one'" class="repeat-badge">1</span>
                 </button>
             </div>
-            <div class="player-progress">
-                <span class="time-current" x-text="$store.player.formatTime($store.player.currentTime)">0:00</span>
-                <div class="progress-bar" 
-                     @click="$store.player.seek($event)"
-                     @mousedown.prevent="$store.player.startProgressDrag($event)"
-                     @touchstart.prevent="$store.player.startProgressDrag($event)"
-                     role="slider"
-                     aria-label="Barra de progresso da música"
-                     aria-valuemin="0"
-                     aria-valuemax="100"
-                     :aria-valuenow="$store.player.progress"
-                     tabindex="0">
-                    <div class="progress-fill" :style="`width: ${$store.player.progress}%`"></div>
+            
+            <!-- ✨ NOVA BARRA DE PROGRESSO MODERNA -->
+            <div class="modern-progress-wrapper">
+                <span class="modern-time-display" x-text="$store.player.formatTime($store.player.currentTime)">0:00</span>
+                <div class="modern-progress-track" 
+                     @click="$store.player.seekTo($event)"
+                     @mousedown.prevent="$store.player.startDrag($event)"
+                     @touchstart.prevent="$store.player.startDrag($event)">
+                    <div class="modern-progress-bar" :style="`width: ${$store.player.progressPercent}%`">
+                        <div class="modern-progress-thumb"></div>
+                    </div>
                 </div>
-                <span class="time-duration" x-text="$store.player.formatTime($store.player.duration)">0:00</span>
+                <span class="modern-time-display" x-text="$store.player.formatTime($store.player.totalDuration)">0:00</span>
             </div>
         </div>
         
@@ -405,8 +396,8 @@
             <button type="button" @click="$store.player.showRelatedSongs()" title="Relacionadas" aria-label="Mostrar músicas relacionadas"><i class="fas fa-stream"></i></button>
             <div class="volume-control">
                 <button id="muteButton" type="button" title="Mudo" aria-label="Alternar mudo"><i class="fas fa-volume-up"></i></button>
-                <input type="range" id="volumeSlider" name="volumeControl" class="volume-slider" min="0" max="1" step="0.01" :value="$store.player.volume" @input="$store.player.setVolume($event.target.value)" aria-label="Controle de volume">
                 <label for="volumeSlider" class="sr-only">Controle de volume</label>
+                <input type="range" id="volumeSlider" name="volumeControl" class="volume-slider" min="0" max="1" step="0.01" :value="$store.player.volume" @input="$store.player.setVolume($event.target.value)" aria-label="Controle de volume">
             </div>
         </div>
     </div>
@@ -423,7 +414,7 @@
                                 class="text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded transition"
                                 title="Adicionar todas à fila"
                                 aria-label="Adicionar todas as músicas relacionadas à fila">
-                                <i class="fas fa-plus text-[10px] mr-1.5"></i>
+                                <i class="fas fa-plus text-10px mr-1.5"></i>
                                 <span class="hidden sm:inline">Adicionar tudo</span>
                             </button>
                             <button type="button" 
@@ -442,12 +433,12 @@
                     </div>
                     
                     <!-- Grid de Músicas -->
-                    <div x-show="$store.player.relatedSongs.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
+                    <div x-show="$store.player.relatedSongs.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 max-h-320 overflow-y-auto custom-scrollbar pr-1">
                         <template x-for="song in $store.player.relatedSongs" :key="song.videoId">
                             <div class="group cursor-pointer" @click="$store.player.playRelatedSong(song)">
                                 <div class="relative aspect-square rounded overflow-hidden mb-1.5 bg-white/5 hover:bg-white/10 transition-all duration-200">
                                     <img class="w-full h-full object-cover" 
-                                         :src="getHighResThumbnail(song.thumbnail || song.thumbnails || '/static/images/placeholder.jpg')" 
+                                         :src="song.thumbnail || song.thumbnails?.[0]?.url ? '/api/image-proxy?url=' + encodeURIComponent(song.thumbnail || song.thumbnails[0].url) : '/static/images/placeholder.jpg'" 
                                          :alt="song.title"
                                          crossorigin="anonymous"
                                          loading="lazy"
@@ -459,7 +450,7 @@
                                     </div>
                                 </div>
                                 <h4 class="text-white text-xs truncate mb-0.5" x-text="song.title"></h4>
-                                <p class="text-gray-400 text-[10px] truncate" x-text="song.artists?.[0]?.name || song.artist || 'Artista'"></p>
+                                <p class="text-gray-400 text-10px truncate" x-text="song.artists?.[0]?.name || song.artist || 'Artista'"></p>
                             </div>
                         </template>
                     </div>
@@ -473,7 +464,7 @@
          x-show="$store.player.showLyricsModal" 
          x-transition
          @click.self="$store.player.hideLyrics()">
-        <div class="bg-dark-800/90 backdrop-blur-md rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div class="bg-dark-800/90 backdrop-blur-md rounded-lg max-w-2xl w-full max-h-80vh overflow-hidden">
             <div class="flex items-center justify-between p-6 border-b border-white/10">
                 <div>
                     <h3 class="text-xl font-bold" x-text="$store.player.currentTrack?.title"></h3>
@@ -509,149 +500,47 @@
     
     <!-- Lazy Loading Inteligente para Imagens -->
     <script>
-        // Sistema de lazy loading com rate limiting para evitar 429
-        console.log('🖼️ Sistema de Lazy Loading Inteligente inicializado');
-        console.log('⚙️ Configuração: Batch de 5 imagens, delay de 500ms entre batches');
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            let imageQueue = [];
-            let isProcessing = false;
-            const BATCH_SIZE = 5; // Carregar 5 imagens por vez
-            const BATCH_DELAY = 500; // Aguardar 500ms entre batches
-            
-            // Configurar Intersection Observer
-            const imageObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        
-                        // Adicionar à fila se ainda não está carregada
-                        if (!img.dataset.loaded && !img.dataset.queued) {
-                            img.dataset.queued = 'true';
-                            imageQueue.push(img);
-                            processImageQueue();
-                        }
-                        
-                        // Parar de observar esta imagem
-                        observer.unobserve(img);
-                    }
-                });
-            }, {
-                rootMargin: '50px', // Começar a carregar 50px antes de entrar na viewport
-                threshold: 0.01
-            });
-            
-            // Processar fila de imagens gradualmente
-            async function processImageQueue() {
-                if (isProcessing || imageQueue.length === 0) return;
-                
-                isProcessing = true;
-                
-                // Pegar um batch de imagens
-                const batch = imageQueue.splice(0, BATCH_SIZE);
-                
-                // Carregar cada imagem do batch
-                batch.forEach(img => {
-                    const dataSrc = img.dataset.src || img.src;
-                    
-                    // Se a imagem já tem src válido, marcar como carregada
-                    if (img.src && img.src !== window.location.href && !img.src.includes('placeholder')) {
-                        img.dataset.loaded = 'true';
-                        img.classList.remove('lazy-loading');
-                        return;
-                    }
-                    
-                    // Adicionar classe de loading
-                    img.classList.add('lazy-loading');
-                    
-                    // Criar nova imagem para pré-carregar
-                    const tempImg = new Image();
-                    
-                    tempImg.onload = function() {
-                        img.src = dataSrc;
-                        img.dataset.loaded = 'true';
-                        img.classList.remove('lazy-loading');
-                        img.classList.add('lazy-loaded');
-                        console.log('✅ Imagem carregada:', dataSrc.substring(0, 60) + '...');
-                    };
-                    
-                    tempImg.onerror = function() {
-                        console.warn('Erro ao carregar imagem:', dataSrc);
-                        img.src = '/static/images/placeholder.jpg';
-                        img.dataset.loaded = 'true';
-                        img.classList.remove('lazy-loading');
-                    };
-                    
-                    tempImg.src = dataSrc;
-                });
-                
-                isProcessing = false;
-                
-                // Se ainda há imagens na fila, processar próximo batch após delay
-                if (imageQueue.length > 0) {
-                    setTimeout(() => processImageQueue(), BATCH_DELAY);
-                }
-            }
-            
-            // Observar todas as imagens com loading="lazy"
-            function observeImages() {
-                const images = document.querySelectorAll('img[loading="lazy"]');
-                images.forEach(img => {
-                    if (!img.dataset.observed) {
-                        img.dataset.observed = 'true';
-                        imageObserver.observe(img);
-                    }
-                });
-            }
-            
-            // Observar imagens iniciais
-            observeImages();
-            
-            // Observar novas imagens quando conteúdo HTMX é carregado
-            document.addEventListener('htmx:afterSwap', function() {
-                setTimeout(observeImages, 100);
-            });
-            
-            // Reprocessar fila a cada 2 segundos se houver imagens pendentes
-            setInterval(() => {
-                if (imageQueue.length > 0) {
-                    processImageQueue();
-                }
-            }, 2000);
-        });
+        // ============= LAZY LOADING NATIVO DO NAVEGADOR =============
+        // O atributo loading="lazy" nas imagens já faz o trabalho automaticamente!
+        // Não precisa de JavaScript complexo - o navegador gerencia tudo de forma otimizada.
+        console.log('✅ Lazy loading nativo ativado (loading="lazy" em todas as imagens)');
     </script>
     
-    <!-- Estilos para lazy loading -->
-    <style>
-        img.lazy-loading {
-            opacity: 0.5;
-            filter: blur(5px);
-            transition: opacity 0.3s, filter 0.3s;
-        }
-        
-        img.lazy-loaded {
-            opacity: 1;
-            filter: blur(0);
-        }
-    </style>
     
     <!-- HTMX Helper Functions -->
     <script>
+        // ========================================
+        // NAVEGAÇÃO COM HISTÓRICO DO NAVEGADOR
+        // ========================================
+        // Esta função permite navegação SPA com suporte completo ao histórico:
+        // - Atualiza a URL no navegador
+        // - Salva no histórico (botões voltar/avançar funcionam)
+        // - Recarregar a página mantém a posição atual
+        // ========================================
+        
         // Wrapper para navegação que sempre atualiza a URL
         // Disponível globalmente para uso em todos os componentes
         window.navigateTo = function(url) {
-            // Usar HTMX nativo para garantir header HX-Request
-            const tempElement = document.createElement('div');
-            tempElement.setAttribute('hx-get', url);
-            tempElement.setAttribute('hx-target', '#main-content');
-            tempElement.setAttribute('hx-swap', 'innerHTML');
+            console.log('🚀 navigateTo chamado:', url);
             
-            // Processar elemento e fazer request
-            htmx.process(tempElement);
-            htmx.trigger(tempElement, 'click');
-            
-            // Atualizar URL manualmente
-            history.pushState({url: url}, '', url);
+            // Usar htmx.ajax diretamente para navegação confiável
+            if (typeof htmx !== 'undefined') {
+                htmx.ajax('GET', url, {
+                    target: '#main-content',
+                    swap: 'innerHTML'
+                });
+                
+                // Atualizar URL manualmente
+                history.pushState({url: url}, '', url);
+                
+                // Atualizar previousUrl para detecção correta de direção no histórico
+                window.previousUrl = url;
+                
+                console.log('✅ Navegação HTMX executada');
+            } else {
+                console.error('❌ HTMX não disponível, usando fallback');
+                window.location.href = url;
+            }
         };
         
         function playTrackFromCard(card) {
@@ -824,16 +713,61 @@
             }, 50);
             
             function initializeNavigation() {
-                // ✅ HTMX automático: #main-content tem hx-get="/pages/home" hx-trigger="load"
                 const currentPath = window.location.pathname;
+                const queryString = window.location.search;
+                let targetUrl;
+                
+                // Se estiver na raiz, redireciona para home
                 if (currentPath === '/') {
-                    history.replaceState({url: '/pages/home'}, '', '/pages/home');
+                    targetUrl = '/pages/home';
+                    history.replaceState({url: targetUrl}, '', targetUrl);
+                } 
+                // Se já estiver em uma rota válida, mantém
+                else if (currentPath.startsWith('/pages/')) {
+                    targetUrl = currentPath + queryString;
+                }
+                // Qualquer outra rota, vai para home
+                else {
+                    targetUrl = '/pages/home';
+                    history.replaceState({url: targetUrl}, '', targetUrl);
+                }
+                
+                // Carregar o conteúdo via HTMX
+                console.log('🔄 Carregando página inicial:', targetUrl);
+                htmx.ajax('GET', targetUrl, {
+                    target: '#main-content',
+                    swap: 'innerHTML'
+                });
+                
+                // Atualizar a seção ativa da sidebar
+                if (currentPath.startsWith('/pages/')) {
+                    const section = currentPath.split('/')[2];
+                    const validSections = ['home', 'search', 'library', 'charts', 'explore'];
+                    
+                    if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
+                        Alpine.store('app').currentSection = section;
+                    }
                 }
             }
+            
+            // Chamar a função de inicialização
+            initializeNavigation();
         });
+        
+        // Flag global para evitar múltiplas navegações simultâneas
+        let isNavigating = false;
+        
+        // Variável global para rastrear URL anterior (para detectar direção de navegação)
+        window.previousUrl = window.location.pathname + window.location.search;
         
         // Atualizar seção ativa da sidebar após navegação HTMX
         document.body.addEventListener('htmx:afterSettle', function(event) {
+            console.log('✅ HTMX conteúdo carregado e processado');
+            
+            // Liberar flag de navegação quando HTMX terminar de processar
+            isNavigating = false;
+            console.log('🔓 Flag de navegação liberada (htmx:afterSettle)');
+            
             const currentPath = window.location.pathname;
             if (currentPath.startsWith('/pages/')) {
                 const section = currentPath.split('/')[2] || 'home';
@@ -842,37 +776,74 @@
                 // Só atualiza se for uma seção válida da sidebar
                 if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
                     Alpine.store('app').currentSection = section;
+                    console.log('📍 Seção ativa atualizada:', section);
+                }
+                
+                // Se a URL tem query string (ex: search?q=eminem), 
+                // garantir que o Alpine.js pegue a query e execute a busca
+                if (section === 'search' && window.location.search) {
+                    console.log('🔍 URL de busca detectada:', window.location.search);
+                    
+                    // Dar um tempo para o Alpine.js inicializar
+                    setTimeout(() => {
+                        // O componente searchComponent() já tem um init() que lê a query da URL
+                        // Então não precisamos fazer nada, só garantir que ele inicialize
+                        console.log('✅ Alpine.js deve ter iniciado a busca automaticamente');
+                    }, 100);
                 }
             }
         });
         
         // Listener para botão voltar/avançar do navegador
-        // Como o cache está desabilitado, sempre busca conteúdo fresco
+        // Carrega o conteúdo da URL atual do histórico
         window.addEventListener('popstate', function(event) {
             const currentPath = window.location.pathname;
-            const fullUrl = currentPath + window.location.search;  // Incluir query string!
+            const queryString = window.location.search;
+            const fullUrl = currentPath + queryString;  // URL completa com query string
+            
+            // Detectar direção da navegação (melhor heurística)
+            const direction = fullUrl !== window.previousUrl ? (fullUrl.length > window.previousUrl.length || fullUrl > window.previousUrl ? '➡️ AVANÇAR' : '⬅️ VOLTAR') : '🔄 ATUALIZAR';
+            
+            console.log(`${direction} - Navegação do histórico detectada`);
+            console.log('📍 URL anterior:', window.previousUrl);
+            console.log('📍 URL atual:', fullUrl);
+            
+            // Se já está navegando, ignora novos eventos (evita cliques múltiplos rápidos)
+            if (isNavigating) {
+                console.warn('⚠️ Navegação em andamento, ignorando evento popstate');
+                return;
+            }
+            
+            // Atualizar URL anterior para próxima comparação
+            window.previousUrl = fullUrl;
             
             if (currentPath.startsWith('/pages/')) {
-                // Buscar conteúdo fresco do servidor (com query string se houver)
-                // IMPORTANTE: Criar elemento temporário para trigger HTMX com header correto
-                const tempElement = document.createElement('div');
-                tempElement.setAttribute('hx-get', fullUrl);
-                tempElement.setAttribute('hx-target', '#main-content');
-                tempElement.setAttribute('hx-swap', 'innerHTML');
-                
-                // Processar elemento e fazer request
-                htmx.process(tempElement);
-                htmx.trigger(tempElement, 'click');
-                
-                // Atualizar sidebar APENAS se for uma seção válida
-                const section = currentPath.split('/')[2] || 'home';
-                const validSections = ['home', 'search', 'library', 'charts', 'explore'];
-                
-                if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
-                    Alpine.store('app').currentSection = section;
+                // Usar htmx.ajax() como na função navigateTo (método confiável)
+                if (typeof htmx !== 'undefined') {
+                    isNavigating = true;  // Marca que está navegando
+                    console.log('🔄 Carregando conteúdo via HTMX...');
+                    
+                    htmx.ajax('GET', fullUrl, {
+                        target: '#main-content',
+                        swap: 'innerHTML'
+                    });
+                    
+                    // A flag será liberada automaticamente pelo evento htmx:afterSettle
+                    
+                    // Atualizar sidebar APENAS se for uma seção válida
+                    const section = currentPath.split('/')[2] || 'home';
+                    const validSections = ['home', 'search', 'library', 'charts', 'explore'];
+                    
+                    if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
+                        Alpine.store('app').currentSection = section;
+                        console.log('✅ Seção da sidebar atualizada:', section);
+                    }
+                } else {
+                    console.error('❌ HTMX não disponível, recarregando página');
+                    window.location.reload();
                 }
-                
-                // NÃO processar aqui! O evento htmx:afterSettle fará isso automaticamente
+            } else {
+                isNavigating = false;  // Reset se não for /pages/
             }
         });
     </script>

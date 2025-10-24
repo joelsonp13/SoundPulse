@@ -1,47 +1,558 @@
-<div class="playlist-page p-6" x-data="{ playlist: {{ playlist|tojson if playlist else '{}' }} }">
-    <!-- Playlist Header -->
-    <header class="playlist-header mb-8 flex items-end gap-6 p-8 rounded-lg"
-            style="background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(10,10,10,0.8));">
-        <img class="playlist-cover w-64 h-64 rounded-lg shadow-2xl" 
-             x-lazy-src="getHighResThumbnail(playlist.thumbnails?.[0]?.url || '/static/images/placeholder.jpg')"
-             alt="{{ playlist.title if playlist else 'Playlist' }}"
-             loading="lazy"
-             crossorigin="anonymous"
+<style>
+/* ========================================== */
+/* PLAYLIST ESTILO SPOTIFY */
+/* ========================================== */
+
+.spotify-playlist-page {
+    background: linear-gradient(180deg, rgba(6, 182, 212, 0.15) 0%, rgba(17, 24, 39, 0.95) 300px);
+    min-height: 100vh;
+    padding: 0;
+}
+
+/* Header da Playlist */
+.spotify-playlist-header {
+    display: flex;
+    align-items: flex-end;
+    gap: 2rem;
+    padding: 2rem 2rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.spotify-playlist-cover {
+    width: 232px;
+    height: 232px;
+    min-width: 232px;
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    object-fit: cover;
+}
+
+.spotify-playlist-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.spotify-playlist-type {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: white;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.1em;
+}
+
+.spotify-playlist-title {
+    font-size: 3rem;
+    font-weight: 900;
+    color: white;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.spotify-playlist-description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.spotify-playlist-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: white;
+    font-weight: 700;
+}
+
+.spotify-playlist-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.spotify-playlist-dot {
+    width: 4px;
+    height: 4px;
+    background: white;
+    border-radius: 50%;
+}
+
+/* Actions */
+.spotify-playlist-actions {
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.spotify-play-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #06b6d4;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(6, 182, 212, 0.4);
+}
+
+.spotify-play-button:hover {
+    transform: scale(1.06);
+    background: #0891b2;
+    box-shadow: 0 6px 24px rgba(6, 182, 212, 0.6);
+}
+
+.spotify-play-button i {
+    font-size: 24px;
+    color: white;
+    margin-left: 3px;
+}
+
+.spotify-icon-button {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spotify-icon-button:hover {
+    color: white;
+    transform: scale(1.06);
+}
+
+.spotify-icon-button.active {
+    color: #06b6d4;
+}
+
+/* Tabela de Músicas - Estilo Spotify */
+.spotify-tracks-container {
+    padding: 0 2rem 2rem;
+}
+
+.spotify-tracks-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.spotify-tracks-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.spotify-tracks-header th {
+    padding: 0.5rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.spotify-tracks-header th:first-child {
+    width: 40px;
+    text-align: center;
+}
+
+.spotify-tracks-header th:last-child {
+    width: 80px;
+    text-align: right;
+}
+
+.spotify-track-row {
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.spotify-track-row:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.spotify-track-row td {
+    padding: 0.5rem 1rem;
+    vertical-align: middle;
+}
+
+.spotify-track-number {
+    width: 40px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+}
+
+.spotify-track-row:hover .spotify-track-number-text {
+    display: none;
+}
+
+.spotify-track-play-icon {
+    display: none;
+    color: white;
+    font-size: 14px;
+}
+
+.spotify-track-row:hover .spotify-track-play-icon {
+    display: inline-block;
+}
+
+.spotify-track-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.spotify-track-thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.spotify-track-details {
+    min-width: 0;
+    flex: 1;
+}
+
+.spotify-track-title {
+    color: white;
+    font-size: 1rem;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.spotify-track-artist {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spotify-track-artist:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+.spotify-track-album {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spotify-track-album:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+.spotify-track-duration {
+    text-align: right;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.spotify-track-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.spotify-track-row:hover .spotify-track-actions {
+    opacity: 1;
+}
+
+.spotify-track-like {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spotify-track-like:hover {
+    color: white;
+}
+
+.spotify-track-like.active {
+    color: #06b6d4;
+}
+
+/* Loading State */
+.spotify-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 4rem 2rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.spotify-loading i {
+    font-size: 2rem;
+    color: #06b6d4;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .spotify-playlist-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1.5rem;
+    }
+    
+    .spotify-playlist-cover {
+        width: 192px;
+        height: 192px;
+    }
+    
+    .spotify-playlist-title {
+        font-size: 2rem;
+    }
+    
+    .spotify-tracks-header th:nth-child(3),
+    .spotify-track-row td:nth-child(3) {
+        display: none;
+    }
+}
+</style>
+
+<div class="spotify-playlist-page" 
+     data-playlist-id="{{ playlist.id if playlist else '' }}"
+     x-data="{
+    playlistId: '',
+    playlist: null,
+    tracks: [],
+    loading: true,
+    
+    init() {
+        // Pegar ID da playlist
+        this.playlistId = this.$el.getAttribute('data-playlist-id');
+        console.log('🎵 Carregando playlist:', this.playlistId);
+        
+        // Carregar dados da playlist
+        this.loadPlaylist();
+    },
+    
+    async loadPlaylist() {
+        if (!this.playlistId) {
+            console.error('❌ ID da playlist não encontrado');
+            this.loading = false;
+            return;
+        }
+        
+        try {
+            // ⚡ CARREGAR EM PARALELO para ser mais rápido
+            const [playlistRes, tracksRes] = await Promise.all([
+                fetch('/api/playlist/' + this.playlistId),
+                fetch('/api/playlist/' + this.playlistId + '/tracks')
+            ]);
+            
+            const [playlistData, tracksData] = await Promise.all([
+                playlistRes.json(),
+                tracksRes.json()
+            ]);
+            
+            // Processar dados da playlist
+            if (playlistData.success) {
+                this.playlist = playlistData.playlist;
+                console.log('✅ Playlist carregada:', this.playlist.title);
+            } else {
+                console.error('❌ Erro:', playlistData.error);
+            }
+            
+            // Processar tracks
+            if (tracksData.success) {
+                this.tracks = tracksData.tracks;
+                console.log('✅ Tracks carregadas:', this.tracks.length);
+            } else {
+                console.error('❌ Erro ao carregar tracks:', tracksData.error);
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar playlist:', error);
+        } finally {
+            this.loading = false;
+        }
+    },
+    
+    getHighResThumbnail(url) {
+        if (!url) return '/static/images/placeholder.jpg';
+        return '/api/image-proxy?url=' + encodeURIComponent(url);
+    },
+    
+    playTrack(track, index) {
+        if (track.videoId && window.Alpine && Alpine.store('player')) {
+            // ⚡ DEFINIR FILA COM TODAS AS MÚSICAS DA PLAYLIST
+            Alpine.store('player').setQueue(this.tracks);
+            
+            // Tocar música específica (ou a primeira se não informado)
+            const trackIndex = index !== undefined ? index : this.tracks.findIndex(t => t.videoId === track.videoId);
+            
+            const trackData = {
+                videoId: track.videoId,
+                title: track.title,
+                artist: track.artists && track.artists.length > 0 ? track.artists[0].name : 'Artista desconhecido',
+                thumbnails: track.thumbnails || []
+            };
+            
+            Alpine.store('player').playTrack(trackData);
+            console.log('🎵 Tocando faixa', trackIndex + 1, 'de', this.tracks.length, 'da playlist');
+        }
+    },
+    
+    playPlaylist() {
+        if (this.tracks && this.tracks.length > 0) {
+            Alpine.store('player').setQueue(this.tracks);
+            this.playTrack(this.tracks[0]);
+        }
+    }
+}">
+
+    <!-- Loading -->
+    <div x-show="loading" class="spotify-loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>Carregando playlist...</span>
+    </div>
+
+    <!-- Content -->
+    <div x-show="!loading && playlist" style="display: none;">
+        <!-- Header -->
+        <header class="spotify-playlist-header">
+            <!-- Capa -->
+            <img :src="playlist && playlist.thumbnails && playlist.thumbnails[0] ? getHighResThumbnail(playlist.thumbnails[0].url) : '/static/images/placeholder.jpg'"
+                 :alt="playlist ? playlist.title : 'Playlist'"
+                 class="spotify-playlist-cover"
              onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
-        <div class="flex-1">
-            <p class="playlist-type text-sm uppercase tracking-wide text-gray-300 mb-2">PLAYLIST</p>
-            <h1 class="text-5xl font-bold mb-4" x-text="playlist.title">{{ playlist.title if playlist else 'Playlist' }}</h1>
-            <p class="text-gray-300 mb-4" x-text="playlist.description">{{ playlist.description if playlist else '' }}</p>
-            <div class="flex items-center gap-2 text-gray-300">
-                <span x-text="playlist.author">{{ playlist.author if playlist else '' }}</span>
-                <span>•</span>
-                <span x-text="playlist.trackCount + ' músicas'">{{ playlist.trackCount if playlist else '' }} músicas</span>
+            
+            <!-- Info -->
+            <div class="spotify-playlist-info">
+                <p class="spotify-playlist-type">Playlist</p>
+                <h1 class="spotify-playlist-title" x-text="playlist ? playlist.title : 'Playlist'"></h1>
+                <p class="spotify-playlist-description" x-show="playlist && playlist.description" x-text="playlist ? playlist.description : ''"></p>
+                <div class="spotify-playlist-meta">
+                    <span x-text="playlist && playlist.author ? (playlist.author.name || playlist.author) : 'SoundPulse'"></span>
+                    <span class="spotify-playlist-dot"></span>
+                    <span x-text="(playlist && playlist.trackCount ? playlist.trackCount : tracks.length) + ' músicas'"></span>
+                </div>
             </div>
-            <div class="playlist-actions mt-6 flex gap-4">
-                <button class="btn-primary px-8 py-3 rounded-full">
-                    <i class="fas fa-play mr-2"></i> Reproduzir
+        </header>
+        
+        <!-- Actions -->
+        <div class="spotify-playlist-actions">
+            <button class="spotify-play-button" @click="playPlaylist()">
+                <i class="fas fa-play"></i>
                 </button>
-                <button class="btn-secondary px-6 py-3 rounded-full">
+            <button class="spotify-icon-button">
                     <i class="far fa-heart"></i>
                 </button>
-                <button class="btn-secondary px-6 py-3 rounded-full">
-                    <i class="fas fa-share-alt"></i>
+            <button class="spotify-icon-button">
+                <i class="fas fa-ellipsis-h"></i>
                 </button>
-            </div>
         </div>
-    </header>
+        
+        <!-- Tracks Table -->
+        <div class="spotify-tracks-container">
+            <!-- Loading Tracks -->
+            <div x-show="tracks.length === 0" class="spotify-loading" style="padding: 2rem;">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Carregando músicas...</span>
+            </div>
+            
+            <!-- Table -->
+            <table x-show="tracks.length > 0" class="spotify-tracks-table" style="display: none;">
+                <thead class="spotify-tracks-header">
+                    <tr>
+                        <th>#</th>
+                        <th>Título</th>
+                        <th>Álbum</th>
+                        <th><i class="far fa-clock"></i></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(track, index) in tracks" :key="track.videoId">
+                        <tr class="spotify-track-row" @click="playTrack(track, index)">
+                            <!-- Número / Play -->
+                            <td class="spotify-track-number">
+                                <span class="spotify-track-number-text" x-text="index + 1"></span>
+                                <i class="fas fa-play spotify-track-play-icon"></i>
+                            </td>
+                            
+                            <!-- Título + Artista + Thumbnail -->
+                            <td>
+                                <div class="spotify-track-info-cell">
+                                    <img :src="track.thumbnails && track.thumbnails[0] ? getHighResThumbnail(track.thumbnails[0].url) : '/static/images/placeholder.jpg'"
+                                         :alt="track.title"
+                                         class="spotify-track-thumbnail"
+                                         onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
+                                    <div class="spotify-track-details">
+                                        <div class="spotify-track-title" x-text="track.title"></div>
+                                        <div class="spotify-track-artist" 
+                                             x-text="track.artists && track.artists.length > 0 ? track.artists[0].name : 'Artista desconhecido'"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Álbum -->
+                            <td>
+                                <div class="spotify-track-album" 
+                                     x-text="track.album ? track.album.name : '-'"></div>
+                            </td>
+                            
+                            <!-- Duração + Actions -->
+                            <td>
+                                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 1rem;">
+                                    <div class="spotify-track-actions">
+                                        <button class="spotify-track-like" @click.stop>
+                                            <i class="far fa-heart"></i>
+                                        </button>
+                                    </div>
+                                    <div class="spotify-track-duration" x-text="track.duration || '--:--'"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-    <!-- Tracks -->
-    <section class="playlist-tracks mb-8">
-        <h2 class="section-title mb-6">Músicas</h2>
-        <div hx-get="/api/playlist/{{ playlist.browseId if playlist else '' }}/tracks" 
-             hx-trigger="load" 
-             hx-swap="innerHTML">
-            <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
-                <p class="mt-2 text-gray-400">Carregando músicas...</p>
-            </div>
-        </div>
-    </section>
 </div>
-

@@ -389,6 +389,34 @@ def index():
     """Página principal do site de streaming"""
     return render_template('index.html')
 
+def ensure_thumbnail(item):
+    """Garante que o item tenha thumbnails válidos"""
+    if not item:
+        return item
+    
+    # Verificar se thumbnails existe e é válido
+    has_valid_thumbnails = (
+        item.get('thumbnails') and 
+        isinstance(item.get('thumbnails'), list) and 
+        len(item.get('thumbnails', [])) > 0 and
+        any(t.get('url') for t in item.get('thumbnails', []))
+    )
+    
+    if not has_valid_thumbnails:
+        # Se não tem thumbnail válido, adiciona placeholder
+        item['thumbnails'] = [{'url': '/static/images/placeholder.jpg', 'width': 160, 'height': 160}]
+    else:
+        # Garantir que todas as thumbnails tenham URL válida
+        valid_thumbnails = [t for t in item.get('thumbnails', []) if t.get('url')]
+        if valid_thumbnails:
+            # Ordenar por tamanho (maior primeiro) para melhor qualidade
+            valid_thumbnails.sort(key=lambda t: (t.get('width', 0) * t.get('height', 0)), reverse=True)
+            item['thumbnails'] = valid_thumbnails
+        else:
+            item['thumbnails'] = [{'url': '/static/images/placeholder.jpg', 'width': 160, 'height': 160}]
+    
+    return item
+
 @app.route('/api/search')
 def search():
     """Buscar músicas no YouTube Music"""
@@ -402,38 +430,72 @@ def search():
         return jsonify({'error': 'Query vazia'}), 400
     
     try:
-        print(f"[Debug] BUSCA: query='{query}', filter='{filter_type}'")
+        start_time = datetime.now()
+        print(f"[Debug] BUSCA: query='{query}'")
         
-        # Busca otimizada - Limites reduzidos para performance
-        print(f"[Star] Fazendo busca otimizada")
+        # ⚡ BUSCA PARALELA: Usar threads para buscar simultaneamente
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import time
+        
         all_results = []
         
-        # 1. Buscar músicas (30 suficientes para paginação inicial)
-        songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=30))
-        all_results.extend([r for r in songs if r.get('resultType') == 'song'])
-        print(f"   [Musica] Músicas: {len([r for r in songs if r.get('resultType') == 'song'])}")
+        # Funções de busca otimizadas com limites reduzidos
+        def search_songs():
+            try:
+                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=25))
+                return [ensure_thumbnail(r) for r in results if r.get('resultType') == 'song']
+            except Exception as e:
+                print(f"   [Erro] Músicas: {e}")
+                return []
         
-        # 2. Buscar artistas (15 suficientes)
-        artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=15))
-        artist_results = [r for r in artists if r.get('resultType') == 'artist' and r.get('browseId')]
-        all_results.extend(artist_results)
-        print(f"   [Artist] Artistas: {len(artist_results)}")
+        def search_artists():
+            try:
+                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=12))
+                return [ensure_thumbnail(r) for r in results if r.get('resultType') == 'artist' and r.get('browseId')]
+            except Exception as e:
+                print(f"   [Erro] Artistas: {e}")
+                return []
         
-        # 3. Buscar playlists (15 suficientes)
-        playlists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='playlists', limit=15))
-        playlist_results = [r for r in playlists if r.get('resultType') == 'playlist' and r.get('browseId')]
-        all_results.extend(playlist_results)
-        print(f"   [Playlist] Playlists: {len(playlist_results)}")
+        def search_playlists():
+            try:
+                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='playlists', limit=12))
+                return [ensure_thumbnail(r) for r in results if r.get('resultType') == 'playlist' and r.get('browseId')]
+            except Exception as e:
+                print(f"   [Erro] Playlists: {e}")
+                return []
         
-        # 4. Buscar álbuns (15 suficientes)
-        albums = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='albums', limit=15))
-        all_results.extend([r for r in albums if r.get('resultType') == 'album'])
-        print(f"   [Album] Álbuns: {len([r for r in albums if r.get('resultType') == 'album'])}")
+        def search_albums():
+            try:
+                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='albums', limit=12))
+                return [ensure_thumbnail(r) for r in results if r.get('resultType') == 'album']
+            except Exception as e:
+                print(f"   [Erro] Álbuns: {e}")
+                return []
         
-        filtered_results = all_results
-        print(f"[OK] TOTAL de resultados: {len(filtered_results)}")
+        # ⚡ EXECUTAR BUSCAS EM PARALELO (4 threads)
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            # Submeter todas as buscas
+            future_songs = executor.submit(search_songs)
+            future_artists = executor.submit(search_artists)
+            future_playlists = executor.submit(search_playlists)
+            future_albums = executor.submit(search_albums)
+            
+            # Coletar resultados conforme ficam prontos
+            songs = future_songs.result()
+            artists = future_artists.result()
+            playlists = future_playlists.result()
+            albums = future_albums.result()
         
-        return jsonify({'success': True, 'results': filtered_results})
+        # Adicionar todos os resultados
+        all_results.extend(songs)
+        all_results.extend(artists)
+        all_results.extend(playlists)
+        all_results.extend(albums)
+        
+        elapsed = (datetime.now() - start_time).total_seconds() * 1000
+        print(f"[OK] Busca concluída em {elapsed:.0f}ms: {len(songs)} músicas, {len(artists)} artistas, {len(playlists)} playlists, {len(albums)} álbuns")
+        
+        return jsonify({'success': True, 'results': all_results})
     except Exception as e:
         print(f"[ERRO] ERRO na busca: {str(e)}")
         return jsonify({'error': f'Erro na busca: {str(e)}'}), 500
@@ -446,7 +508,8 @@ def get_watch_playlist(videoId):
     
     try:
         watch_playlist = safe_ytmusic_call(lambda ytm: ytm.get_watch_playlist(videoId))
-        return jsonify({'success': True, 'related': watch_playlist.get('tracks', [])})
+        tracks = [ensure_thumbnail(t) for t in watch_playlist.get('tracks', [])]
+        return jsonify({'success': True, 'related': tracks})
     except Exception as e:
         return jsonify({'error': f'Erro ao obter watch playlist: {str(e)}'}), 500
 
@@ -464,15 +527,17 @@ def get_song_info(videoId):
 
 @app.route('/api/playlist/<playlistId>')
 def get_playlist(playlistId):
-    """Obter playlist completa"""
+    """Obter informações da playlist (SEM tracks para ser rápido)"""
     if not yt and not yt_public:
-        return jsonify({'error': 'YTMusic não conectado'}), 500
+        return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
-        playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId, limit=100))
-        return jsonify({'success': True, 'playlist': playlist, 'tracks': playlist.get('tracks', [])})
+        playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId, limit=1))
+        # Remover tracks pesados - serão carregados separadamente
+        playlist.pop('tracks', None)
+        return jsonify({'success': True, 'playlist': ensure_thumbnail(playlist)})
     except Exception as e:
-        return jsonify({'error': f'Erro ao obter playlist: {str(e)}'}), 500
+        return jsonify({'success': False, 'error': f'Erro ao obter playlist: {str(e)}'}), 500
 
 @app.route('/api/playlist/<playlistId>/more-songs')
 def get_more_playlist_songs(playlistId):
@@ -485,10 +550,10 @@ def get_more_playlist_songs(playlistId):
         limit = 10
         
         playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId, limit=limit, offset=(page-1)*limit))
-        tracks = playlist.get('tracks', [])
+        tracks = [ensure_thumbnail(t) for t in playlist.get('tracks', [])]
         
         return jsonify({
-            'success': True, 
+            'success': True,
             'tracks': tracks,
             'hasMore': len(tracks) >= limit
         })
@@ -503,9 +568,29 @@ def get_artist(artistId):
     
     try:
         artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(artistId))
+        # Garantir thumbnails no artista e nas músicas
+        artist = ensure_thumbnail(artist)
+        if artist.get('songs', {}).get('results'):
+            artist['songs']['results'] = [ensure_thumbnail(s) for s in artist['songs']['results']]
+        if artist.get('albums', {}).get('results'):
+            artist['albums']['results'] = [ensure_thumbnail(a) for a in artist['albums']['results']]
         return jsonify({'success': True, 'artist': artist})
     except Exception as e:
         return jsonify({'error': f'Erro ao obter artista: {str(e)}'}), 500
+
+@app.route('/api/album/<browseId>')
+def get_album(browseId):
+    """Obter informações do álbum (SEM tracks para ser rápido)"""
+    if not yt and not yt_public:
+        return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
+    
+    try:
+        album = safe_ytmusic_call(lambda ytm: ytm.get_album(browseId))
+        # Remover tracks pesados - serão carregados separadamente
+        album.pop('tracks', None)
+        return jsonify({'success': True, 'album': ensure_thumbnail(album)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Erro ao obter álbum: {str(e)}'}), 500
 
 @app.route('/api/artist/<artistId>/albums')
 def get_artist_albums(artistId):
@@ -515,7 +600,7 @@ def get_artist_albums(artistId):
     
     try:
         artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(artistId))
-        albums = artist.get('albums', {}).get('results', [])
+        albums = [ensure_thumbnail(a) for a in artist.get('albums', {}).get('results', [])]
         return jsonify({'success': True, 'albums': albums})
     except Exception as e:
         return jsonify({'error': f'Erro ao obter álbuns: {str(e)}'}), 500
@@ -575,7 +660,7 @@ def get_more_artist_songs(artistId):
         # Simular paginação
         start_idx = (page - 1) * limit
         end_idx = start_idx + limit
-        paginated_songs = songs[start_idx:end_idx]
+        paginated_songs = [ensure_thumbnail(s) for s in songs[start_idx:end_idx]]
         
         return jsonify({
             'success': True, 
@@ -651,7 +736,7 @@ def get_related_songs(videoId):
     try:
         # Tenta usar get_watch_playlist ao invés de get_song_related
         watch_playlist = safe_ytmusic_call(lambda ytm: ytm.get_watch_playlist(videoId))
-        related = watch_playlist.get('tracks', [])[:10]  # Pega apenas 10 músicas relacionadas
+        related = [ensure_thumbnail(t) for t in watch_playlist.get('tracks', [])[:10]]  # Pega apenas 10 músicas relacionadas
         return jsonify({'success': True, 'related': related})
     except Exception as e:
         print(f"Erro ao obter músicas relacionadas para {videoId}: {str(e)}")
@@ -742,26 +827,30 @@ def page_artist(browseId):
         if artist.get('related'):
             print(f"    - related.results: {len(artist['related'].get('results', []))} artistas relacionados")
         
-        # Preparar dados para evitar problemas de sintaxe no template
+        # ✅ Preparar dados COM ensure_thumbnail em TUDO
         top_songs = []
         all_songs = []  # Para "This Is" (mais músicas)
         if artist.get('songs') and artist.get('songs').get('results'):
             all_results = artist['songs']['results']
-            top_songs = all_results[:5]  # Apenas 5 para mostrar na lista
-            all_songs = all_results[:30]  # Até 30 para "This Is"
+            # ✅ GARANTIR THUMBNAILS em cada música
+            top_songs = [ensure_thumbnail(s) for s in all_results[:5]]
+            all_songs = [ensure_thumbnail(s) for s in all_results[:30]]
         
         # Combinar albums + singles para ter mais releases
         albums = []
         if artist.get('albums') and artist.get('albums').get('results'):
-            albums.extend(artist['albums']['results'])
+            # ✅ GARANTIR THUMBNAILS em cada álbum
+            albums.extend([ensure_thumbnail(a) for a in artist['albums']['results']])
         if artist.get('singles') and artist.get('singles').get('results'):
-            albums.extend(artist['singles']['results'])
+            # ✅ GARANTIR THUMBNAILS em cada single
+            albums.extend([ensure_thumbnail(s) for s in artist['singles']['results']])
         # Limitar a 12 releases (6 albums + 6 singles possíveis)
         albums = albums[:12]
         
         related_artists = []
         if artist.get('related') and artist.get('related').get('results'):
-            related_artists = artist['related']['results'][:8]
+            # ✅ GARANTIR THUMBNAILS em cada artista relacionado
+            related_artists = [ensure_thumbnail(a) for a in artist['related']['results'][:8]]
             # Debug: Mostrar estrutura de um artista relacionado
             if related_artists:
                 print(f"[DEBUG] Exemplo de artista relacionado:")
@@ -789,54 +878,42 @@ def page_artist(browseId):
 
 @app.route('/pages/album/<browseId>')
 def page_album(browseId):
-    """Album page"""
+    """Album page - renderiza template vazio, JavaScript carrega dados via API"""
     if not request.headers.get('HX-Request'):
         return render_template('index.html')
     
-    try:
-        album = safe_ytmusic_call(lambda ytm: ytm.get_album(browseId))
-        if not album:
-            raise Exception("Não foi possível carregar os dados do álbum")
-        return render_template('partials/album.html', album=album)
-    except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar álbum',
-                             message=str(e),
-                             retry=True)
+    # Passar só o ID para o template - dados são carregados via API JavaScript
+    return render_template('partials/album.html', album={'browseId': browseId})
 
 @app.route('/pages/playlist/<playlistId>')
 def page_playlist(playlistId):
-    """Playlist page"""
+    """Playlist page - renderiza template vazio, JavaScript carrega dados via API"""
     if not request.headers.get('HX-Request'):
         return render_template('index.html')
     
-    try:
-        playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId))
-        if not playlist:
-            raise Exception("Não foi possível carregar os dados da playlist")
-        return render_template('partials/playlist.html', playlist=playlist)
-    except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar playlist',
-                             message=str(e),
-                             retry=True)
+    # Passar só o ID para o template - dados são carregados via API JavaScript
+    return render_template('partials/playlist.html', playlist={'id': playlistId})
 
-@app.route('/pages/podcast/<browseId>')
-def page_podcast(browseId):
-    """Podcast page"""
-    if not request.headers.get('HX-Request'):
-        return render_template('index.html')
+@app.route('/api/podcast/<browseId>')
+def get_podcast(browseId):
+    """Obter informações do podcast (SEM episódios para ser rápido)"""
+    if not yt and not yt_public:
+        return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
         podcast = safe_ytmusic_call(lambda ytm: ytm.get_podcast(browseId))
-        if not podcast:
-            raise Exception("Não foi possível carregar os dados do podcast")
-        return render_template('partials/podcast.html', podcast=podcast)
+        return jsonify({'success': True, 'podcast': ensure_thumbnail(podcast)})
     except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar podcast',
-                             message=str(e),
-                             retry=True)
+        return jsonify({'success': False, 'error': f'Erro ao obter podcast: {str(e)}'}), 500
+
+@app.route('/pages/podcast/<browseId>')
+def page_podcast(browseId):
+    """Podcast page - renderiza template vazio, JavaScript carrega dados via API"""
+    if not request.headers.get('HX-Request'):
+        return render_template('index.html')
+    
+    # Passar só o ID para o template - dados são carregados via API JavaScript
+    return render_template('partials/podcast.html', podcast={'browseId': browseId})
 
 # ===== CHARTS ENDPOINTS =====
 
@@ -861,8 +938,8 @@ def charts_songs(country):
         
         songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=10))
         
-        # Filtrar apenas músicas válidas
-        songs = [s for s in songs if s.get('videoId') and s.get('title')]
+        # Filtrar apenas músicas válidas e garantir thumbnails
+        songs = [ensure_thumbnail(s) for s in songs if s.get('videoId') and s.get('title')]
         
         return render_template('components/cards_grid.html', items=songs, type='music')
     except Exception as e:
@@ -883,6 +960,7 @@ def trending_songs_endpoint():
     
     try:
         results = safe_ytmusic_call(lambda ytm: ytm.search('trending music 2024', filter='songs', limit=10))
+        results = [ensure_thumbnail(r) for r in results]
         return render_template('components/cards_grid.html', items=results, type='music')
     except Exception as e:
         return render_template('components/error_state.html',
@@ -899,6 +977,7 @@ def new_releases_endpoint():
     
     try:
         results = safe_ytmusic_call(lambda ytm: ytm.search('new releases albums 2024', filter='albums', limit=10))
+        results = [ensure_thumbnail(r) for r in results]
         return render_template('components/cards_grid.html', items=results, type='album')
     except Exception as e:
         return render_template('components/error_state.html',
@@ -931,7 +1010,7 @@ def trending_podcasts_endpoint():
                     thumbnails = sorted(r['thumbnails'], key=lambda x: x.get('width', 0) * x.get('height', 0), reverse=True)
                     r['thumbnails'] = thumbnails
                 
-                podcasts.append(r)
+                podcasts.append(ensure_thumbnail(r))
                 
                 if len(podcasts) >= 10:
                     break
@@ -963,8 +1042,8 @@ def charts_artists(country):
         
         artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=10))
         
-        # Filtrar apenas artistas válidos
-        artists = [a for a in artists if a.get('browseId')]
+        # Filtrar apenas artistas válidos e garantir thumbnails
+        artists = [ensure_thumbnail(a) for a in artists if a.get('browseId')]
         
         return render_template('components/cards_grid.html', items=artists, type='artist')
     except Exception as e:
@@ -994,8 +1073,8 @@ def charts_videos(country):
         
         videos = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='videos', limit=10))
         
-        # Filtrar apenas vídeos válidos
-        videos = [v for v in videos if v.get('videoId')]
+        # Filtrar apenas vídeos válidos e garantir thumbnails
+        videos = [ensure_thumbnail(v) for v in videos if v.get('videoId')]
         
         return render_template('components/cards_grid.html', items=videos, type='music')
     except Exception as e:
@@ -1016,7 +1095,7 @@ def artist_top_songs_endpoint(browseId):
     
     try:
         artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(browseId))
-        songs = artist.get('songs', {}).get('results', [])[:10]
+        songs = [ensure_thumbnail(s) for s in artist.get('songs', {}).get('results', [])[:10]]
         return render_template('components/cards_grid.html', items=songs, type='music')
     except Exception as e:
         return render_template('components/error_state.html',
@@ -1027,57 +1106,83 @@ def artist_top_songs_endpoint(browseId):
 
 @app.route('/api/album/<browseId>/tracks')
 def album_tracks_endpoint(browseId):
-    """Album tracks"""
+    """Album tracks - retorna JSON para Alpine.js"""
     if not yt and not yt_public:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
+        return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
         album = safe_ytmusic_call(lambda ytm: ytm.get_album(browseId))
-        tracks = album.get('tracks', [])
-        return render_template('partials/tracklist.html', tracks=tracks)
+        tracks = [ensure_thumbnail(t) for t in album.get('tracks', [])]
+        return jsonify({'success': True, 'tracks': tracks})
     except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar faixas',
-                             message=str(e))
+        return jsonify({'success': False, 'error': f'Erro ao carregar faixas: {str(e)}'}), 500
 
 # ===== PLAYLIST ENDPOINTS =====
 
 @app.route('/api/playlist/<playlistId>/tracks')
 def playlist_tracks_endpoint(playlistId):
-    """Playlist tracks"""
+    """Playlist tracks - retorna JSON para Alpine.js"""
     if not yt and not yt_public:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
+        return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
         playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId))
-        tracks = playlist.get('tracks', [])
-        return render_template('partials/tracklist.html', tracks=tracks)
+        tracks = [ensure_thumbnail(t) for t in playlist.get('tracks', [])]
+        return jsonify({'success': True, 'tracks': tracks})
     except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar músicas',
-                             message=str(e))
+        return jsonify({'success': False, 'error': f'Erro ao carregar músicas: {str(e)}'}), 500
 
 # ===== PODCAST ENDPOINTS =====
 
 @app.route('/api/podcast/<browseId>/episodes')
 def podcast_episodes_endpoint(browseId):
-    """Podcast episodes"""
+    """Podcast episodes - retorna JSON para Alpine.js"""
     if not yt and not yt_public:
-        return render_template('components/error_state.html',
-                             title='Erro',
-                             message='YTMusic não conectado')
+        return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
-        episodes = safe_ytmusic_call(lambda ytm: ytm.get_channel_episodes(browseId))
-        return render_template('partials/episode_list.html', episodes=episodes)
+        # Buscar podcast completo
+        podcast = safe_ytmusic_call(lambda ytm: ytm.get_podcast(browseId))
+        
+        episodes = []
+        
+        # Tentar pegar episódios diretamente do podcast
+        if podcast:
+            # Opção 1: Episódios já vêm no podcast
+            if 'episodes' in podcast:
+                if isinstance(podcast['episodes'], list):
+                    episodes = [ensure_thumbnail(e) for e in podcast['episodes']]
+                elif isinstance(podcast['episodes'], dict) and 'results' in podcast['episodes']:
+                    episodes = [ensure_thumbnail(e) for e in podcast['episodes']['results']]
+            
+            # Opção 2: Tentar buscar pelo author ID (canal)
+            if not episodes and 'author' in podcast and podcast['author'] and 'id' in podcast['author']:
+                try:
+                    author_id = podcast['author']['id']
+                    # Buscar vídeos do canal
+                    channel_data = safe_ytmusic_call(lambda ytm: ytm.get_artist(author_id))
+                    if channel_data and 'songs' in channel_data and 'results' in channel_data['songs']:
+                        episodes = [ensure_thumbnail(e) for e in channel_data['songs']['results'][:20]]
+                except Exception as channel_error:
+                    print(f"Erro ao buscar por canal: {str(channel_error)}")
+            
+            # Opção 3: Buscar por pesquisa como último recurso
+            if not episodes and 'title' in podcast:
+                try:
+                    search_query = podcast['title']
+                    search_results = safe_ytmusic_call(lambda ytm: ytm.search(search_query, filter='videos', limit=10))
+                    if search_results:
+                        episodes = [ensure_thumbnail(e) for e in search_results if e.get('resultType') == 'video']
+                except Exception as search_error:
+                    print(f"Erro ao buscar por pesquisa: {str(search_error)}")
+        
+        print(f"📊 Total de episódios encontrados: {len(episodes)}")
+        return jsonify({'success': True, 'episodes': episodes})
     except Exception as e:
-        return render_template('components/error_state.html',
-                             title='Erro ao carregar episódios',
-                             message=str(e))
+        print(f"❌ Erro ao carregar episódios: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Erro ao carregar episódios: {str(e)}'}), 500
 
 # ===== EXPLORE MUSIC ENDPOINTS =====
 
@@ -1166,6 +1271,72 @@ def search_suggestions_endpoint():
         return html
     except Exception as e:
         return ''
+
+@app.route('/api/search-results-html')
+def search_results_html():
+    """Retorna resultados de busca como HTML pronto (RÁPIDO - como na home)"""
+    if not yt and not yt_public:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    query = request.args.get('q', '')
+    result_type = request.args.get('type', 'songs')  # songs, albums, artists, playlists
+    
+    if not query:
+        return '<div class="text-center py-8 text-gray-400"><p>Digite algo para buscar</p></div>'
+    
+    try:
+        # Mapear tipo para filtro correto
+        filter_map = {
+            'songs': 'songs',
+            'albums': 'albums',
+            'artists': 'artists',
+            'playlists': 'playlists'
+        }
+        
+        filter_type = filter_map.get(result_type, 'songs')
+        
+        # Buscar no YouTube Music
+        results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter=filter_type, limit=20))
+        
+        # Garantir thumbnails
+        results = [ensure_thumbnail(r) for r in results]
+        
+        # Se não houver resultados, retornar empty state
+        if not results or len(results) == 0:
+            type_names = {
+                'songs': 'músicas',
+                'albums': 'álbuns',
+                'artists': 'artistas',
+                'playlists': 'playlists'
+            }
+            type_name = type_names.get(result_type, 'resultados')
+            return f'''
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fas fa-search text-5xl text-gray-600 mb-4"></i>
+                    <p class="text-lg">Nenhuma {type_name} encontrada para "{query}"</p>
+                </div>
+            '''
+        
+        # Determinar tipo de card
+        card_type_map = {
+            'songs': 'music',
+            'albums': 'album',
+            'artists': 'artist',
+            'playlists': 'playlist'
+        }
+        
+        card_type = card_type_map.get(result_type, 'music')
+        
+        # Retornar HTML pronto dos cards
+        return render_template('components/cards_grid.html', items=results, type=card_type)
+    
+    except Exception as e:
+        print(f"[ERRO] Erro na busca HTML: {str(e)}")
+        return render_template('components/error_state.html',
+                             title='Erro ao buscar',
+                             message=str(e))
 
 if __name__ == '__main__':
     print("Iniciando Site de Streaming de Musica...")

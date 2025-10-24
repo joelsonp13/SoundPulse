@@ -61,8 +61,13 @@ function getHighResThumbnail(url) {
         url = url.url || url.href || '';
         if (!url) return '/static/images/placeholder.jpg';
     } else if (Array.isArray(url) && url.length > 0) {
-        // Se é um array, pegar o primeiro
-        url = url[0].url || url[0].href || '';
+        // Se é um array, pegar a maior thumbnail disponível
+        const sortedThumbnails = url.sort((a, b) => {
+            const sizeA = (a.width || 0) * (a.height || 0);
+            const sizeB = (b.width || 0) * (b.height || 0);
+            return sizeB - sizeA;
+        });
+        url = sortedThumbnails[0].url || sortedThumbnails[0].href || '';
         if (!url) return '/static/images/placeholder.jpg';
     }
     
@@ -107,13 +112,15 @@ function getHighResThumbnail(url) {
     return url;
 }
 
+// Expor globalmente para uso no Alpine.js
+window.getHighResThumbnail = getHighResThumbnail;
+
 // ========================================
 // ALPINE.JS INITIALIZATION
 // ========================================
 
 // Alpine.js App Initialization
 document.addEventListener('alpine:init', () => {
-    console.log('🎵 Alpine.js inicializando...');
     
     // ========================================
     // DIRETIVA ALPINE.JS PARA LAZY LOADING
@@ -197,12 +204,13 @@ document.addEventListener('alpine:init', () => {
         isLoading: false,
         queue: [],
         currentIndex: 0,
-        currentTime: 0,
-        duration: 0,
-        progress: 0,
         volume: 1.0,  // 0-1 para corresponder ao slider (1.0 = 100%)
-        isDraggingProgress: false,  // Rastrear se está arrastando a barra de progresso
-        progressBarElement: null,  // Referência à barra de progresso durante o arrasto
+        // ✨ Nova barra de progresso moderna
+        currentTime: 0,
+        totalDuration: 0,
+        progressPercent: 0,
+        isDragging: false,
+        updateTimer: null,
         showRelated: false,
         relatedSongs: [],
         showLyricsModal: false,
@@ -211,7 +219,6 @@ document.addEventListener('alpine:init', () => {
         lyricsError: null,
         youtubePlayer: null,
         youtubeReady: false,
-        updateInterval: null,
         // Novos controles
         repeatMode: 'off', // 'off', 'one', 'all'
         shuffleMode: false,
@@ -253,7 +260,6 @@ document.addEventListener('alpine:init', () => {
                             if (player.youtubePlayer && typeof player.youtubePlayer.setVolume === 'function') {
                                 player.youtubePlayer.setVolume(youtubeVolume);
                             } else {
-                                // Retry após delay
                                 setTimeout(() => {
                                     if (player.youtubePlayer && typeof player.youtubePlayer.setVolume === 'function') {
                                         player.youtubePlayer.setVolume(youtubeVolume);
@@ -269,13 +275,13 @@ document.addEventListener('alpine:init', () => {
                             if (event.data === YT.PlayerState.PLAYING) {
                                 player.isPlaying = true;
                                 player.isLoading = false;
-                                player.startUpdateInterval();
+                                player.startProgressUpdate();
                             } else if (event.data === YT.PlayerState.PAUSED) {
                                 player.isPlaying = false;
-                                player.stopUpdateInterval();
+                                player.stopProgressUpdate();
                             } else if (event.data === YT.PlayerState.ENDED) {
                                 player.isPlaying = false;
-                                player.stopUpdateInterval();
+                                player.stopProgressUpdate();
                                 player.next();
                             } else if (event.data === YT.PlayerState.BUFFERING) {
                                 player.isLoading = true;
@@ -289,35 +295,6 @@ document.addEventListener('alpine:init', () => {
                 });
             } catch (error) {
                 // Erro ao criar player
-            }
-        },
-
-        startUpdateInterval() {
-            if (this.updateInterval) return;
-            
-            this.updateInterval = setInterval(() => {
-                // NÃO atualizar se o usuário estiver arrastando a barra
-                if (this.isDraggingProgress) return;
-                
-                if (this.youtubePlayer && this.youtubeReady) {
-                    try {
-                        this.currentTime = this.youtubePlayer.getCurrentTime() || 0;
-                        this.duration = this.youtubePlayer.getDuration() || 0;
-                        this.progress = this.duration ? (this.currentTime / this.duration) * 100 : 0;
-                    } catch (e) {
-                        // Log apenas erros críticos, não silenciar completamente
-                        if (e.name !== 'TypeError' || !e.message.includes('getCurrentTime')) {
-                            console.warn('⚠️ Erro na atualização do player:', e.message);
-                        }
-                    }
-                }
-            }, 100);
-        },
-
-        stopUpdateInterval() {
-            if (this.updateInterval) {
-                clearInterval(this.updateInterval);
-                this.updateInterval = null;
             }
         },
 
@@ -353,6 +330,13 @@ document.addEventListener('alpine:init', () => {
                 
                 this.currentTrack = track;
                 this.isLoading = true;
+                
+                console.log('🎵 Track carregada no player:', {
+                    title: track.title,
+                    artist: track.artist,
+                    thumbnails: track.thumbnails,
+                    videoId: track.videoId
+                });
                 
                 this.youtubePlayer.loadVideoById(track.videoId);
                 
@@ -507,7 +491,6 @@ document.addEventListener('alpine:init', () => {
                 try {
                     if (typeof this.youtubePlayer.setVolume === 'function') {
                         this.youtubePlayer.setVolume(youtubeVolume);
-                        console.log('🔊 Volume ajustado:', youtubeVolume + '%');
                     } else {
                         console.warn('⚠️ setVolume não é uma função');
                     }
@@ -517,116 +500,130 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // Calcular posição do seek baseado em coordenadas
-        calculateSeekPosition(event, progressBar) {
-            if (!progressBar) return 0;
+        // ========== ✨ NOVA BARRA DE PROGRESSO MODERNA ========== //
+        
+        startProgressUpdate() {
+            if (this.updateTimer) return;
             
-            const rect = progressBar.getBoundingClientRect();
-            let clientX;
+            console.log('🎯 startProgressUpdate chamado');
             
-            // Suportar tanto mouse quanto touch
-            if (event.type.startsWith('touch')) {
-                const touch = event.touches[0] || event.changedTouches[0];
-                if (!touch) return this.currentTime; // Fallback se não houver touch
-                clientX = touch.clientX;
+            // Atualizar imediatamente ao iniciar
+            if (this.youtubePlayer && this.youtubeReady) {
+                try {
+                    this.totalDuration = this.youtubePlayer.getDuration() || 0;
+                    this.currentTime = this.youtubePlayer.getCurrentTime() || 0;
+                    this.progressPercent = this.totalDuration > 0 
+                        ? (this.currentTime / this.totalDuration) * 100 
+                        : 0;
+                    console.log('⏱️ Duração inicial:', this.totalDuration, 'segundos');
+                } catch (e) {
+                    console.warn('⚠️ Erro ao obter duração inicial:', e);
+                }
             } else {
-                clientX = event.clientX;
+                console.warn('⚠️ Player não está pronto ainda');
             }
             
-            // Calcular posição relativa à barra (0 a 1)
-            const clickX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-            const percentage = clickX / rect.width;
-            
-            // Retornar tempo calculado
-            return this.duration * percentage;
+            this.updateTimer = setInterval(() => {
+                if (!this.isDragging && this.youtubePlayer && this.youtubeReady) {
+                    try {
+                        this.currentTime = this.youtubePlayer.getCurrentTime() || 0;
+                        const newDuration = this.youtubePlayer.getDuration() || 0;
+                        
+                        // Log apenas quando duração mudar de 0
+                        if (this.totalDuration === 0 && newDuration > 0) {
+                            console.log('✅ Duração carregada:', newDuration, 'segundos');
+                        }
+                        
+                        this.totalDuration = newDuration;
+                        this.progressPercent = this.totalDuration > 0 
+                            ? (this.currentTime / this.totalDuration) * 100 
+                            : 0;
+                    } catch (e) {
+                        // Silenciar erros
+                    }
+                }
+            }, 100);
         },
-
-        // Iniciar arrasto da barra de progresso
-        startProgressDrag(event) {
-            if (!this.youtubeReady || !this.youtubePlayer) return;
+        
+        stopProgressUpdate() {
+            if (this.updateTimer) {
+                clearInterval(this.updateTimer);
+                this.updateTimer = null;
+            }
+        },
+        
+        seekTo(event) {
+            if (!this.youtubePlayer || this.isDragging) return;
             
+            const track = event.currentTarget;
+            const rect = track.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+            
+            try {
+                const duration = this.youtubePlayer.getDuration() || 0;
+                if (duration > 0) {
+                    const newTime = (percent / 100) * duration;
+                    this.youtubePlayer.seekTo(newTime, true);
+                    console.log('🎯 Seek:', this.formatTime(newTime), '/', this.formatTime(duration));
+                } else {
+                    console.warn('⚠️ Duração ainda não disponível para seek');
+                }
+            } catch (e) {
+                console.warn('❌ Erro ao fazer seek:', e);
+            }
+        },
+        
+        startDrag(event) {
+            if (!this.youtubePlayer) {
+                console.warn('⚠️ Drag ignorado: player não está pronto');
+                return;
+            }
+            
+            this.isDragging = true;
             event.preventDefault();
-            this.isDraggingProgress = true;
             
-            // Guardar referência à barra de progresso
-            this.progressBarElement = event.currentTarget;
+            console.log('🖱️ Drag iniciado');
             
-            // Adicionar classe visual de dragging
-            this.progressBarElement.classList.add('dragging');
+            // Guardar referência ao track element
+            const trackElement = event.currentTarget;
             
-            // Criar handlers globais para continuar o arrasto mesmo fora da barra
-            const moveHandler = (e) => this.handleProgressDragGlobal(e);
-            const upHandler = (e) => this.endProgressDragGlobal(e, moveHandler, upHandler);
+            const handleMove = (e) => {
+                if (!this.isDragging) return;
+                
+                const rect = trackElement.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const x = clientX - rect.left;
+                const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                
+                this.progressPercent = percent;
+                this.currentTime = (percent / 100) * this.totalDuration;
+            };
             
-            // Adicionar listeners globais
-            if (event.type === 'mousedown') {
-                document.addEventListener('mousemove', moveHandler);
-                document.addEventListener('mouseup', upHandler);
-            } else if (event.type === 'touchstart') {
-                document.addEventListener('touchmove', moveHandler, { passive: false });
-                document.addEventListener('touchend', upHandler);
-            }
+            const handleEnd = () => {
+                if (!this.isDragging) return;
+                
+                this.isDragging = false;
+                const duration = this.youtubePlayer.getDuration();
+                if (duration > 0) {
+                    const newTime = (this.progressPercent / 100) * duration;
+                    this.youtubePlayer.seekTo(newTime, true);
+                    console.log('✅ Drag finalizado:', this.formatTime(newTime), '/', this.formatTime(duration));
+                }
+                
+                document.removeEventListener('mousemove', handleMove);
+                document.removeEventListener('mouseup', handleEnd);
+                document.removeEventListener('touchmove', handleMove);
+                document.removeEventListener('touchend', handleEnd);
+            };
             
-            // Atualizar posição inicial
-            this.handleProgressDragGlobal(event);
-        },
-
-        // Lidar com movimento durante o arrasto (global)
-        handleProgressDragGlobal(event) {
-            if (!this.isDraggingProgress || !this.progressBarElement) return;
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+            document.addEventListener('touchmove', handleMove, { passive: false });
+            document.addEventListener('touchend', handleEnd);
             
-            event.preventDefault();
-            const newTime = this.calculateSeekPosition(event, this.progressBarElement);
-            
-            if (!isNaN(newTime) && isFinite(newTime) && this.duration > 0) {
-                // Atualizar preview visual sem pular para a posição ainda
-                this.currentTime = newTime;
-                this.progress = (newTime / this.duration) * 100;
-            }
-        },
-
-        // Finalizar arrasto e aplicar o seek (global)
-        endProgressDragGlobal(event, moveHandler, upHandler) {
-            if (!this.isDraggingProgress) return;
-            
-            event.preventDefault();
-            this.isDraggingProgress = false;
-            
-            // Remover classe visual de dragging
-            if (this.progressBarElement) {
-                this.progressBarElement.classList.remove('dragging');
-            }
-            
-            // Remover listeners globais
-            if (event.type === 'mouseup') {
-                document.removeEventListener('mousemove', moveHandler);
-                document.removeEventListener('mouseup', upHandler);
-            } else if (event.type === 'touchend') {
-                document.removeEventListener('touchmove', moveHandler);
-                document.removeEventListener('touchend', upHandler);
-            }
-            
-            const newTime = this.calculateSeekPosition(event, this.progressBarElement);
-            
-            if (!isNaN(newTime) && isFinite(newTime) && this.youtubePlayer && this.duration > 0) {
-                this.youtubePlayer.seekTo(newTime, true);
-            }
-            
-            this.progressBarElement = null;
-        },
-
-        // Clique simples na barra (sem arrastar)
-        seek(event) {
-            if (!this.youtubeReady || !this.youtubePlayer) return;
-            if (this.isDraggingProgress) return; // Ignorar se está arrastando
-            
-            const progressBar = event.currentTarget;
-            const newTime = this.calculateSeekPosition(event, progressBar);
-            
-            if (!isNaN(newTime) && isFinite(newTime) && this.duration > 0) {
-                this.youtubePlayer.seekTo(newTime, true);
-                console.log(`⏩ Seek para: ${this.formatTime(newTime)}`);
-            }
+            // Processar evento inicial
+            handleMove(event);
         },
 
         async showRelatedSongs() {
@@ -641,10 +638,6 @@ document.addEventListener('alpine:init', () => {
                     
                     if (data.success) {
                         this.relatedSongs = data.related || [];
-                        // Debug: ver estrutura das músicas relacionadas
-                        if (this.relatedSongs.length > 0) {
-                            console.log('📋 Primeira música relacionada:', this.relatedSongs[0]);
-                        }
                     }
                 } catch (error) {
                     console.error('Erro ao carregar músicas relacionadas:', error);
@@ -793,7 +786,6 @@ document.addEventListener('alpine:init', () => {
         
         loadCharts() {
             this.countryName = this.countries[this.selectedCountry] || this.selectedCountry;
-            console.log(`📊 Carregando charts de: ${this.countryName}`);
             
             // Trigger HTMX reload for all chart elements
             htmx.trigger(document.body, 'countryChanged');
@@ -852,7 +844,6 @@ function app() {
         sidebarOpen: false,  // Controlar sidebar mobile
 
         init() {
-            console.log('🎵 SoundPulse inicializado com HTMX + Alpine.js + Tailwind CSS');
         },
 
         toggleSidebar() {
@@ -867,8 +858,6 @@ function app() {
 
 // Funções helper globais para uso com HTMX
 window.playTrackFromCard = function(card) {
-    console.log('🎵 playTrackFromCard chamado (app.js)');
-    
     const videoId = card.dataset.videoId;
     const titleElement = card.querySelector('h4, .music-card-title, .track-title');
     const artistElement = card.querySelector('p, .music-card-artist, .track-artist');
@@ -891,11 +880,8 @@ window.playTrackFromCard = function(card) {
         thumbnails: [{ url: imgElement.src }]
     };
     
-    console.log('🎵 Track preparada:', track);
-    
     // Use Alpine store to play track
     if (window.Alpine && Alpine.store('player')) {
-        console.log('🎵 Chamando Alpine.store(player).playTrack()');
         Alpine.store('player').playTrack(track);
     } else {
         console.error('❌ Alpine ou player store não disponível');
@@ -915,8 +901,6 @@ window.openPlaylistFromCard = function(card) {
         console.error('❌ browseId não encontrado no card');
         return;
     }
-    
-    console.log('📋 Abrindo playlist:', browseId);
     
     // Use função navigateTo global que atualiza a URL
     if (window.navigateTo) {
@@ -1043,6 +1027,11 @@ window.searchComponent = function() {
         topSongs: [],
         loadingSongs: false,
         
+        // Cache de buscas para performance
+        searchCache: new Map(),
+        artistSongsCache: new Map(), // Cache para músicas de artistas
+        currentSearchController: null, // Para cancelar buscas anteriores
+        
         // Initialize categorizedResults with empty arrays to prevent undefined errors
         categorizedResults: {
             artists: [],
@@ -1093,82 +1082,199 @@ window.searchComponent = function() {
         async performSearch() {
             if (!this.searchQuery.trim()) return;
             
+            const query = this.searchQuery.trim().toLowerCase();
+            
+            // ⚡ RESETAR dados do artista anterior IMEDIATAMENTE
+            this.mainArtist = null;
+            this.topSongs = [];
+            this.loadingSongs = false;
+            
+            // ⚡ CACHE: Verificar se já temos resultado em cache
+            if (this.searchCache.has(query)) {
+                console.log('⚡ Usando cache para:', query);
+                const cachedData = this.searchCache.get(query);
+                this.searchResults = cachedData.results;
+                this.categorizeResults();
+                // Chamar imediatamente sem setTimeout
+                this.loadMainArtist();
+                return;
+            }
+            
+            // Cancelar busca anterior se ainda estiver executando
+            if (this.currentSearchController) {
+                this.currentSearchController.abort();
+            }
+            this.currentSearchController = new AbortController();
+            
             this.isLoading = true;
             this.hasSearched = true;
-            this.displayedSongsCount = 30; // Reset ao fazer nova busca
-            this.displayedPlaylistsCount = 20; // Reset ao fazer nova busca
-            console.log('🔍 Buscando:', this.searchQuery);
+            this.displayedSongsCount = 30;
+            this.displayedPlaylistsCount = 20;
+            const startTime = performance.now();
+            console.log('🔍 Buscando:', query);
             
             // Atualizar URL com a query de busca (sem recarregar a página)
             const newUrl = `/pages/search?q=${encodeURIComponent(this.searchQuery)}`;
             history.pushState({url: newUrl}, '', newUrl);
             
+            // Atualizar previousUrl para detecção correta de direção no histórico
+            if (typeof window.previousUrl !== 'undefined') {
+                window.previousUrl = newUrl;
+            }
+            
             try {
-                // ✅ Sempre busca sem filtro - filtros são aplicados no frontend
-                const response = await fetch(`/api/search?q=${encodeURIComponent(this.searchQuery)}&filter=`);
+                // ⚡ Busca com AbortController para cancelamento
+                const response = await fetch(
+                    `/api/search?q=${encodeURIComponent(this.searchQuery)}&filter=`,
+                    { signal: this.currentSearchController.signal }
+                );
                 const data = await response.json();
                 
                 if (data.success) {
                     this.searchResults = data.results || [];
+                    
+                    // ⚡ CACHE: Salvar resultado no cache (máximo 20 buscas)
+                    if (this.searchCache.size >= 20) {
+                        // Remover mais antigo (primeiro item)
+                        const firstKey = this.searchCache.keys().next().value;
+                        this.searchCache.delete(firstKey);
+                    }
+                    this.searchCache.set(query, { results: this.searchResults });
+                    
                     // Categorize results into their respective types
                     this.categorizeResults();
                     
-                    // Carregar artista principal e suas músicas
+                    const elapsed = (performance.now() - startTime).toFixed(0);
+                    console.log(`⚡ Busca concluída em ${elapsed}ms`);
+                    
+                    // Carregar artista principal e suas músicas (imediato)
                     this.loadMainArtist();
                 } else {
                     console.error('❌ Erro na busca:', data.error);
                     this.searchResults = [];
-                    // Reset categorizedResults on error
                     this.categorizedResults = {
-                        artists: [],
-                        playlists: [],
-                        songs: [],
-                        albums: []
+                        artists: [], playlists: [], songs: [], albums: []
                     };
                 }
             } catch (error) {
+                // Ignorar erros de abort (cancelamento)
+                if (error.name === 'AbortError') {
+                    console.log('🚫 Busca cancelada');
+                    return;
+                }
                 console.error('❌ Erro ao buscar:', error);
                 this.searchResults = [];
-                // Reset categorizedResults on error
                 this.categorizedResults = {
-                    artists: [],
-                    playlists: [],
-                    songs: [],
-                    albums: []
+                    artists: [], playlists: [], songs: [], albums: []
                 };
             } finally {
                 this.isLoading = false;
+                this.currentSearchController = null;
             }
         },
         
         async loadMainArtist() {
-            // Esperar um frame para garantir que categorizedResults foi atualizado
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
             if (this.categorizedResults.artists && this.categorizedResults.artists.length > 0) {
+                // ⚡ DEFINIR ARTISTA IMEDIATAMENTE (foto aparece instantaneamente)
                 this.mainArtist = this.categorizedResults.artists[0];
                 console.log('🎤 ARTISTA PRINCIPAL DEFINIDO:', this.mainArtist);
                 
+                // ⚡ Forçar atualização do DOM imediatamente
+                this.$nextTick(() => {
+                    // DOM atualizado com nova foto
+                });
+                
+                // Carregar músicas do artista (se tiver browseId)
                 if (this.mainArtist?.browseId) {
-                    console.log('🎤 Carregando músicas do artista:', this.mainArtist.browseId);
+                    const artistId = this.mainArtist.browseId;
+                    
+                    // ⚡ CACHE: Verificar se já temos músicas deste artista
+                    if (this.artistSongsCache.has(artistId)) {
+                        console.log('⚡ Usando cache de músicas para artista:', artistId);
+                        this.topSongs = this.artistSongsCache.get(artistId);
+                        this.loadingSongs = false;
+                        return;
+                    }
+                    
+                    console.log('🎤 Carregando músicas do artista:', artistId);
                     this.loadingSongs = true;
                     
+                    // ⚡ Buscar músicas em background (não bloqueia UI)
                     try {
-                        const response = await fetch(`/api/artist/${this.mainArtist.browseId}`);
+                        const response = await fetch(`/api/artist/${artistId}`);
                         const data = await response.json();
-                        console.log('🎤 Dados do artista recebidos:', data);
                         
                         if (data.success && data.artist?.songs?.results) {
-                            this.topSongs = data.artist.songs.results.slice(0, 5);
+                            // Garantir thumbnails válidas em cada música
+                            const songs = data.artist.songs.results.slice(0, 5).map(song => {
+                                this.ensureItemThumbnails(song);
+                                return song;
+                            });
+                            this.topSongs = songs;
+                            
+                            // ⚡ CACHE: Salvar músicas no cache (máximo 10 artistas)
+                            if (this.artistSongsCache.size >= 10) {
+                                const firstKey = this.artistSongsCache.keys().next().value;
+                                this.artistSongsCache.delete(firstKey);
+                            }
+                            this.artistSongsCache.set(artistId, songs);
+                            
                             console.log('🎤 Top músicas carregadas:', this.topSongs.length);
+                        } else {
+                            this.topSongs = [];
                         }
                     } catch (err) {
                         console.error('❌ Erro ao carregar músicas do artista:', err);
+                        this.topSongs = [];
                     } finally {
                         this.loadingSongs = false;
                     }
+                } else {
+                    // Se não tem browseId, limpar músicas
+                    this.topSongs = [];
+                    this.loadingSongs = false;
+                }
+            } else {
+                // Se não há artistas, limpar tudo
+                this.mainArtist = null;
+                this.topSongs = [];
+                this.loadingSongs = false;
+            }
+        },
+        
+        // ✅ Garante que cada item tenha thumbnails válidas (IGUAL AO PERFIL DO ARTISTA)
+        ensureItemThumbnails(item) {
+            if (!item) return item;
+            
+            // Verificar se thumbnails existe e é válido
+            const hasValidThumbnails = (
+                item.thumbnails && 
+                Array.isArray(item.thumbnails) && 
+                item.thumbnails.length > 0 &&
+                item.thumbnails.some(t => t && t.url)
+            );
+            
+            if (!hasValidThumbnails) {
+                // Se não tem thumbnail válido, adiciona placeholder
+                item.thumbnails = [{ url: '/static/images/placeholder.jpg', width: 160, height: 160 }];
+            } else {
+                // Remover thumbnails sem URL válida e ordenar por tamanho (maior primeiro)
+                const validThumbnails = item.thumbnails
+                    .filter(t => t && t.url)
+                    .sort((a, b) => {
+                        const sizeA = (a.width || 0) * (a.height || 0);
+                        const sizeB = (b.width || 0) * (b.height || 0);
+                        return sizeB - sizeA; // Maior primeiro
+                    });
+                
+                if (validThumbnails.length > 0) {
+                    item.thumbnails = validThumbnails;
+                } else {
+                    item.thumbnails = [{ url: '/static/images/placeholder.jpg', width: 160, height: 160 }];
                 }
             }
+            
+            return item;
         },
         
         // Calcula score de relevância (usado apenas para playlists)
@@ -1211,6 +1317,8 @@ window.searchComponent = function() {
         
         // Categorizar resultados por tipo - método que atualiza a propriedade
         categorizeResults() {
+            const startTime = performance.now();
+            
             // Resetar com arrays vazios garantidos
             const categorized = {
                 artists: [],
@@ -1226,12 +1334,14 @@ window.searchComponent = function() {
                 return;
             }
             
-            // Debug: contar tipos encontrados
-            const typeCounts = {};
+            // ⚡ OTIMIZAÇÃO: Processar thumbnails em lote de forma não bloqueante
+            const itemsToProcess = [];
             
             this.searchResults.forEach(item => {
                 const type = item.resultType || item.category || '';
-                typeCounts[type] = (typeCounts[type] || 0) + 1;
+                
+                // Adicionar à lista de processamento de thumbnails
+                itemsToProcess.push(item);
                 
                 if (type === 'artist') {
                     // Apenas artistas COM browseId
@@ -1250,6 +1360,9 @@ window.searchComponent = function() {
                 }
             });
             
+            // ⚡ Processar thumbnails de forma assíncrona (não bloqueante)
+            this.processThumbnailsBatch(itemsToProcess);
+            
             // Ordenar playlists por relevância
             if (categorized.playlists.length > 0 && this.searchQuery) {
                 categorized.playlists.sort((a, b) => {
@@ -1259,8 +1372,49 @@ window.searchComponent = function() {
                 });
             }
             
+            // Log resumo de resultados
+            const elapsed = (performance.now() - startTime).toFixed(1);
+            console.log(`📊 Categorizados em ${elapsed}ms:`, {
+                artistas: categorized.artists.length,
+                playlists: categorized.playlists.length,
+                músicas: categorized.songs.length,
+                álbuns: categorized.albums.length
+            });
+            
             // Update the property instead of returning
             this.categorizedResults = categorized;
+        },
+        
+        // ⚡ Processar thumbnails em lote de forma não bloqueante
+        processThumbnailsBatch(items) {
+            if (!items || items.length === 0) return;
+            
+            // Processar em chunks de 20 itens para não bloquear a UI
+            const chunkSize = 20;
+            let index = 0;
+            
+            const processChunk = () => {
+                const end = Math.min(index + chunkSize, items.length);
+                
+                for (let i = index; i < end; i++) {
+                    this.ensureItemThumbnails(items[i]);
+                }
+                
+                index = end;
+                
+                // Se ainda há itens, processar próximo chunk
+                if (index < items.length) {
+                    // Usar requestIdleCallback se disponível, senão setTimeout
+                    if (window.requestIdleCallback) {
+                        requestIdleCallback(processChunk);
+                    } else {
+                        setTimeout(processChunk, 0);
+                    }
+                }
+            };
+            
+            // Iniciar processamento
+            processChunk();
         },
         
         // Músicas a serem exibidas (com paginação)
@@ -1322,7 +1476,8 @@ window.searchComponent = function() {
         },
         
         getHighResThumbnail(url) {
-            return getHighResThumbnail(url);
+            if (!url) return '/static/images/placeholder.jpg';
+            return '/api/image-proxy?url=' + encodeURIComponent(url);
         },
         
         getArtistName(item) {
@@ -1349,19 +1504,27 @@ window.searchComponent = function() {
         
         handleItemClick(item) {
             console.log('🎵 Item clicado:', item);
-            const type = item.resultType || item.category;
+            const type = (item.resultType || item.category || '').toLowerCase();
+            console.log('🔍 Tipo detectado:', type, '| browseId:', item.browseId);
             
             if (type === 'song' || type === 'video') {
                 this.playItem(item);
-            } else if (type === 'artist' && item.browseId) {
+            } else if ((type === 'artist' || type === 'artists') && item.browseId) {
+                console.log('🎤 Navegando para artista:', item.browseId);
+                const url = `/pages/artist/${item.browseId}`;
+                
                 if (window.navigateTo) {
-                    window.navigateTo(`/pages/artist/${item.browseId}`);
-                } else {
-                    htmx.ajax('GET', `/pages/artist/${item.browseId}`, {
+                    console.log('✅ Usando window.navigateTo');
+                    window.navigateTo(url);
+                } else if (window.htmx) {
+                    console.log('✅ Usando HTMX');
+                    htmx.ajax('GET', url, {
                         target: '#main-content',
                         swap: 'innerHTML'
                     });
-                    history.pushState({url: `/pages/artist/${item.browseId}`}, '', `/pages/artist/${item.browseId}`);
+                    history.pushState({url: url}, '', url);
+                } else {
+                    console.error('❌ Nenhum método de navegação disponível');
                 }
             } else if (type === 'album' && item.browseId) {
                 if (window.navigateTo) {
@@ -1393,10 +1556,15 @@ document.addEventListener('alpine:initialized', () => {
     console.log('✅ Alpine.js inicializado com sucesso!');
     console.log('🎵 Player store disponível:', !!Alpine.store('player'));
     console.log('🎵 App store disponível:', !!Alpine.store('app'));
-    console.log('🎬 YouTube API disponível:', typeof YT !== 'undefined');
     
-    // Se o YouTube já estiver pronto, inicializar agora
-    if (typeof YT !== 'undefined' && YT.loaded) {
+    // ✨ CARREGAR YOUTUBE API APENAS DEPOIS DO ALPINE.JS
+    if (typeof YT === 'undefined') {
+        console.log('📥 Carregando YouTube IFrame API...');
+        const script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        script.async = true;
+        document.head.appendChild(script);
+    } else {
         console.log('🎬 YouTube API já estava carregada, inicializando player...');
         if (Alpine.store('player')) {
             Alpine.store('player').initYouTubePlayer();
@@ -1408,24 +1576,17 @@ document.addEventListener('alpine:initialized', () => {
 // YOUTUBE IFRAME API INITIALIZATION
 // ========================================
 
-// Log quando o script começar a carregar
-console.log('📥 Carregando YouTube IFrame API...');
-
 // Esta função é chamada automaticamente quando a YouTube IFrame API está pronta
 window.onYouTubeIframeAPIReady = function() {
     console.log('🎬 YouTube IFrame API pronta!');
-    console.log('🔍 Verificando YT object:', typeof YT !== 'undefined');
-    console.log('🔍 Verificando YT.Player:', typeof YT?.Player !== 'undefined');
     
     // Aguardar Alpine.js estar pronto
     const initPlayer = () => {
         if (window.Alpine && Alpine.store('player')) {
             console.log('🔧 Inicializando YouTube Player...');
-            console.log('🔍 Elemento #youtube-player existe:', !!document.getElementById('youtube-player'));
             Alpine.store('player').initYouTubePlayer();
         } else {
-            console.log('⏳ Aguardando Alpine.js...');
-            setTimeout(initPlayer, 100);
+            setTimeout(initPlayer, 50);
         }
     };
     

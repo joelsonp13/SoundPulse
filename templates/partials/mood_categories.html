@@ -1,7 +1,7 @@
 <div class="mood-categories-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
     {% if moods %}
         {% for mood in moods %}
-            <div class="mood-category-card p-6 rounded-lg cursor-pointer transition transform hover:scale-105"
+            <div class="mood-category-card mood-card-gradient p-6 rounded-lg cursor-pointer transition transform hover:scale-105"
                  hx-get="/pages/explore?mood={{ mood['params'] }}"
                  hx-target="#main-content"
                  hx-swap="innerHTML"
