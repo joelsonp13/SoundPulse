@@ -721,11 +721,11 @@ def proxy_stream(videoId):
             print(f"[Debug] Estado do ytmusicapi: {yt}")
             print(f"[Debug] Tipo do yt: {type(yt)}")
             
-            # Verificar se OAuth está ativo (verifica se _token é RefreshingToken)
+            # Verificar se OAuth está ativo (verifica se _token existe e não é None)
             oauth_ativo = False
-            if yt and hasattr(yt, '_token'):
-                from ytmusicapi.auth.oauth.refreshing_token import RefreshingToken
-                oauth_ativo = isinstance(yt._token, RefreshingToken)
+            if yt and hasattr(yt, '_token') and yt._token is not None:
+                # Verifica se _token tem os atributos de RefreshingToken
+                oauth_ativo = hasattr(yt._token, 'refresh_token') or 'RefreshingToken' in str(type(yt._token))
             
             print(f"[Debug] OAuth configurado: {oauth_ativo}")
             
