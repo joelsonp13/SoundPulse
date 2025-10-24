@@ -6,16 +6,10 @@
          relatedArtists: []
      }"
     x-init="
-        artist = {{ artist|tojson|safe }};
-        topSongs = {{ topSongs|tojson|safe }};
-        albums = {{ albums|tojson|safe }};
-        relatedArtists = {{ relatedArtists|tojson|safe }};
-        console.log('[Artist Page] Dados carregados:', { 
-            nome: artist.name, 
-            topSongs: topSongs.length, 
-            albums: albums.length, 
-            related: relatedArtists.length 
-        });
+        artist = {{ artist|tojson }};
+        topSongs = {{ topSongs|tojson }};
+        albums = {{ albums|tojson }};
+        relatedArtists = {{ relatedArtists|tojson }};
      ">
    
    <!-- ==================== HEADER/HERO ESTILO SPOTIFY ==================== -->
@@ -37,7 +31,7 @@
                <h1 style="font-size: 4rem; font-weight: 900; color: white; margin-bottom: 1rem; line-height: 1;" 
                    x-text="artist.name">Artista</h1>
                <p style="color: #9ca3af; font-size: 1rem;"
-                  x-text="(artist.subscribers || '0') + ' ouvintes mensais'">0 ouvintes mensais</p>
+                  x-text="`${artist.subscribers || '0'} ouvintes mensais`">0 ouvintes mensais</p>
            </div>
        </div>
        
@@ -133,7 +127,7 @@
                        
                        <!-- Meta (Ano • Tipo) -->
                        <p style="color: #9ca3af; font-size: 0.875rem; font-weight: 400;"
-                          x-text="(album.year || '2025') + ' • ' + (album.type || 'Album')"></p>
+                          x-text="`${album.year || '2025'} • ${album.type || 'Album'}`"></p>
                    </div>
                </template>
                
@@ -148,7 +142,7 @@
        <!-- ==================== SEÇÃO "Featuring [Artista]" ==================== -->
        <section style="margin-bottom: 3rem;">
            <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;"
-               x-text="'Featuring ' + (artist.name || 'Artista')">
+               x-text="`Featuring ${artist.name || 'Artista'}`">
                Featuring Artista
            </h2>
            
@@ -160,7 +154,7 @@
                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                    
                    <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;"
-                      x-text="'This Is ' + (artist.name || 'Artista')">This Is Artista</p>
+                      x-text="`This Is ${artist.name || 'Artista'}`">This Is Artista</p>
                    <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
                        Os maiores sucessos do artista.
                    </p>
@@ -177,7 +171,7 @@
                    </div>
                    
                    <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;"
-                      x-text="'Rádio de ' + (artist.name || 'Artista')">Rádio de Artista</p>
+                      x-text="`Rádio de ${artist.name || 'Artista'}`">Rádio de Artista</p>
                    <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
                        Músicas parecidas com este artista.
                    </p>
@@ -227,7 +221,7 @@
        <!-- ==================== FOOTER "Followers" ==================== -->
        <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center;">
            <p style="color: #9ca3af; font-size: 0.875rem;"
-              x-text="(artist.subscribers || '0') + ' seguidores'">
+              x-text="`${artist.subscribers || '0'} seguidores`">
                0 seguidores
            </p>
        </footer>
