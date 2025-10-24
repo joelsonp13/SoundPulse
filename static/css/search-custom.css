@@ -529,6 +529,51 @@
 
 /* Imagem do artista principal já tem border-radius inline no HTML */
 
+/* ========================================
+   THUMBNAILS DAS TOP MÚSICAS
+   ======================================== */
+
+/* Container do thumbnail - TAMANHO PEQUENO */
+.thumbnail-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    width: 32px !important;
+    height: 32px !important;
+}
+
+/* Imagem do thumbnail */
+.thumbnail-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Mobile - ainda menor */
+@media (max-width: 639px) {
+    .thumbnail-wrapper {
+        width: 28px !important;
+        height: 28px !important;
+    }
+}
+
+/* Tablet */
+@media (min-width: 640px) and (max-width: 1023px) {
+    .thumbnail-wrapper {
+        width: 30px !important;
+        height: 30px !important;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .thumbnail-wrapper {
+        width: 32px !important;
+        height: 32px !important;
+    }
+}
+
 /* Container de top músicas */
 .top-songs-list {
     display: flex;
