@@ -738,13 +738,19 @@ def proxy_stream(videoId):
             else:
                 print(f"[AVISO] OAuth NÃO está ativo - vai usar modo público")
             
-            # MÉTODO 1: Tentar ytmusicapi PRIMEIRO (usa OAuth, não é bloqueado!)
+            # MÉTODO 1: Tentar ytmusicapi PRIMEIRO (modo PÚBLICO para streaming!)
+            # NOTA: get_song() com OAuth NÃO retorna streamingData, só metadados!
+            # Para streaming, SEMPRE usar modo público (yt_public)
             try:
                 print(f"\n{'─'*80}")
-                print(f"[OAuth] MÉTODO 1: Tentando obter stream via ytmusicapi (OAuth)...")
+                print(f"[Streaming] MÉTODO 1: Tentando obter stream via ytmusicapi PÚBLICO...")
                 print(f"{'─'*80}")
                 
-                song_data = yt.get_song(videoId)
+                # USAR yt_public para streaming (não requer OAuth)
+                ytm_to_use = yt_public if yt_public else yt
+                print(f"[Info] Usando instância: {'yt_public' if ytm_to_use == yt_public else 'yt (OAuth)'}")
+                
+                song_data = ytm_to_use.get_song(videoId)
                 
                 print(f"[Data] Resposta do get_song recebida:")
                 print(f"   - Tipo: {type(song_data)}")
