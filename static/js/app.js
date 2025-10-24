@@ -106,6 +106,7 @@ document.addEventListener('alpine:init', () => {
     // ========================================
     Alpine.directive('lazy-src', (el, { expression }, { evaluateLater, effect }) => {
         const getSrc = evaluateLater(expression);
+        let observerCreated = false;
         
         effect(() => {
             getSrc(src => {
@@ -114,10 +115,13 @@ document.addEventListener('alpine:init', () => {
                     return;
                 }
                 
+                // Evitar criar múltiplos observers
+                if (observerCreated) return;
+                observerCreated = true;
+                
                 // Configurar lazy loading
                 el.setAttribute('data-src', src);
                 el.classList.add('lazy');
-                el.src = '/static/images/placeholder.jpg';
                 
                 // Criar observer para esta imagem
                 if ('IntersectionObserver' in window) {
@@ -127,6 +131,7 @@ document.addEventListener('alpine:init', () => {
                                 const img = entry.target;
                                 const dataSrc = img.getAttribute('data-src');
                                 if (dataSrc) {
+                                    // Carregar imagem
                                     img.src = dataSrc;
                                     img.removeAttribute('data-src');
                                     img.classList.remove('lazy');
@@ -136,7 +141,7 @@ document.addEventListener('alpine:init', () => {
                             }
                         });
                     }, {
-                        rootMargin: '50px 0px',
+                        rootMargin: '200px 0px', // Começar a carregar 200px antes
                         threshold: 0.01
                     });
                     
@@ -144,6 +149,8 @@ document.addEventListener('alpine:init', () => {
                 } else {
                     // Fallback para navegadores sem IntersectionObserver
                     el.src = src;
+                    el.classList.remove('lazy');
+                    el.classList.add('lazy-loaded');
                 }
             });
         });

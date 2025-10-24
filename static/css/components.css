@@ -7,19 +7,20 @@
    LAZY LOADING DE IMAGENS
    ======================================== */
 img.lazy {
-    opacity: 0;
-    transition: opacity 0.3s ease-in;
+    opacity: 0.5 !important;
+    transition: opacity 0.4s ease-in;
     background: linear-gradient(90deg, 
-        rgba(30, 30, 30, 0.3) 25%, 
-        rgba(50, 50, 50, 0.4) 50%, 
-        rgba(30, 30, 30, 0.3) 75%);
-    background-size: 200% 100%;
-    animation: loading-shimmer 1.5s infinite;
+        rgba(30, 41, 55, 0.6) 25%, 
+        rgba(50, 65, 85, 0.8) 50%, 
+        rgba(30, 41, 55, 0.6) 75%) !important;
+    background-size: 200% 100% !important;
+    animation: loading-shimmer 1.5s infinite !important;
 }
 
 img.lazy-loaded {
-    opacity: 1;
-    animation: none;
+    opacity: 1 !important;
+    animation: none !important;
+    background: none !important;
 }
 
 @keyframes loading-shimmer {
