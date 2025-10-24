@@ -978,13 +978,13 @@ def get_moods_preview_endpoint():
 @app.route('/api/mood/<params>')
 def mood_playlists_endpoint(params):
     """Get playlists by mood"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        playlists = yt.get_mood_playlists(params)
+        playlists = safe_ytmusic_call(lambda ytm: ytm.get_mood_playlists(params))
         return render_template('components/cards_grid.html', items=playlists, type='playlist')
     except Exception as e:
         return render_template('components/error_state.html',
