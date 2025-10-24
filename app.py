@@ -720,13 +720,20 @@ def proxy_stream(videoId):
             # Verificar estado do ytmusicapi
             print(f"[Debug] Estado do ytmusicapi: {yt}")
             print(f"[Debug] Tipo do yt: {type(yt)}")
-            print(f"[Debug] OAuth configurado: {hasattr(yt, '_oauth')}")
+            
+            # Verificar se OAuth está ativo (verifica se _token é RefreshingToken)
+            oauth_ativo = False
+            if yt and hasattr(yt, '_token'):
+                from ytmusicapi.auth.oauth.refreshing_token import RefreshingToken
+                oauth_ativo = isinstance(yt._token, RefreshingToken)
+            
+            print(f"[Debug] OAuth configurado: {oauth_ativo}")
             
             stream_url = None
             content_type_hint = 'audio/webm'
             
             # Debug: verificar se OAuth está realmente funcionando
-            if yt and hasattr(yt, '_oauth') and yt._oauth:
+            if oauth_ativo:
                 print(f"[OK] OAuth ATIVO e funcional!")
             else:
                 print(f"[AVISO] OAuth NÃO está ativo - vai usar modo público")
