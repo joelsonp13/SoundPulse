@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR" x-data="app()">
 <head>
     <meta charset="UTF-8">
@@ -252,31 +252,41 @@
 
         <!-- Main Content Area (populated by HTMX) -->
         <div id="main-content">
-            <!-- Initial loading state (will be replaced by JS or HTMX) -->
-            <section class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Feito para você</h2>
-                    <a href="#" class="section-show-all">Mostrar tudo</a>
-                </div>
-                <div class="cards-grid">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+            {% if initial_content == 'home' %}
+                <!-- Carregar conteúdo home automaticamente -->
+                <div hx-get="/pages/home" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                        <p class="mt-2 text-gray-400">Carregando...</p>
                     </div>
                 </div>
-            </section>
+            {% else %}
+                <!-- Initial loading state (will be replaced by JS or HTMX) -->
+                <section class="content-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Feito para você</h2>
+                        <a href="#" class="section-show-all">Mostrar tudo</a>
+                    </div>
+                    <div class="cards-grid">
+                        <div class="col-span-full text-center py-8">
+                            <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                        </div>
+                    </div>
+                </section>
 
-            <!-- Trending -->
-            <section class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Em alta agora</h2>
-                    <a href="#" class="section-show-all">Mostrar tudo</a>
-                </div>
-                <div class="cards-grid">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                <!-- Trending -->
+                <section class="content-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Em alta agora</h2>
+                        <a href="#" class="section-show-all">Mostrar tudo</a>
                     </div>
-                </div>
-            </section>
+                    <div class="cards-grid">
+                        <div class="col-span-full text-center py-8">
+                            <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
 
             <!-- Gym Vibes -->
             <section class="content-section">
