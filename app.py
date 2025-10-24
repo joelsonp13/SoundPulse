@@ -685,7 +685,9 @@ def page_artist(browseId):
         return render_template('index.html')
     
     try:
-        artist = yt.get_artist(browseId)
+        artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(browseId))
+        if not artist:
+            raise Exception("Não foi possível carregar os dados do artista")
         return render_template('partials/artist.html', artist=artist)
     except Exception as e:
         return render_template('components/error_state.html', 
@@ -700,7 +702,9 @@ def page_album(browseId):
         return render_template('index.html')
     
     try:
-        album = yt.get_album(browseId)
+        album = safe_ytmusic_call(lambda ytm: ytm.get_album(browseId))
+        if not album:
+            raise Exception("Não foi possível carregar os dados do álbum")
         return render_template('partials/album.html', album=album)
     except Exception as e:
         return render_template('components/error_state.html',
@@ -715,7 +719,9 @@ def page_playlist(playlistId):
         return render_template('index.html')
     
     try:
-        playlist = yt.get_playlist(playlistId)
+        playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId))
+        if not playlist:
+            raise Exception("Não foi possível carregar os dados da playlist")
         return render_template('partials/playlist.html', playlist=playlist)
     except Exception as e:
         return render_template('components/error_state.html',
@@ -730,7 +736,9 @@ def page_podcast(browseId):
         return render_template('index.html')
     
     try:
-        podcast = yt.get_podcast(browseId)
+        podcast = safe_ytmusic_call(lambda ytm: ytm.get_podcast(browseId))
+        if not podcast:
+            raise Exception("Não foi possível carregar os dados do podcast")
         return render_template('partials/podcast.html', podcast=podcast)
     except Exception as e:
         return render_template('components/error_state.html',
