@@ -338,7 +338,7 @@ def index():
 @app.route('/api/search')
 def search():
     """Buscar músicas no YouTube Music"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     query = request.args.get('q', '')
@@ -355,24 +355,24 @@ def search():
         all_results = []
         
         # 1. Buscar músicas (30 suficientes para paginação inicial)
-        songs = yt.search(query, filter='songs', limit=30)
+        songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=30))
         all_results.extend([r for r in songs if r.get('resultType') == 'song'])
         print(f"   [Musica] Músicas: {len([r for r in songs if r.get('resultType') == 'song'])}")
         
         # 2. Buscar artistas (15 suficientes)
-        artists = yt.search(query, filter='artists', limit=15)
+        artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=15))
         artist_results = [r for r in artists if r.get('resultType') == 'artist' and r.get('browseId')]
         all_results.extend(artist_results)
         print(f"   [Artist] Artistas: {len(artist_results)}")
         
         # 3. Buscar playlists (15 suficientes)
-        playlists = yt.search(query, filter='playlists', limit=15)
+        playlists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='playlists', limit=15))
         playlist_results = [r for r in playlists if r.get('resultType') == 'playlist' and r.get('browseId')]
         all_results.extend(playlist_results)
         print(f"   [Playlist] Playlists: {len(playlist_results)}")
         
         # 4. Buscar álbuns (15 suficientes)
-        albums = yt.search(query, filter='albums', limit=15)
+        albums = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='albums', limit=15))
         all_results.extend([r for r in albums if r.get('resultType') == 'album'])
         print(f"   [Album] Álbuns: {len([r for r in albums if r.get('resultType') == 'album'])}")
         
