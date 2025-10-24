@@ -3,6 +3,34 @@
    Botões, Modais, etc
    ======================================== */
 
+/* ========================================
+   LAZY LOADING DE IMAGENS
+   ======================================== */
+img.lazy {
+    opacity: 0;
+    transition: opacity 0.3s ease-in;
+    background: linear-gradient(90deg, 
+        rgba(30, 30, 30, 0.3) 25%, 
+        rgba(50, 50, 50, 0.4) 50%, 
+        rgba(30, 30, 30, 0.3) 75%);
+    background-size: 200% 100%;
+    animation: loading-shimmer 1.5s infinite;
+}
+
+img.lazy-loaded {
+    opacity: 1;
+    animation: none;
+}
+
+@keyframes loading-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
 /* Buttons */
 .btn-primary {
     background: linear-gradient(to right, #00bcd4, #2563eb);

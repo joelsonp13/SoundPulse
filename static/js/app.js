@@ -1,4 +1,50 @@
 // ========================================
+// LAZY LOADING DE IMAGENS (OTIMIZAÇÃO)
+// ========================================
+
+/**
+ * Configura lazy loading para todas as imagens
+ * Carrega imagens apenas quando estão visíveis na tela
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar IntersectionObserver para lazy loading
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.getAttribute('data-src');
+                    
+                    if (src) {
+                        img.src = src;
+                        img.removeAttribute('data-src');
+                        img.classList.remove('lazy');
+                        img.classList.add('lazy-loaded');
+                        observer.unobserve(img);
+                    }
+                }
+            });
+        }, {
+            rootMargin: '50px 0px', // Começar a carregar 50px antes de entrar na tela
+            threshold: 0.01
+        });
+        
+        // Observar todas as imagens com a classe 'lazy' ou atributo 'data-src'
+        const observeImages = () => {
+            document.querySelectorAll('img[data-src], img.lazy').forEach(img => {
+                imageObserver.observe(img);
+            });
+        };
+        
+        // Observar imagens iniciais
+        observeImages();
+        
+        // Re-observar quando novo conteúdo for adicionado via HTMX
+        document.body.addEventListener('htmx:afterSwap', observeImages);
+    }
+});
+
+// ========================================
 // UTILITY FUNCTIONS
 // ========================================
 
