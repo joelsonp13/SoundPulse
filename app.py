@@ -110,6 +110,8 @@ app.jinja_env.filters['highres'] = highres_thumbnail
 
 # Configurar YTMusic com OAuth existente
 try:
+    from ytmusicapi.auth.oauth.credentials import OAuthCredentials
+    
     # Tentar carregar OAuth de variável de ambiente primeiro (para Render.com)
     oauth_json_env = os.getenv('OAUTH_JSON')
     
@@ -119,12 +121,11 @@ try:
             # Parse JSON da variável de ambiente
             oauth_data = json.loads(oauth_json_env)
             
-            # Nova API do ytmusicapi (1.11+): passar oauth_credentials diretamente
-            # Extrair client_id e client_secret para oauth_credentials
-            oauth_credentials = {
-                'client_id': oauth_data.get('client_id'),
-                'client_secret': oauth_data.get('client_secret')
-            }
+            # Nova API do ytmusicapi (1.11+): criar objeto OAuthCredentials
+            oauth_credentials = OAuthCredentials(
+                client_id=oauth_data.get('client_id'),
+                client_secret=oauth_data.get('client_secret')
+            )
             
             print(f"📝 Usando OAuth credentials da variável de ambiente")
             yt = YTMusic(auth=oauth_data, oauth_credentials=oauth_credentials)
@@ -136,6 +137,8 @@ try:
             yt = YTMusic()
         except Exception as e:
             print(f"❌ Erro ao inicializar OAuth: {e}")
+            import traceback
+            traceback.print_exc()
             print("⚠️ Usando modo público...")
             yt = YTMusic()
             
@@ -146,16 +149,18 @@ try:
             with open('oauth.json', 'r') as f:
                 oauth_data = json.load(f)
             
-            # Nova API do ytmusicapi (1.11+): passar oauth_credentials diretamente
-            oauth_credentials = {
-                'client_id': oauth_data.get('client_id'),
-                'client_secret': oauth_data.get('client_secret')
-            }
+            # Nova API do ytmusicapi (1.11+): criar objeto OAuthCredentials
+            oauth_credentials = OAuthCredentials(
+                client_id=oauth_data.get('client_id'),
+                client_secret=oauth_data.get('client_secret')
+            )
             
             yt = YTMusic(auth=oauth_data, oauth_credentials=oauth_credentials)
             print("✅ YTMusic conectado com sucesso (OAuth via arquivo)!")
         except Exception as e:
             print(f"❌ Erro ao carregar OAuth do arquivo: {e}")
+            import traceback
+            traceback.print_exc()
             print("⚠️ Usando modo público...")
             yt = YTMusic()
         
