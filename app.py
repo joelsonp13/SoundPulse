@@ -735,6 +735,121 @@ def trending_songs_endpoint():
                              title='Erro ao carregar músicas',
                              message=str(e))
 
+@app.route('/api/new-releases')
+def new_releases_endpoint():
+    """New album releases"""
+    if not yt and not yt_public:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        results = safe_ytmusic_call(lambda ytm: ytm.search('new releases albums 2024', filter='albums', limit=10))
+        return render_template('components/cards_grid.html', items=results, type='album')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar lançamentos',
+                             message=str(e))
+
+@app.route('/api/trending-podcasts')
+def trending_podcasts_endpoint():
+    """Trending podcasts"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        # Search for popular podcasts
+        results = yt.search('best podcasts 2024', limit=15)
+        
+        # Filtrar e processar podcasts
+        podcasts = []
+        for r in results:
+            # Verificar se é podcast ou playlist
+            if ('podcast' in str(r.get('resultType', '')).lower() or 
+                'podcast' in str(r.get('category', '')).lower() or
+                r.get('resultType') == 'playlist'):
+                
+                # Melhorar thumbnails se possível
+                if r.get('thumbnails'):
+                    # Pegar a maior thumbnail disponível
+                    thumbnails = sorted(r['thumbnails'], key=lambda x: x.get('width', 0) * x.get('height', 0), reverse=True)
+                    r['thumbnails'] = thumbnails
+                
+                podcasts.append(r)
+                
+                if len(podcasts) >= 10:
+                    break
+        
+        return render_template('components/cards_grid.html', items=podcasts, type='podcast')
+    except Exception as e:
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar podcasts',
+                             message=str(e))
+
+@app.route('/api/charts/artists/<country>')
+def charts_artists(country):
+    """Charts artists by country"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        # Usar busca direta ao invés de get_charts (mais confiável)
+        country_names = {
+            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
+            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
+            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+        }
+        
+        country_name = country_names.get(country.upper(), 'trending')
+        query = f'top artists {country_name} 2024'
+        
+        artists = yt.search(query, filter='artists', limit=10)
+        
+        # Filtrar apenas artistas válidos
+        artists = [a for a in artists if a.get('browseId')]
+        
+        return render_template('components/cards_grid.html', items=artists, type='artist')
+    except Exception as e:
+        print(f"Erro em charts_artists: {str(e)}")
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar charts',
+                             message=str(e))
+
+@app.route('/api/charts/videos/<country>')
+def charts_videos(country):
+    """Charts videos by country"""
+    if not yt:
+        return render_template('components/error_state.html',
+                             title='Erro',
+                             message='YTMusic não conectado')
+    
+    try:
+        # Usar busca direta ao invés de get_charts (mais confiável)
+        country_names = {
+            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
+            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
+            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+        }
+        
+        country_name = country_names.get(country.upper(), 'trending')
+        query = f'top music videos {country_name} 2024'
+        
+        videos = yt.search(query, filter='videos', limit=10)
+        
+        # Filtrar apenas vídeos válidos
+        videos = [v for v in videos if v.get('videoId')]
+        
+        return render_template('components/cards_grid.html', items=videos, type='music')
+    except Exception as e:
+        print(f"Erro em charts_videos: {str(e)}")
+        return render_template('components/error_state.html',
+                             title='Erro ao carregar charts',
+                             message=str(e))
+
 # ===== ARTIST ENDPOINTS =====
 
 @app.route('/api/artist/<browseId>/top-songs')
