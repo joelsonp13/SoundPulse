@@ -444,11 +444,11 @@ def get_more_playlist_songs(playlistId):
 @app.route('/api/artist/<artistId>')
 def get_artist(artistId):
     """Obter informações do artista"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
-        artist = yt.get_artist(artistId)
+        artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(artistId))
         return jsonify({'success': True, 'artist': artist})
     except Exception as e:
         return jsonify({'error': f'Erro ao obter artista: {str(e)}'}), 500
@@ -456,11 +456,11 @@ def get_artist(artistId):
 @app.route('/api/artist/<artistId>/albums')
 def get_artist_albums(artistId):
     """Obter álbuns do artista"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
-        artist = yt.get_artist(artistId)
+        artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(artistId))
         albums = artist.get('albums', {}).get('results', [])
         return jsonify({'success': True, 'albums': albums})
     except Exception as e:
@@ -469,11 +469,11 @@ def get_artist_albums(artistId):
 @app.route('/api/artist/<artistId>/playlists')
 def get_artist_playlists(artistId):
     """Obter playlists do artista"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
-        artist = yt.get_artist(artistId)
+        artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(artistId))
         playlists = artist.get('playlists', {}).get('results', [])
         return jsonify({'success': True, 'playlists': playlists})
     except Exception as e:
@@ -482,14 +482,14 @@ def get_artist_playlists(artistId):
 @app.route('/api/artist/<artistId>/more-playlists')
 def get_more_artist_playlists(artistId):
     """Obter mais playlists do artista (paginação)"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
         page = int(request.args.get('page', 1))
         limit = 10
         
-        artist = yt.get_artist(artistId)
+        artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(artistId))
         playlists = artist.get('playlists', {}).get('results', [])
         
         # Simular paginação (YTMusic não suporta offset para playlists)
@@ -508,14 +508,14 @@ def get_more_artist_playlists(artistId):
 @app.route('/api/artist/<artistId>/more-songs')
 def get_more_artist_songs(artistId):
     """Obter mais músicas do artista (paginação)"""
-    if not yt:
+    if not yt and not yt_public:
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
         page = int(request.args.get('page', 1))
         limit = 10
         
-        artist = yt.get_artist(artistId)
+        artist = safe_ytmusic_call(lambda ytm: ytm.get_artist(artistId))
         songs = artist.get('songs', {}).get('results', [])
         
         # Simular paginação
