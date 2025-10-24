@@ -176,7 +176,7 @@ document.addEventListener('alpine:init', () => {
         });
     });
     
-    // Global stores
+        // Global stores
     Alpine.store('player', {
         currentTrack: null,
         isPlaying: false,
@@ -188,6 +188,7 @@ document.addEventListener('alpine:init', () => {
         progress: 0,
         volume: 1.0,  // 0-1 para corresponder ao slider (1.0 = 100%)
         isDraggingProgress: false,  // Rastrear se está arrastando a barra de progresso
+        progressBarElement: null,  // Referência à barra de progresso durante o arrasto
         showRelated: false,
         relatedSongs: [],
         showLyricsModal: false,
@@ -237,7 +238,8 @@ document.addEventListener('alpine:init', () => {
                                     player.youtubePlayer.setVolume(youtubeVolume);
                                     console.log('🔊 Volume definido para:', youtubeVolume + '%');
                                 } else {
-                                    console.warn('⚠️ setVolume não disponível ainda, tentando novamente...');
+                                    console.warn('⚠️ setVolume não disponível ainda');
+                                    // Tentar novamente após um pequeno delay
                                     setTimeout(() => {
                                         if (player.youtubePlayer && typeof player.youtubePlayer.setVolume === 'function') {
                                             player.youtubePlayer.setVolume(youtubeVolume);
@@ -299,7 +301,10 @@ document.addEventListener('alpine:init', () => {
                         this.duration = this.youtubePlayer.getDuration() || 0;
                         this.progress = this.duration ? (this.currentTime / this.duration) * 100 : 0;
                     } catch (e) {
-                        // Silenciar erros de atualização
+                        // Log apenas erros críticos, não silenciar completamente
+                        if (e.name !== 'TypeError' || !e.message.includes('getCurrentTime')) {
+                            console.warn('⚠️ Erro na atualização do player:', e.message);
+                        }
                     }
                 }
             }, 100);
@@ -409,7 +414,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         formatTime(seconds) {
-            if (!seconds || isNaN(seconds)) return '0:00';
+            if (seconds === null || seconds === undefined || isNaN(seconds) || seconds < 0) return '0:00';
             const mins = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -485,7 +490,7 @@ document.addEventListener('alpine:init', () => {
             event.preventDefault();
             const newTime = this.calculateSeekPosition(event, this.progressBarElement);
             
-            if (!isNaN(newTime) && isFinite(newTime)) {
+            if (!isNaN(newTime) && isFinite(newTime) && this.duration > 0) {
                 // Atualizar preview visual sem pular para a posição ainda
                 this.currentTime = newTime;
                 this.progress = (newTime / this.duration) * 100;
@@ -510,7 +515,7 @@ document.addEventListener('alpine:init', () => {
             
             const newTime = this.calculateSeekPosition(event, this.progressBarElement);
             
-            if (!isNaN(newTime) && isFinite(newTime) && this.youtubePlayer) {
+            if (!isNaN(newTime) && isFinite(newTime) && this.youtubePlayer && this.duration > 0) {
                 this.youtubePlayer.seekTo(newTime, true);
                 console.log(`⏩ Seek para: ${this.formatTime(newTime)}`);
             }
@@ -526,7 +531,7 @@ document.addEventListener('alpine:init', () => {
             const progressBar = event.currentTarget;
             const newTime = this.calculateSeekPosition(event, progressBar);
             
-            if (!isNaN(newTime) && isFinite(newTime)) {
+            if (!isNaN(newTime) && isFinite(newTime) && this.duration > 0) {
                 this.youtubePlayer.seekTo(newTime, true);
                 console.log(`⏩ Seek para: ${this.formatTime(newTime)}`);
             }
@@ -1153,8 +1158,8 @@ window.searchComponent = function() {
         loadMoreSongs() {
             // Usar Alpine.nextTick para garantir que o DOM seja atualizado de forma segura
             this.$nextTick(() => {
-            this.displayedSongsCount += 20;
-            console.log('📦 Carregando mais músicas. Total exibindo:', this.displayedSongsCount);
+                this.displayedSongsCount += 20;
+                console.log('📦 Carregando mais músicas. Total exibindo:', this.displayedSongsCount);
             });
         },
         
