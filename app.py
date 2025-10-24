@@ -754,14 +754,14 @@ def new_releases_endpoint():
 @app.route('/api/trending-podcasts')
 def trending_podcasts_endpoint():
     """Trending podcasts"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
         # Search for popular podcasts
-        results = yt.search('best podcasts 2024', limit=15)
+        results = safe_ytmusic_call(lambda ytm: ytm.search('best podcasts 2024', limit=15))
         
         # Filtrar e processar podcasts
         podcasts = []
@@ -930,13 +930,13 @@ def podcast_episodes_endpoint(browseId):
 @app.route('/api/moods')
 def get_moods_endpoint():
     """Get mood categories"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        mood_data = yt.get_mood_categories()
+        mood_data = safe_ytmusic_call(lambda ytm: ytm.get_mood_categories())
         # mood_data é dict com {'Moods & moments': [...], 'Genres': [...]}
         moods = []
         if isinstance(mood_data, dict):
@@ -953,13 +953,13 @@ def get_moods_endpoint():
 @app.route('/api/moods-preview')
 def get_moods_preview_endpoint():
     """Get mood categories preview (first 6)"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        mood_data = yt.get_mood_categories()
+        mood_data = safe_ytmusic_call(lambda ytm: ytm.get_mood_categories())
         # mood_data é dict com {'Moods & moments': [...], 'Genres': [...]}
         moods = []
         if isinstance(mood_data, dict):
