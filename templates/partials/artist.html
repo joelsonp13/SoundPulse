@@ -6,10 +6,10 @@
          relatedArtists: []
      }"
     x-init="
-        artist = {{ artist|tojson|safe if artist else '{}' }};
-        topSongs = {% if artist and artist.get('songs') and artist.get('songs').get('results') %}{{ artist.get('songs').get('results')[:5]|tojson|safe }}{% else %}[]{% endif %};
-        albums = {% if artist and artist.get('albums') and artist.get('albums').get('results') %}{{ artist.get('albums').get('results')[:6]|tojson|safe }}{% else %}[]{% endif %};
-        relatedArtists = {% if artist and artist.get('related') and artist.get('related').get('results') %}{{ artist.get('related').get('results')[:8]|tojson|safe %}{% else %}[]{% endif %};
+        artist = {{ artist|tojson|safe }};
+        topSongs = {{ topSongs|tojson|safe }};
+        albums = {{ albums|tojson|safe }};
+        relatedArtists = {{ relatedArtists|tojson|safe }};
         console.log('[Artist Page] Dados carregados:', { 
             nome: artist.name, 
             topSongs: topSongs.length, 
@@ -17,228 +17,219 @@
             related: relatedArtists.length 
         });
      ">
-    
-    <!-- ==================== HEADER/HERO ESTILO SPOTIFY ==================== -->
-    <header class="artist-hero-spotify" 
-            style="background: linear-gradient(180deg, rgba(6, 182, 212, 0.3) 0%, rgba(18, 18, 18, 1) 100%); padding: 6rem 2rem 2rem 2rem;">
-        <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: flex-end; gap: 1.5rem;">
-            <!-- Foto do artista -->
-            <div style="position: relative; flex-shrink: 0;">
-                <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(59, 130, 246, 0.4)); border-radius: 50%; filter: blur(60px);"></div>
-                <img :src="getHighResThumbnail(artist.thumbnails?.[0]?.url || '/static/images/placeholder.jpg')"
-                     :alt="artist.name"
-                     style="position: relative; width: 232px; height: 232px; border-radius: 50%; object-fit: cover; box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7); border: 4px solid rgba(6, 182, 212, 0.3);"
-                     onerror="this.src='/static/images/placeholder.jpg'">
-            </div>
-            
-            <!-- Info do artista -->
-            <div style="flex: 1; min-width: 0; padding-bottom: 1rem;">
-                <p style="font-size: 0.875rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">
-                    Artista
-                </p>
-                <h1 style="font-size: 4rem; font-weight: 900; color: white; margin-bottom: 1rem; line-height: 1.1;"
-                    x-text="artist.name">{{ artist.name if artist else 'Artista' }}</h1>
-                <p style="font-size: 0.875rem; color: #e5e7eb;"
-                   x-text="(artist.subscribers || '0') + ' inscritos'">{{ artist.subscribers if artist else '0 inscritos' }}</p>
-            </div>
-        </div>
-        
-        <!-- Botão Follow -->
-        <div style="max-width: 1400px; margin: 0 auto; padding: 2rem 2rem 0 2rem;">
-            <button class="spotify-follow-button"
-                    style="padding: 12px 32px; background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 500px; color: white; font-size: 0.875rem; font-weight: 700; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 0.1em;"
-                    onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(255, 255, 255, 0.5)'; this.style.transform='scale(1.04)'"
-                    onmouseout="this.style.background='transparent'; this.style.borderColor='rgba(255, 255, 255, 0.3)'; this.style.transform='scale(1)'">
-                Seguir
-            </button>
-        </div>
-    </header>
+   
+   <!-- ==================== HEADER/HERO ESTILO SPOTIFY ==================== -->
+   <header class="artist-hero-spotify" 
+           style="background: linear-gradient(180deg, rgba(6, 182, 212, 0.3) 0%, rgba(18, 18, 18, 1) 100%); padding: 6rem 2rem 2rem 2rem;">
+       <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: flex-end; gap: 1.5rem;">
+           <!-- Foto do artista -->
+           <div style="position: relative; flex-shrink: 0;">
+               <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(59, 130, 246, 0.4)); border-radius: 50%; filter: blur(60px);"></div>
+               <img :src="getHighResThumbnail(artist.thumbnails?.[0]?.url)"
+                    :alt="artist.name"
+                    style="position: relative; width: 232px; height: 232px; border-radius: 50%; object-fit: cover; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);"
+                    onerror="this.src='/static/images/placeholder.jpg'">
+           </div>
+           
+           <!-- Info do artista -->
+           <div style="flex: 1;">
+               <p style="color: #22d3ee; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase;">Artista</p>
+               <h1 style="font-size: 4rem; font-weight: 900; color: white; margin-bottom: 1rem; line-height: 1;" 
+                   x-text="artist.name">Artista</h1>
+               <p style="color: #9ca3af; font-size: 1rem;"
+                  x-text="(artist.subscribers || '0') + ' ouvintes mensais'">0 ouvintes mensais</p>
+           </div>
+       </div>
+       
+       <!-- Botão Seguir -->
+       <div style="max-width: 1400px; margin: 0 auto; padding: 2rem 2rem 0 2rem;">
+           <button class="spotify-follow-button"
+                   style="padding: 12px 32px; background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 500px; color: white; font-size: 0.875rem; font-weight: 700; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 0.1em;"
+                   onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(255, 255, 255, 0.5)'; this.style.transform='scale(1.04)'"
+                   onmouseout="this.style.background='transparent'; this.style.borderColor='rgba(255, 255, 255, 0.3)'; this.style.transform='scale(1)'">
+               Seguir
+           </button>
+       </div>
+   </header>
 
-    <div style="max-width: 1400px; margin: 0 auto; padding: 0 2rem 4rem 2rem;">
-        
-        <!-- ==================== SEÇÃO "Popular" ==================== -->
-        <section style="margin-top: 3rem; margin-bottom: 3rem;">
-            <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;">
-                Popular
-            </h2>
-            
-            <!-- Lista de músicas populares -->
-            <div class="spotify-popular-list">
-                <template x-for="(song, index) in topSongs.slice(0, 5)" :key="song.videoId">
-                    <div @click="playItem(song)"
-                         class="spotify-song-row"
-                         style="display: grid; grid-template-columns: 32px 40px 1fr auto; gap: 1rem; align-items: center; padding: 0.5rem; border-radius: 4px; cursor: pointer; transition: all 0.2s;"
-                         onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'"
-                         onmouseout="this.style.background='transparent'">
-                        
-                        <!-- Número -->
-                        <div style="color: #9ca3af; font-size: 1rem; font-weight: 400; text-align: right;"
-                             x-text="index + 1"></div>
-                        
-                        <!-- Thumbnail 40x40 -->
-                        <img :src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
-                             :alt="song.title"
-                             style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;"
-                             onerror="this.src='/static/images/placeholder.jpg'">
-                        
-                        <!-- Nome da música -->
-                        <div style="min-width: 0;">
-                            <p style="color: white; font-size: 1rem; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                               x-text="song.title"></p>
-                        </div>
-                        
-                        <!-- Duração -->
-                        <div style="color: #9ca3af; font-size: 0.875rem; font-weight: 400;"
-                             x-text="song.duration || ''"></div>
-                    </div>
-                </template>
-                
-                <!-- Empty State -->
-                <div x-show="topSongs.length === 0" 
-                     style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic;">
-                    Nenhuma música popular disponível
-                </div>
-            </div>
-        </section>
+   <div style="max-width: 1400px; margin: 0 auto; padding: 0 2rem 4rem 2rem;">
+       
+       <!-- ==================== SEÇÃO "Popular" ==================== -->
+       <section style="margin-top: 3rem; margin-bottom: 3rem;">
+           <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;">
+               Popular
+           </h2>
+           
+           <!-- Lista de músicas populares -->
+           <div class="spotify-popular-list">
+               <template x-for="(song, index) in topSongs.slice(0, 5)" :key="song.videoId">
+                   <div @click="playItem(song)"
+                        class="spotify-song-row"
+                        style="display: grid; grid-template-columns: 32px 40px 1fr auto; gap: 1rem; align-items: center; padding: 0.5rem; border-radius: 4px; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'"
+                        onmouseout="this.style.background='transparent'">
+                       
+                       <!-- Número -->
+                       <div style="color: #9ca3af; font-size: 1rem; font-weight: 400; text-align: right;"
+                            x-text="index + 1"></div>
+                       
+                       <!-- Thumbnail 40x40 -->
+                       <img :src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
+                            :alt="song.title"
+                            style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;"
+                            onerror="this.src='/static/images/placeholder.jpg'">
+                       
+                       <!-- Nome da música -->
+                       <div style="min-width: 0;">
+                           <p style="color: white; font-size: 1rem; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                              x-text="song.title"></p>
+                       </div>
+                       
+                       <!-- Duração -->
+                       <div style="color: #9ca3af; font-size: 0.875rem; font-weight: 400;"
+                            x-text="song.duration || ''"></div>
+                   </div>
+               </template>
+               
+               <!-- Empty State -->
+               <div x-show="topSongs.length === 0" 
+                    style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic;">
+                   Nenhuma música popular disponível
+               </div>
+           </div>
+       </section>
 
-        <!-- ==================== SEÇÃO "Popular releases" ==================== -->
-        <section style="margin-bottom: 3rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h2 style="font-size: 1.5rem; font-weight: 700; color: white;">
-                    Popular releases
-                </h2>
-                <a href="#" style="color: #9ca3af; font-size: 0.875rem; font-weight: 700; text-decoration: none; transition: color 0.2s;"
-                   onmouseover="this.style.color='white'; this.style.textDecoration='underline'"
-                   onmouseout="this.style.color='#9ca3af'; this.style.textDecoration='none'">
-                    Ver tudo
-                </a>
-            </div>
-            
-            <!-- Grid de releases -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;">
-                <template x-for="album in albums.slice(0, 6)" :key="album.browseId">
-                    <div @click="handleItemClick(album)"
-                         class="spotify-card"
-                         style="background: rgba(31, 41, 55, 0.3); backdrop-filter: blur(20px); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.05); position: relative;"
-                         onmouseover="this.style.background='rgba(31, 41, 55, 0.5)'; this.style.transform='translateY(-4px)'"
-                         onmouseout="this.style.background='rgba(31, 41, 55, 0.3)'; this.style.transform='translateY(0)'">
-                        
-                        <!-- Capa -->
-                        <img :src="getHighResThumbnail(album.thumbnails?.[0]?.url)"
-                             :alt="album.title"
-                             style="width: 100%; aspect-ratio: 1/1; border-radius: 4px; object-fit: cover; margin-bottom: 1rem; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);"
-                             onerror="this.src='/static/images/placeholder.jpg'">
-                        
-                        <!-- Título -->
-                        <p style="color: white; font-size: 1rem; font-weight: 700; line-height: 1.4; margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
-                           x-text="album.title"></p>
-                        
-                        <!-- Meta (Ano • Tipo) -->
-                        <p style="color: #9ca3af; font-size: 0.875rem; font-weight: 400;"
-                           x-text="(album.year || '2025') + ' • ' + (album.type || 'Album')"></p>
-                    </div>
-                </template>
-                
-                <!-- Empty State -->
-                <div x-show="albums.length === 0" 
-                     style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic; grid-column: 1 / -1;">
-                    Nenhum álbum disponível
-                </div>
-            </div>
-        </section>
+       <!-- ==================== SEÇÃO "Popular releases" ==================== -->
+       <section style="margin-bottom: 3rem;">
+           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+               <h2 style="font-size: 1.5rem; font-weight: 700; color: white;">
+                   Popular releases
+               </h2>
+               <a href="#" style="color: #9ca3af; font-size: 0.875rem; font-weight: 700; text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s;"
+                  onmouseover="this.style.color='white'"
+                  onmouseout="this.style.color='#9ca3af'">
+                   Mostrar tudo
+               </a>
+           </div>
+           
+           <!-- Grid de releases -->
+           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;">
+               <template x-for="album in albums.slice(0, 6)" :key="album.browseId">
+                   <div @click="handleItemClick(album)"
+                        class="spotify-card"
+                        style="background: rgba(31, 41, 55, 0.3); backdrop-filter: blur(20px); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.05); position: relative;"
+                        onmouseover="this.style.background='rgba(31, 41, 55, 0.5)'; this.style.transform='translateY(-4px)'"
+                        onmouseout="this.style.background='rgba(31, 41, 55, 0.3)'; this.style.transform='translateY(0)'">
+                       
+                       <!-- Capa -->
+                       <img :src="getHighResThumbnail(album.thumbnails?.[0]?.url)"
+                            :alt="album.title"
+                            style="width: 100%; aspect-ratio: 1/1; border-radius: 4px; object-fit: cover; margin-bottom: 1rem; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);"
+                            onerror="this.src='/static/images/placeholder.jpg'">
+                       
+                       <!-- Título -->
+                       <p style="color: white; font-size: 1rem; font-weight: 700; line-height: 1.4; margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
+                          x-text="album.title"></p>
+                       
+                       <!-- Meta (Ano • Tipo) -->
+                       <p style="color: #9ca3af; font-size: 0.875rem; font-weight: 400;"
+                          x-text="(album.year || '2025') + ' • ' + (album.type || 'Album')"></p>
+                   </div>
+               </template>
+               
+               <!-- Empty State -->
+               <div x-show="albums.length === 0" 
+                    style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic; grid-column: 1 / -1;">
+                   Nenhum álbum disponível
+               </div>
+           </div>
+       </section>
 
-        <!-- ==================== SEÇÃO "Featuring [Artista]" ==================== -->
-        <section style="margin-bottom: 3rem;">
-            <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;"
-                x-text="'Featuring ' + (artist.name || 'Artista')">
-                Featuring Artista
-            </h2>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;">
-                <!-- Card "This Is [Artista]" -->
-                <div class="spotify-card"
-                     style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2)); backdrop-filter: blur(20px); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(6, 182, 212, 0.3);"
-                     onmouseover="this.style.background='linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3))'; this.style.transform='translateY(-4px)'"
-                     onmouseout="this.style.background='linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))'; this.style.transform='translateY(0)'">
-                    
-                    <img :src="getHighResThumbnail(artist.thumbnails?.[0]?.url)"
-                         :alt="'This Is ' + (artist.name || 'Artista')"
-                         style="width: 100%; aspect-ratio: 1/1; border-radius: 4px; object-fit: cover; margin-bottom: 1rem;"
-                         onerror="this.src='/static/images/placeholder.jpg'">
-                    
-                    <p style="color: white; font-size: 1rem; font-weight: 700;"
-                       x-text="'This Is ' + (artist.name || 'Artista')"></p>
-                </div>
-                
-                <!-- Card "Rádio de [Artista]" -->
-                <div class="spotify-card"
-                     style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2)); backdrop-filter: blur(20px); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(16, 185, 129, 0.3); position: relative;"
-                     onmouseover="this.style.background='linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3))'; this.style.transform='translateY(-4px)'"
-                     onmouseout="this.style.background='linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2))'; this.style.transform='translateY(0)'">
-                    
-                    <!-- Badge RÁDIO -->
-                    <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: #10b981; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.625rem; font-weight: 700; color: white; text-transform: uppercase;">
-                        RÁDIO
-                    </div>
-                    
-                    <img :src="getHighResThumbnail(artist.thumbnails?.[0]?.url)"
-                         :alt="'Rádio de ' + (artist.name || 'Artista')"
-                         style="width: 100%; aspect-ratio: 1/1; border-radius: 4px; object-fit: cover; margin-bottom: 1rem;"
-                         onerror="this.src='/static/images/placeholder.jpg'">
-                    
-                    <p style="color: white; font-size: 1rem; font-weight: 700;"
-                       x-text="'Rádio de ' + (artist.name || 'Artista')"></p>
-                </div>
-            </div>
-        </section>
+       <!-- ==================== SEÇÃO "Featuring [Artista]" ==================== -->
+       <section style="margin-bottom: 3rem;">
+           <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;"
+               x-text="'Featuring ' + (artist.name || 'Artista')">
+               Featuring Artista
+           </h2>
+           
+           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+               <!-- Card "This Is [Artist]" -->
+               <div @click="if (artist.channelId && window.htmx) { htmx.ajax('GET', `/pages/artist/${artist.channelId}`, { target: '#main-content', swap: 'innerHTML' }) }"
+                    style="background: linear-gradient(135deg, #0891b2, #2563eb); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
+                    onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                   
+                   <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;"
+                      x-text="'This Is ' + (artist.name || 'Artista')">This Is Artista</p>
+                   <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
+                       Os maiores sucessos do artista.
+                   </p>
+               </div>
+               
+               <!-- Card "Rádio de [Artist]" -->
+               <div @click="if (artist.radioId && window.htmx) { htmx.ajax('GET', `/pages/artist/${artist.channelId}`, { target: '#main-content', swap: 'innerHTML' }) }"
+                    style="background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
+                    onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                   
+                   <div style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 0.25rem 0.75rem; border-radius: 500px; font-size: 0.7rem; font-weight: 700; color: white;">
+                       RÁDIO
+                   </div>
+                   
+                   <p style="color: white; font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem;"
+                      x-text="'Rádio de ' + (artist.name || 'Artista')">Rádio de Artista</p>
+                   <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
+                       Músicas parecidas com este artista.
+                   </p>
+               </div>
+           </div>
+       </section>
 
-        <!-- ==================== SEÇÃO "Fans also like" ==================== -->
-        <section style="margin-bottom: 3rem;">
-            <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;">
-                Fans also like
-            </h2>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.5rem;">
-                <template x-for="relatedArtist in relatedArtists.slice(0, 8)" :key="relatedArtist.browseId">
-                    <div @click="handleItemClick(relatedArtist)"
-                         class="spotify-artist-card"
-                         style="background: rgba(31, 41, 55, 0.3); backdrop-filter: blur(20px); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.05); text-align: center;"
-                         onmouseover="this.style.background='rgba(31, 41, 55, 0.5)'; this.style.transform='translateY(-4px)'"
-                         onmouseout="this.style.background='rgba(31, 41, 55, 0.3)'; this.style.transform='translateY(0)'">
-                        
-                        <!-- Foto REDONDA -->
-                        <img :src="getHighResThumbnail(relatedArtist.thumbnails?.[0]?.url)"
-                             :alt="relatedArtist.name"
-                             style="width: 100%; aspect-ratio: 1/1; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);"
-                             onerror="this.src='/static/images/placeholder.jpg'">
-                        
-                        <!-- Nome -->
-                        <p style="color: white; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                           x-text="relatedArtist.name"></p>
-                        
-                        <!-- Badge "Artista" -->
-                        <p style="color: #9ca3af; font-size: 0.875rem; font-weight: 400; text-transform: capitalize;">
-                            Artista
-                        </p>
-                    </div>
-                </template>
-                
-                <!-- Empty State -->
-                <div x-show="relatedArtists.length === 0" 
-                     style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic; grid-column: 1 / -1;">
-                    Nenhum artista relacionado disponível
-                </div>
-            </div>
-        </section>
+       <!-- ==================== SEÇÃO "Fans also like" ==================== -->
+       <section style="margin-bottom: 3rem;">
+           <h2 style="font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 1.5rem;">
+               Fans also like
+           </h2>
+           
+           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.5rem;">
+               <template x-for="relatedArtist in relatedArtists.slice(0, 8)" :key="relatedArtist.browseId">
+                   <div @click="handleItemClick(relatedArtist)"
+                        class="spotify-artist-card"
+                        style="background: rgba(31, 41, 55, 0.3); backdrop-filter: blur(20px); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255, 255, 255, 0.05); text-align: center;"
+                        onmouseover="this.style.background='rgba(31, 41, 55, 0.5)'; this.style.transform='translateY(-4px)'"
+                        onmouseout="this.style.background='rgba(31, 41, 55, 0.3)'; this.style.transform='translateY(0)'">
+                       
+                       <!-- Foto REDONDA -->
+                       <img :src="getHighResThumbnail(relatedArtist.thumbnails?.[0]?.url)"
+                            :alt="relatedArtist.name"
+                            style="width: 100%; aspect-ratio: 1/1; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);"
+                            onerror="this.src='/static/images/placeholder.jpg'">
+                       
+                       <!-- Nome -->
+                       <p style="color: white; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                          x-text="relatedArtist.name"></p>
+                       
+                       <!-- Badge "Artista" -->
+                       <p style="color: #9ca3af; font-size: 0.875rem; font-weight: 400; text-transform: capitalize;">
+                           Artista
+                       </p>
+                   </div>
+               </template>
+               
+               <!-- Empty State -->
+               <div x-show="relatedArtists.length === 0" 
+                    style="color: #9ca3af; font-size: 0.875rem; text-align: center; padding: 2rem; font-style: italic; grid-column: 1 / -1;">
+                   Nenhum artista relacionado disponível
+               </div>
+           </div>
+       </section>
 
-        <!-- ==================== FOOTER "Followers" ==================== -->
-        <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center;">
-            <p style="color: #9ca3af; font-size: 0.875rem;"
-               x-text="(artist.subscribers || '0') + ' seguidores'">
-                0 seguidores
-            </p>
-        </footer>
-        
-    </div>
+       <!-- ==================== FOOTER "Followers" ==================== -->
+       <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center;">
+           <p style="color: #9ca3af; font-size: 0.875rem;"
+              x-text="(artist.subscribers || '0') + ' seguidores'">
+               0 seguidores
+           </p>
+       </footer>
+   </div>
 </div>
-

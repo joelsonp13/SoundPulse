@@ -707,7 +707,29 @@ def page_artist(browseId):
         if artist.get('related'):
             print(f"    - related.results: {len(artist['related'].get('results', []))} artistas relacionados")
         
-        return render_template('partials/artist.html', artist=artist)
+        # Preparar dados para evitar problemas de sintaxe no template
+        top_songs = []
+        if artist.get('songs') and artist.get('songs').get('results'):
+            top_songs = artist['songs']['results'][:5]
+        
+        albums = []
+        if artist.get('albums') and artist.get('albums').get('results'):
+            albums = artist['albums']['results'][:6]
+        
+        related_artists = []
+        if artist.get('related') and artist.get('related').get('results'):
+            related_artists = artist['related']['results'][:8]
+        
+        print(f"[DEBUG] Dados processados para template:")
+        print(f"  - topSongs: {len(top_songs)}")
+        print(f"  - albums: {len(albums)}")
+        print(f"  - relatedArtists: {len(related_artists)}")
+        
+        return render_template('partials/artist.html', 
+                             artist=artist,
+                             topSongs=top_songs,
+                             albums=albums,
+                             relatedArtists=related_artists)
     except Exception as e:
         print(f"[ERRO] Falha ao carregar artista: {str(e)}")
         return render_template('components/error_state.html', 
