@@ -626,7 +626,7 @@
                     <!-- Imagem do Artista Principal - ESQUERDA -->
                     <div class="relative group flex-shrink-0" style="position: relative; flex-shrink: 0;">
                         <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3)); border-radius: 50%; filter: blur(50px);"></div>
-                        <img :src="getHighResThumbnail(mainArtist?.thumbnails?.[0]?.url)"
+                        <img x-lazy-src="getHighResThumbnail(mainArtist?.thumbnails?.[0]?.url)"
                              :alt="mainArtist?.artist || mainArtist?.name || 'Artista Principal'"
                              style="position: relative; width: 200px; height: 200px; border-radius: 50%; object-fit: cover; box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5); border: 3px solid rgba(6, 182, 212, 0.3);"
                              class="relative w-50 h-50 rounded-full object-cover shadow-2xl ring-3 ring-cyan-500/30 group-hover:ring-cyan-400/50 transition-all duration-300">
@@ -699,7 +699,7 @@
                                         
                                         <!-- Thumbnail -->
                                         <div style="position: relative; flex-shrink: 0; width: 2.5rem; height: 2.5rem;">
-                                            <img :src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
+                                            <img x-lazy-src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
                                                  :alt="song.title"
                                                  style="width: 100%; height: 100%; border-radius: 0.375rem; object-fit: cover; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">
                                         </div>
@@ -768,7 +768,7 @@
                             
                             <!-- Imagem do Artista -->
                             <div class="artist-card-image-wrapper">
-                                <img :src="getHighResThumbnail(artist.thumbnails?.[0]?.url)"
+                                <img x-lazy-src="getHighResThumbnail(artist.thumbnails?.[0]?.url)"
                                      :alt="artist.name || artist.artist || 'Artista'"
                                      class="artist-card-image"
                                      loading="lazy"
@@ -836,7 +836,7 @@
                             
                             <!-- Imagem da Playlist -->
                             <div class="playlist-card-image-wrapper">
-                                <img :src="getHighResThumbnail(playlist?.thumbnails?.[0]?.url)"
+                                <img x-lazy-src="getHighResThumbnail(playlist?.thumbnails?.[0]?.url)"
                                      :alt="playlist?.title || 'Playlist'"
                                      class="playlist-card-image"
                                      loading="lazy"
@@ -894,7 +894,7 @@
                             
                             <!-- Image Wrapper -->
                             <div class="playlist-card-image-wrapper">
-                                <img :src="getHighResThumbnail(playlist?.thumbnails?.[0]?.url)"
+                                <img x-lazy-src="getHighResThumbnail(playlist?.thumbnails?.[0]?.url)"
                                      :alt="playlist?.title || 'Playlist'"
                                      class="playlist-card-image"
                                      loading="lazy"
@@ -979,7 +979,7 @@
                     <div class="music-card" @click="handleItemClick(song)">
                     <div class="music-card-image-wrapper image-loading">
                         <img class="music-card-image" 
-                                 :src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
+                                 x-lazy-src="getHighResThumbnail(song.thumbnails?.[0]?.url)"
                                  :alt="song.title"
                                  loading="lazy"
                                  crossorigin="anonymous"
@@ -1105,7 +1105,7 @@
                     <div class="music-card" @click="openAlbumFromCard($el)" :data-browse-id="album.browseId">
                         <div class="music-card-image-wrapper image-loading">
                             <img class="music-card-image" 
-                                 :src="getHighResThumbnail(album.thumbnails?.[0]?.url)"
+                                 x-lazy-src="getHighResThumbnail(album.thumbnails?.[0]?.url)"
                                  :alt="album.title"
                                  loading="lazy"
                                  crossorigin="anonymous"

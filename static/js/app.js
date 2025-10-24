@@ -101,6 +101,54 @@ function getHighResThumbnail(url) {
 document.addEventListener('alpine:init', () => {
     console.log('🎵 Alpine.js inicializando...');
     
+    // ========================================
+    // DIRETIVA ALPINE.JS PARA LAZY LOADING
+    // ========================================
+    Alpine.directive('lazy-src', (el, { expression }, { evaluateLater, effect }) => {
+        const getSrc = evaluateLater(expression);
+        
+        effect(() => {
+            getSrc(src => {
+                if (!src) {
+                    el.src = '/static/images/placeholder.jpg';
+                    return;
+                }
+                
+                // Configurar lazy loading
+                el.setAttribute('data-src', src);
+                el.classList.add('lazy');
+                el.src = '/static/images/placeholder.jpg';
+                
+                // Criar observer para esta imagem
+                if ('IntersectionObserver' in window) {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const img = entry.target;
+                                const dataSrc = img.getAttribute('data-src');
+                                if (dataSrc) {
+                                    img.src = dataSrc;
+                                    img.removeAttribute('data-src');
+                                    img.classList.remove('lazy');
+                                    img.classList.add('lazy-loaded');
+                                }
+                                observer.unobserve(img);
+                            }
+                        });
+                    }, {
+                        rootMargin: '50px 0px',
+                        threshold: 0.01
+                    });
+                    
+                    observer.observe(el);
+                } else {
+                    // Fallback para navegadores sem IntersectionObserver
+                    el.src = src;
+                }
+            });
+        });
+    });
+    
     // Global stores
     Alpine.store('player', {
         currentTrack: null,

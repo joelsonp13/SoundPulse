@@ -3,7 +3,7 @@
     <header class="album-header mb-8 flex items-end gap-6 p-8 rounded-lg"
             style="background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(10,10,10,0.8));">
         <img class="album-cover w-64 h-64 rounded-lg shadow-2xl" 
-             :src="getHighResThumbnail(album.thumbnails?.[0]?.url || '/static/images/placeholder.jpg')"
+             x-lazy-src="getHighResThumbnail(album.thumbnails?.[0]?.url || '/static/images/placeholder.jpg')"
              alt="{{ album.title if album else 'Álbum' }}"
              loading="lazy"
              crossorigin="anonymous"
