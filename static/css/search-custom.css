@@ -697,6 +697,25 @@
         flex-shrink: 0 !important;
     }
     
+    /* FORÇA ULTRA BRUTAL - SOBRESCREVE TUDO */
+    .top-songs-list > div > div[style*="2.5rem"] {
+        width: 1.75rem !important;
+        height: 1.75rem !important;
+        min-width: 1.75rem !important;
+        max-width: 1.75rem !important;
+        min-height: 1.75rem !important;
+        max-height: 1.75rem !important;
+    }
+    
+    .top-songs-list img[style*="width: 100%"] {
+        width: 1.75rem !important;
+        height: 1.75rem !important;
+        min-width: 1.75rem !important;
+        max-width: 1.75rem !important;
+        min-height: 1.75rem !important;
+        max-height: 1.75rem !important;
+    }
+    
     /* Thumbnails menores - FORÇAR SOBRESCRITA MOBILE */
     .top-songs-thumbnail-container,
     .top-songs-list > div > div[style*="width: 2.5rem"],
@@ -797,6 +816,25 @@
         width: 100% !important;
     }
     
+    /* FORÇA ULTRA BRUTAL TABLET - SOBRESCREVE TUDO */
+    .top-songs-list > div > div[style*="2.5rem"] {
+        width: 2rem !important;
+        height: 2rem !important;
+        min-width: 2rem !important;
+        max-width: 2rem !important;
+        min-height: 2rem !important;
+        max-height: 2rem !important;
+    }
+    
+    .top-songs-list img[style*="width: 100%"] {
+        width: 2rem !important;
+        height: 2rem !important;
+        min-width: 2rem !important;
+        max-width: 2rem !important;
+        min-height: 2rem !important;
+        max-height: 2rem !important;
+    }
+    
     /* Thumbnails menores em tablet - FORÇAR SOBRESCRITA */
     .top-songs-thumbnail-container,
     .top-songs-list > div > div[style*="width: 2.5rem"],
@@ -851,6 +889,25 @@
 
 /* Desktop - Thumbnails das top músicas */
 @media (min-width: 1024px) {
+    /* FORÇA ULTRA BRUTAL DESKTOP - SOBRESCREVE TUDO */
+    .top-songs-list > div > div[style*="2.5rem"] {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+        min-width: 2.25rem !important;
+        max-width: 2.25rem !important;
+        min-height: 2.25rem !important;
+        max-height: 2.25rem !important;
+    }
+    
+    .top-songs-list img[style*="width: 100%"] {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+        min-width: 2.25rem !important;
+        max-width: 2.25rem !important;
+        min-height: 2.25rem !important;
+        max-height: 2.25rem !important;
+    }
+    
     /* Thumbnails maiores em desktop */
     .top-songs-thumbnail-container,
     .top-songs-list > div > div[style*="width: 2.5rem"],
