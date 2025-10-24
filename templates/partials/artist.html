@@ -1,4 +1,9 @@
-<div class="artist-page-spotify" x-data="{ artist: {{ artist|tojson if artist else '{}' }} }">
+<div class="artist-page-spotify" x-data="{ 
+    artist: {{ artist|tojson if artist else '{}' }},
+    topSongs: {{ artist.songs.results[:5]|tojson if artist and artist.songs and artist.songs.results else '[]' }},
+    albums: {{ artist.albums.results[:6]|tojson if artist and artist.albums and artist.albums.results else '[]' }},
+    relatedArtists: {{ artist.related.results[:8]|tojson if artist and artist.related and artist.related.results else '[]' }}
+}">
     
     <!-- ==================== HEADER/HERO ESTILO SPOTIFY ==================== -->
     <header class="artist-hero-spotify" 
