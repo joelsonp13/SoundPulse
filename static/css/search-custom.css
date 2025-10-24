@@ -697,22 +697,6 @@
         flex-shrink: 0 !important;
     }
     
-    /* Thumbnails das Top Músicas - Tamanhos Fixos */
-    .thumbnail-wrapper {
-        position: relative;
-        flex-shrink: 0;
-        width: 28px;
-        height: 28px;
-    }
-    
-    .thumbnail-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-    
     /* Container de info - flex para não cortar */
     .top-songs-list > div > div:nth-child(3) {
         flex: 1 !important;
@@ -790,11 +774,6 @@
         width: 100% !important;
     }
     
-    /* Thumbnails das Top Músicas - Tablet */
-    .thumbnail-wrapper {
-        width: 32px;
-        height: 32px;
-    }
 }
 
 /* Desktop Medium */
@@ -822,14 +801,6 @@
     
     .scroll-container {
         gap: 2rem;
-    }
-}
-
-/* Desktop - Thumbnails das top músicas */
-@media (min-width: 1024px) {
-    .thumbnail-wrapper {
-        width: 36px;
-        height: 36px;
     }
 }
 
