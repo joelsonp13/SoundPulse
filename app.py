@@ -119,24 +119,45 @@ try:
             # Parse JSON da variável de ambiente
             oauth_data = json.loads(oauth_json_env)
             
-            # Criar arquivo temporário (Render usa /tmp)
-            oauth_temp_path = '/tmp/oauth.json'
-            with open(oauth_temp_path, 'w') as f:
-                json.dump(oauth_data, f)
+            # Nova API do ytmusicapi (1.11+): passar oauth_credentials diretamente
+            # Extrair client_id e client_secret para oauth_credentials
+            oauth_credentials = {
+                'client_id': oauth_data.get('client_id'),
+                'client_secret': oauth_data.get('client_secret')
+            }
             
-            print(f"📝 Arquivo OAuth temporário criado: {oauth_temp_path}")
-            yt = YTMusic(oauth_temp_path)
+            print(f"📝 Usando OAuth credentials da variável de ambiente")
+            yt = YTMusic(auth=oauth_data, oauth_credentials=oauth_credentials)
             print("✅ YTMusic conectado com sucesso (OAuth via ENV)!")
             
         except json.JSONDecodeError as e:
             print(f"❌ Erro ao parsear OAUTH_JSON: {e}")
             print("⚠️ Usando modo público...")
             yt = YTMusic()
+        except Exception as e:
+            print(f"❌ Erro ao inicializar OAuth: {e}")
+            print("⚠️ Usando modo público...")
+            yt = YTMusic()
             
     elif os.path.exists('oauth.json'):
         print("🔐 OAuth encontrado em arquivo local...")
-        yt = YTMusic('oauth.json')
-        print("✅ YTMusic conectado com sucesso (OAuth via arquivo)!")
+        try:
+            # Ler oauth.json
+            with open('oauth.json', 'r') as f:
+                oauth_data = json.load(f)
+            
+            # Nova API do ytmusicapi (1.11+): passar oauth_credentials diretamente
+            oauth_credentials = {
+                'client_id': oauth_data.get('client_id'),
+                'client_secret': oauth_data.get('client_secret')
+            }
+            
+            yt = YTMusic(auth=oauth_data, oauth_credentials=oauth_credentials)
+            print("✅ YTMusic conectado com sucesso (OAuth via arquivo)!")
+        except Exception as e:
+            print(f"❌ Erro ao carregar OAuth do arquivo: {e}")
+            print("⚠️ Usando modo público...")
+            yt = YTMusic()
         
     else:
         print("⚠️ oauth.json não encontrado, usando modo público...")
