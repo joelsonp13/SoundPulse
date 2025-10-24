@@ -3,7 +3,40 @@
          artist: {},
          topSongs: [],
          albums: [],
-         relatedArtists: []
+         relatedArtists: [],
+         
+         // Função para iniciar rádio do artista
+         async playArtistRadio() {
+             if (!this.topSongs || this.topSongs.length === 0) {
+                 console.error('Nenhuma música disponível para iniciar rádio');
+                 return;
+             }
+             
+             const firstSong = this.topSongs[0];
+             console.log('[Rádio] Iniciando rádio baseada em:', firstSong.title);
+             
+             try {
+                 const response = await fetch(`/api/radio/${firstSong.videoId}`);
+                 const data = await response.json();
+                 
+                 if (data.success && data.radio && data.radio.tracks) {
+                     console.log(`[Rádio] ${data.radio.tracks.length} músicas carregadas`);
+                     
+                     // Adicionar todas as músicas à fila
+                     Alpine.store('player').clearQueue();
+                     data.radio.tracks.forEach(track => {
+                         Alpine.store('player').addToQueue(track);
+                     });
+                     
+                     // Iniciar primeira música
+                     Alpine.store('player').playTrack(data.radio.tracks[0]);
+                 } else {
+                     console.error('[Rádio] Resposta inválida:', data);
+                 }
+             } catch (error) {
+                 console.error('[Rádio] Erro ao carregar:', error);
+             }
+         }
      }"
     x-init='
         artist = {{ artist|tojson }};
@@ -161,7 +194,7 @@
                </div>
                
                <!-- Card "Rádio de [Artist]" -->
-               <div @click="if (artist.radioId && window.htmx) { htmx.ajax('GET', `/pages/artist/${artist.channelId}`, { target: '#main-content', swap: 'innerHTML' }) }"
+               <div @click="playArtistRadio()"
                     style="background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; padding: 2rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end;"
                     onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.4)'"
                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">

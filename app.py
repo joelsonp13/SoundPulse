@@ -712,9 +712,14 @@ def page_artist(browseId):
         if artist.get('songs') and artist.get('songs').get('results'):
             top_songs = artist['songs']['results'][:5]
         
+        # Combinar albums + singles para ter mais releases
         albums = []
         if artist.get('albums') and artist.get('albums').get('results'):
-            albums = artist['albums']['results'][:6]
+            albums.extend(artist['albums']['results'])
+        if artist.get('singles') and artist.get('singles').get('results'):
+            albums.extend(artist['singles']['results'])
+        # Limitar a 12 releases (6 albums + 6 singles possíveis)
+        albums = albums[:12]
         
         related_artists = []
         if artist.get('related') and artist.get('related').get('results'):
@@ -722,7 +727,7 @@ def page_artist(browseId):
         
         print(f"[DEBUG] Dados processados para template:")
         print(f"  - topSongs: {len(top_songs)}")
-        print(f"  - albums: {len(albums)}")
+        print(f"  - albums (albums + singles): {len(albums)}")
         print(f"  - relatedArtists: {len(related_artists)}")
         
         return render_template('partials/artist.html', 
