@@ -121,10 +121,14 @@ try:
             # Parse JSON da variável de ambiente
             oauth_data = json.loads(oauth_json_env)
             
+            # Extrair client_id e client_secret ANTES de passar para YTMusic
+            client_id = oauth_data.pop('client_id', None)
+            client_secret = oauth_data.pop('client_secret', None)
+            
             # Nova API do ytmusicapi (1.11+): criar objeto OAuthCredentials
             oauth_credentials = OAuthCredentials(
-                client_id=oauth_data.get('client_id'),
-                client_secret=oauth_data.get('client_secret')
+                client_id=client_id,
+                client_secret=client_secret
             )
             
             print(f"[Info] Usando OAuth credentials da variável de ambiente")
@@ -149,10 +153,14 @@ try:
             with open('oauth.json', 'r') as f:
                 oauth_data = json.load(f)
             
+            # Extrair client_id e client_secret ANTES de passar para YTMusic
+            client_id = oauth_data.pop('client_id', None)
+            client_secret = oauth_data.pop('client_secret', None)
+            
             # Nova API do ytmusicapi (1.11+): criar objeto OAuthCredentials
             oauth_credentials = OAuthCredentials(
-                client_id=oauth_data.get('client_id'),
-                client_secret=oauth_data.get('client_secret')
+                client_id=client_id,
+                client_secret=client_secret
             )
             
             yt = YTMusic(auth=oauth_data, oauth_credentials=oauth_credentials)
