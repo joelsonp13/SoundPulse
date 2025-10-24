@@ -175,6 +175,40 @@ except Exception as e:
     traceback.print_exc()
     yt = None
 
+# Criar instância pública como fallback para quando OAuth der 403
+try:
+    yt_public = YTMusic()
+    print("[OK] YTMusic público criado como fallback para erros 403")
+except:
+    yt_public = None
+    print("[AVISO] Falha ao criar YTMusic público")
+
+def safe_ytmusic_call(func, *args, use_fallback=True, **kwargs):
+    """
+    Executa uma chamada do ytmusicapi com fallback automático.
+    Se OAuth der 403, tenta com yt_public.
+    """
+    try:
+        # Tentar primeiro com yt (OAuth se disponível)
+        if yt:
+            return func(yt, *args, **kwargs)
+        elif yt_public:
+            return func(yt_public, *args, **kwargs)
+        else:
+            raise Exception("YTMusic não disponível")
+    except Exception as e:
+        error_msg = str(e)
+        # Se for 403 e tivermos fallback público, tentar com ele
+        if use_fallback and "403" in error_msg and yt_public and yt != yt_public:
+            print(f"[AVISO] OAuth deu 403, tentando com modo público...")
+            try:
+                return func(yt_public, *args, **kwargs)
+            except Exception as e2:
+                print(f"[ERRO] Fallback público também falhou: {e2}")
+                raise e  # Lançar erro original
+        else:
+            raise
+
 def create_svg_placeholder():
     """Cria um SVG placeholder inline (nunca causa CORB)"""
     svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
@@ -1116,13 +1150,13 @@ def charts_videos(country):
 @app.route('/api/trending-songs')
 def trending_songs_endpoint():
     """Trending songs"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        results = yt.search('trending music 2024', filter='songs', limit=10)
+        results = safe_ytmusic_call(lambda ytm: ytm.search('trending music 2024', filter='songs', limit=10))
         return render_template('components/cards_grid.html', items=results, type='music')
     except Exception as e:
         return render_template('components/error_state.html',
@@ -1132,13 +1166,13 @@ def trending_songs_endpoint():
 @app.route('/api/new-releases')
 def new_releases_endpoint():
     """New album releases"""
-    if not yt:
+    if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        results = yt.search('new releases albums 2024', filter='albums', limit=10)
+        results = safe_ytmusic_call(lambda ytm: ytm.search('new releases albums 2024', filter='albums', limit=10))
         return render_template('components/cards_grid.html', items=results, type='album')
     except Exception as e:
         return render_template('components/error_state.html',
