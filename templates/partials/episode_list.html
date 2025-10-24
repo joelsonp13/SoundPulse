@@ -12,7 +12,7 @@
                                  class="w-full h-full object-cover"
                                  loading="lazy"
                                  crossorigin="anonymous"
-                                 onerror="this.src='/static/images/placeholder.jpg'">
+                                 onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                             <button class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                                 <i class="fas fa-play text-white text-2xl"></i>
                             </button>

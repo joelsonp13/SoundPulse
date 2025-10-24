@@ -5,7 +5,7 @@
              alt="{{ item.name }}"
              loading="lazy"
              crossorigin="anonymous"
-             onerror="this.src='/static/images/placeholder.jpg'">
+             onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
     </div>
     <h4 class="artist-card-title">{{ item.name }}</h4>
     <p class="artist-card-type">Artista</p>

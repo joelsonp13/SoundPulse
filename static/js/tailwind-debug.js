@@ -263,6 +263,9 @@
             });
         });
 
+        // Debug desabilitado para console mais limpo
+        // Se necessário reativar, descomentar o bloco abaixo
+        /*
         if (suspiciousClasses.size > 0) {
             console.group('%c⚠️ Classes Potencialmente Inválidas do Tailwind', 'background: #f59e0b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
             
@@ -279,9 +282,8 @@
             });
             
             console.groupEnd();
-        } else {
-            console.log('%c✅ Nenhuma classe suspeita encontrada!', 'color: #10b981; font-weight: bold;');
         }
+        */
     }
 
     // Monitorar erros CSS

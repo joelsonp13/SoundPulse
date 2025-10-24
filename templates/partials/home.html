@@ -70,35 +70,3 @@
     </section>
 </div>
 
-<!-- Script para forçar carregamento quando página é acessada diretamente -->
-<script>
-    // Executar quando a página home é carregada
-    document.addEventListener('DOMContentLoaded', function() {
-        // Aguardar HTMX estar pronto
-        if (typeof htmx !== 'undefined') {
-            // Disparar todos os elementos com hx-trigger="load"
-            htmx.process(document.body);
-            
-            // Forçar trigger de load em todos os elementos com hx-get
-            const elementsToLoad = document.querySelectorAll('[hx-get][hx-trigger*="load"]');
-            elementsToLoad.forEach(el => {
-                htmx.trigger(el, 'load');
-            });
-        }
-    });
-    
-    // Também executar quando a página é carregada via HTMX
-    document.body.addEventListener('htmx:afterSwap', function(event) {
-        if (event.detail.target.classList.contains('home-page') || 
-            event.detail.target.querySelector('.home-page')) {
-            // Processar elementos HTMX dentro da nova página
-            const elementsToLoad = document.querySelectorAll('.home-page [hx-get][hx-trigger*="load"]');
-            elementsToLoad.forEach(el => {
-                if (typeof htmx !== 'undefined') {
-                    htmx.trigger(el, 'load');
-                }
-            });
-        }
-    });
-</script>
-

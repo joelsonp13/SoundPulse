@@ -5,6 +5,18 @@ module.exports = {
     "./static/js/**/*.js",
     "./static/css/**/*.css"
   ],
+  safelist: [
+    // Garantir que classes usadas dinamicamente sejam incluídas
+    {
+      pattern: /^(bg|text|border|ring|shadow|rounded|w|h|p|m|gap|grid-cols)-.*/,
+    },
+    'flex',
+    'items-center',
+    'justify-center',
+    'transition',
+    'hover:bg-white/10',
+    'hover:text-white',
+  ],
   theme: {
     extend: {
       colors: {

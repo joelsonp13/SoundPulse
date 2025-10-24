@@ -592,22 +592,55 @@ def get_lyrics(videoId):
         return jsonify({'error': 'YTMusic não conectado'}), 500
     
     try:
-        print(f"Tentando obter letras para: {videoId}")
-        lyrics = safe_ytmusic_call(lambda ytm: ytm.get_lyrics(videoId))
-        print(f"Resposta do yt.get_lyrics: {type(lyrics)} - {lyrics}")
+        print(f"[Lyrics] Buscando letras para: {videoId}")
+        
+        # PASSO 1: Buscar informações da música para obter browseId das letras
+        song_info = safe_ytmusic_call(lambda ytm: ytm.get_song(videoId))
+        print(f"[Lyrics] Informações da música obtidas: {type(song_info)}")
+        
+        # Verificar se tem browseId de letras
+        lyrics_browse_id = None
+        if song_info and isinstance(song_info, dict):
+            videoDetails = song_info.get('videoDetails', {})
+            lyrics_browse_id = videoDetails.get('lyricsId') or song_info.get('lyricsId')
+            
+            # Tentar outros lugares onde o ID pode estar
+            if not lyrics_browse_id:
+                playabilityStatus = song_info.get('playabilityStatus', {})
+                lyrics_browse_id = playabilityStatus.get('lyricsId')
+        
+        if not lyrics_browse_id:
+            print(f"[Lyrics] Nenhum browseId de letras encontrado na música")
+            return jsonify({'success': False, 'error': 'Esta música não possui letras disponíveis'})
+        
+        print(f"[Lyrics] browseId encontrado: {lyrics_browse_id}")
+        
+        # PASSO 2: Buscar as letras usando o browseId correto
+        lyrics_data = safe_ytmusic_call(lambda ytm: ytm.get_lyrics(lyrics_browse_id))
+        print(f"[Lyrics] Resposta das letras: {type(lyrics_data)}")
         
         # Verificar se as letras existem e não estão vazias
-        if lyrics and isinstance(lyrics, dict) and lyrics.get('lyrics'):
-            return jsonify({'success': True, 'lyrics': lyrics['lyrics']})
-        elif lyrics and isinstance(lyrics, str) and lyrics.strip():
-            return jsonify({'success': True, 'lyrics': lyrics})
+        if lyrics_data and isinstance(lyrics_data, dict) and lyrics_data.get('lyrics'):
+            return jsonify({'success': True, 'lyrics': lyrics_data['lyrics']})
+        elif lyrics_data and isinstance(lyrics_data, str) and lyrics_data.strip():
+            return jsonify({'success': True, 'lyrics': lyrics_data})
         else:
-            print(f"Letras não encontradas para {videoId}")
+            print(f"[Lyrics] Letras vazias ou inválidas")
             return jsonify({'success': False, 'error': 'Letras não disponíveis para esta música'})
             
     except Exception as e:
-        print(f"Erro ao obter letras para {videoId}: {str(e)}")
-        return jsonify({'success': False, 'error': f'Erro ao obter letras: {str(e)}'})
+        error_msg = str(e).lower()
+        print(f"[Lyrics] ERRO ao obter letras para {videoId}: {str(e)}")
+        
+        # Mensagens de erro mais amigáveis
+        if '403' in error_msg or 'forbidden' in error_msg:
+            return jsonify({'success': False, 'error': 'Letras não disponíveis no YouTube Music para esta música'})
+        elif '404' in error_msg or 'not found' in error_msg:
+            return jsonify({'success': False, 'error': 'Letras não encontradas para esta música'})
+        elif '400' in error_msg or 'bad request' in error_msg:
+            return jsonify({'success': False, 'error': 'Esta música não possui letras disponíveis'})
+        else:
+            return jsonify({'success': False, 'error': 'Letras indisponíveis no momento'})
 
 @app.route('/api/related/<videoId>')
 def get_related_songs(videoId):

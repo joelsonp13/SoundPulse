@@ -7,7 +7,7 @@
              alt="{{ album.title if album else 'Álbum' }}"
              loading="lazy"
              crossorigin="anonymous"
-             onerror="this.src='/static/images/placeholder.jpg'">
+             onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
         <div class="flex-1">
             <p class="album-type text-sm uppercase tracking-wide text-gray-300 mb-2">ÁLBUM</p>
             <h1 class="text-5xl font-bold mb-4" x-text="album.title">{{ album.title if album else 'Álbum' }}</h1>

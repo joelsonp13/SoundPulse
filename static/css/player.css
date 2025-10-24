@@ -110,12 +110,40 @@
     font-size: 16px;
     transition: all 0.2s;
     border-radius: 50%;
+    position: relative;
 }
 
 .player-controls button:hover {
     color: white;
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
+}
+
+/* Botões ativos (shuffle/repeat) */
+.player-controls button.text-cyan-400 {
+    color: #22d3ee !important;
+}
+
+.player-controls button.text-cyan-400:hover {
+    color: #06b6d4 !important;
+}
+
+/* Badge do repeat one */
+.repeat-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #22d3ee;
+    color: #0f172a;
+    font-size: 9px;
+    font-weight: 700;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
 }
 
 .play-pause-btn {
@@ -134,12 +162,13 @@
 .player-progress {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     width: 100%;
+    padding: 0 4px;
 }
 
 .time-current, .time-duration {
-    font-size: 11px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.6);
     min-width: 42px;
     font-variant-numeric: tabular-nums;
@@ -186,6 +215,7 @@
     border-radius: 2px;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
     cursor: pointer;
     transition: height 0.1s;
 }
@@ -224,54 +254,91 @@
     transform: scale(1.2);
 }
 
-/* Progress Bar Moderno */
+/* Progress Bar - Design Clean e Minimalista */
 .progress-bar {
     flex: 1;
     height: 4px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
     position: relative;
     cursor: pointer;
-    transition: height 0.1s;
+    transition: all 0.2s ease;
     overflow: visible;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
     touch-action: none;
+    padding: 10px 0;
+    margin: -10px 0;
 }
 
 .progress-bar:hover {
-    height: 6px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .progress-bar {
+        height: 5px;
+        padding: 12px 0;
+        margin: -12px 0;
+    }
 }
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #00bcd4, #00e5ff);
-    border-radius: 2px;
+    background: #06b6d4;
+    border-radius: 4px;
     position: relative;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    pointer-events: none;
 }
 
 .progress-bar:hover .progress-fill {
-    background: linear-gradient(90deg, #00e5ff, #00ffff);
+    background: #22d3ee;
 }
 
+/* Thumb - Clean e simples */
 .progress-fill::after {
     content: '';
     position: absolute;
-    right: -6px;
+    right: 0;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translate(50%, -50%) scale(0);
     width: 12px;
     height: 12px;
-    background: white;
+    background: #ffffff;
     border-radius: 50%;
     opacity: 0;
-    transition: opacity 0.2s;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
 }
 
 .progress-bar:hover .progress-fill::after {
     opacity: 1;
+    transform: translate(50%, -50%) scale(1);
+}
+
+/* Mobile: thumb sempre visível */
+@media (max-width: 768px) {
+    .progress-fill::after {
+        opacity: 1;
+        transform: translate(50%, -50%) scale(1);
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* Dragging - feedback simples */
+.progress-bar.dragging .progress-fill {
+    background: #22d3ee;
+}
+
+.progress-bar.dragging .progress-fill::after {
+    opacity: 1;
+    transform: translate(50%, -50%) scale(1.15);
+    box-shadow: 0 3px 8px rgba(6, 182, 212, 0.4);
 }
 
 /* ========== Responsividade Player ========== */
@@ -409,3 +476,30 @@
     }
 }
 
+/* ========================================
+   CUSTOM SCROLLBAR
+   ======================================== */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(6, 182, 212, 0.3);
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(6, 182, 212, 0.5);
+}
+
+/* Firefox */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 182, 212, 0.3) rgba(255, 255, 255, 0.05);
+}

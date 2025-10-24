@@ -37,21 +37,57 @@
         // Suprimir avisos conhecidos do YouTube IFrame API que não afetam a funcionalidade
         (function() {
             const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            // Filtrar console.error
             console.error = function(...args) {
                 const message = args.join(' ');
                 
                 // Ignorar erros de CORS do YouTube em desenvolvimento local
                 if (message.includes('postMessage') && 
-                    message.includes('youtube.com') && 
-                    message.includes('origin')) {
-                    // Silenciar - esse é um aviso conhecido em desenvolvimento local
-                    console.log('%c🔇 Aviso do YouTube CORS silenciado (não afeta funcionalidade)', 
-                               'color: #9ca3af; font-style: italic; font-size: 0.85em;');
+                    message.includes('youtube.com')) {
+                    return; // Silenciar completamente
+                }
+                
+                // Ignorar erros de DOMWindow origin
+                if (message.includes('DOMWindow') && message.includes('origin')) {
                     return;
                 }
                 
                 // Passar outros erros normalmente
                 originalError.apply(console, args);
+            };
+            
+            // Filtrar console.warn
+            console.warn = function(...args) {
+                const message = args.join(' ');
+                
+                // Ignorar warnings do WebGL
+                if (message.includes('WebGL') || 
+                    message.includes('swiftshader') ||
+                    message.includes('GroupMarkerNotSet')) {
+                    return; // Silenciar completamente
+                }
+                
+                // Ignorar warnings do YouTube embed
+                if (message.includes('youtube.com') && message.includes('embed')) {
+                    return;
+                }
+                
+                // Ignorar violations de performance do YouTube (base.js)
+                if (message.includes('Violation') && message.includes('base.js')) {
+                    return;
+                }
+                
+                // Ignorar violations de event listeners non-passive
+                if (message.includes('non-passive event listener') || 
+                    message.includes('touchstart') ||
+                    message.includes('setTimeout') && message.includes('handler took')) {
+                    return;
+                }
+                
+                // Passar outros warnings normalmente
+                originalWarn.apply(console, args);
             };
         })();
     </script>
@@ -283,106 +319,17 @@
         </header>
 
         <!-- Main Content Area (populated by HTMX) -->
-        <div id="main-content">
-            <!-- Initial loading state (will be replaced by JS or HTMX) -->
-            <section class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Feito para você</h2>
-                    <a href="#" class="section-show-all">Mostrar tudo</a>
+        <div id="main-content" 
+             hx-get="/pages/home" 
+             hx-trigger="load" 
+             hx-swap="innerHTML">
+            <!-- Loading state enquanto carrega o conteúdo -->
+            <div class="flex items-center justify-center h-screen">
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin text-cyan-500 text-4xl mb-4"></i>
+                    <p class="text-gray-400 text-lg">Carregando SoundPulse...</p>
                 </div>
-                <div class="cards-grid">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Trending -->
-            <section class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Em alta agora</h2>
-                    <a href="#" class="section-show-all">Mostrar tudo</a>
-                </div>
-                <div class="cards-grid">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Gym Vibes -->
-            <section class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Vibes de Gym</h2>
-                    <a href="#" class="section-show-all">Mostrar tudo</a>
-                </div>
-                <div class="cards-grid">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Top Charts Global -->
-            <section class="content-section">
-                <div class="section-header">
-                    <h2 class="section-title">Top Charts Global</h2>
-                    <a href="#" class="section-show-all">Mostrar tudo</a>
-                </div>
-                <div class="cards-grid">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Regional Charts -->
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4 neon-text">ðŸ‡§ðŸ‡· Em Alta no Brasil</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4 neon-text">ðŸ‡ºðŸ‡¸ Top Charts EUA</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4 neon-text">ðŸ‡¬ðŸ‡§ Top Charts Reino Unido</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Recommended Playlists -->
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4 neon-text">Playlists recomendadas</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Popular Artists -->
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4 neon-text">Artistas populares</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-gray-400">Conteúdo será carregado dinamicamente</p>
-                    </div>
-                </div>
-            </section>
+            </div>
         </div>
 
     </main>
@@ -396,12 +343,12 @@
                  :alt="$store.player.currentTrack?.title"
                  loading="lazy"
                  crossorigin="anonymous"
-                 onerror="this.src='/static/images/placeholder.jpg'">
+                 onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
             <div class="player-track-info">
                 <div class="player-track-title" x-text="$store.player.currentTrack?.title || 'Nenhuma música'"></div>
                 <div class="player-track-artist" x-text="$store.player.currentTrack?.artist || 'Artista'"></div>
             </div>
-            <button class="player-like-button" title="Curtir">
+            <button type="button" class="player-like-button" title="Curtir" aria-label="Curtir música">
                 <i class="far fa-heart"></i>
             </button>
         </div>
@@ -409,13 +356,30 @@
         <!-- Coluna Centro: Controles e Progress -->
         <div class="player-center">
             <div class="player-controls">
-                <button title="Modo aleatório"><i class="fas fa-random"></i></button>
-                <button @click="$store.player.previous()" title="Anterior"><i class="fas fa-step-backward"></i></button>
-                <button class="play-pause-btn" @click="$store.player.togglePlay()" title="Play/Pause">
+                <button type="button" @click="$store.player.toggleShuffle()" 
+                        :class="{'text-cyan-400': $store.player.shuffleMode}" 
+                        :aria-label="$store.player.shuffleMode ? 'Desativar modo aleatório' : 'Ativar modo aleatório'"
+                        title="Modo aleatório">
+                    <i class="fas fa-random"></i>
+                </button>
+                <button type="button" @click="$store.player.previous()" title="Anterior" aria-label="Música anterior">
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button type="button" class="play-pause-btn" @click="$store.player.togglePlay()" 
+                        :aria-label="$store.player.isPlaying ? 'Pausar' : 'Reproduzir'"
+                        title="Play/Pause">
                     <i class="fas" :class="$store.player.isPlaying ? 'fa-pause-circle' : 'fa-play-circle'"></i>
                 </button>
-                <button @click="$store.player.next()" title="Próxima"><i class="fas fa-step-forward"></i></button>
-                <button title="Repetir"><i class="fas fa-redo"></i></button>
+                <button type="button" @click="$store.player.next()" title="Próxima música" aria-label="Próxima música">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+                <button type="button" @click="$store.player.toggleRepeat()" 
+                        :class="{'text-cyan-400': $store.player.repeatMode !== 'off'}" 
+                        :aria-label="$store.player.repeatMode === 'off' ? 'Ativar repetição' : $store.player.repeatMode === 'all' ? 'Repetir todas' : 'Repetir uma'"
+                        :title="$store.player.repeatMode === 'off' ? 'Repetir' : $store.player.repeatMode === 'all' ? 'Repetir todas' : 'Repetir uma'">
+                    <i class="fas" :class="$store.player.repeatMode === 'one' ? 'fa-redo' : 'fa-redo'"></i>
+                    <span x-show="$store.player.repeatMode === 'one'" class="repeat-badge">1</span>
+                </button>
             </div>
             <div class="player-progress">
                 <span class="time-current" x-text="$store.player.formatTime($store.player.currentTime)">0:00</span>
@@ -437,43 +401,68 @@
         
         <!-- Coluna Direita: Extras e Volume -->
         <div class="player-right">
-            <button @click="$store.player.showLyrics()" title="Letras"><i class="fas fa-align-left"></i></button>
-            <button @click="$store.player.showRelatedSongs()" title="Relacionadas"><i class="fas fa-stream"></i></button>
+            <button type="button" @click="$store.player.showLyrics()" title="Letras" aria-label="Mostrar letras da música"><i class="fas fa-align-left"></i></button>
+            <button type="button" @click="$store.player.showRelatedSongs()" title="Relacionadas" aria-label="Mostrar músicas relacionadas"><i class="fas fa-stream"></i></button>
             <div class="volume-control">
-                <button title="Mudo"><i class="fas fa-volume-up"></i></button>
-                <label for="volumeSlider" class="sr-only">Volume</label>
-                <input type="range" id="volumeSlider" name="volume" class="volume-slider" min="0" max="1" step="0.01" :value="$store.player.volume" @input="$store.player.setVolume($event.target.value)" title="Volume" aria-label="Controle de volume">
+                <button id="muteButton" type="button" title="Mudo" aria-label="Alternar mudo"><i class="fas fa-volume-up"></i></button>
+                <input type="range" id="volumeSlider" name="volumeControl" class="volume-slider" min="0" max="1" step="0.01" :value="$store.player.volume" @input="$store.player.setVolume($event.target.value)" aria-label="Controle de volume">
+                <label for="volumeSlider" class="sr-only">Controle de volume</label>
             </div>
         </div>
     </div>
 
         <!-- Related Songs Section -->
         <div class="related-songs-section" x-show="$store.player.showRelated" x-transition>
-            <div class="bg-dark-800/90 backdrop-blur-md border-t border-white/10 p-4">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-semibold">Músicas relacionadas</h3>
-                    <button class="text-gray-400 hover:text-white" @click="$store.player.showRelatedSongs()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    <template x-for="song in $store.player.relatedSongs" :key="song.videoId">
-                        <div class="music-card" @click="$store.player.playRelatedSong(song)">
-                            <div class="music-card-image-wrapper">
-                                <img class="music-card-image" 
-                                     :src="song.thumbnails?.[0]?.url" 
-                                     :alt="song.title"
-                                     crossorigin="anonymous"
-                                     loading="lazy"
-                                     onerror="this.src='/static/images/placeholder.jpg'">
-                                <button class="music-card-play-button" @click.stop="$store.player.playRelatedSong(song)">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                            </div>
-                            <div class="music-card-title" x-text="song.title"></div>
-                            <div class="music-card-artist" x-text="song.artist"></div>
+            <div class="bg-dark-800/95 backdrop-blur-sm border-t border-white/10">
+                <div class="px-4 py-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-base font-semibold text-white">Músicas relacionadas</h3>
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                @click="$store.player.addRelatedToQueue()" 
+                                class="text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded transition"
+                                title="Adicionar todas à fila"
+                                aria-label="Adicionar todas as músicas relacionadas à fila">
+                                <i class="fas fa-plus text-[10px] mr-1.5"></i>
+                                <span class="hidden sm:inline">Adicionar tudo</span>
+                            </button>
+                            <button type="button" 
+                                class="w-7 h-7 flex items-center justify-center rounded hover:bg-white/10 text-gray-400 hover:text-white transition" 
+                                @click="$store.player.showRelatedSongs()"
+                                aria-label="Fechar músicas relacionadas">
+                                <i class="fas fa-times text-sm"></i>
+                            </button>
                         </div>
-                    </template>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div x-show="$store.player.relatedSongs.length === 0" class="text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl mb-2"></i>
+                        <p class="text-gray-400 text-sm">Carregando...</p>
+                    </div>
+                    
+                    <!-- Grid de Músicas -->
+                    <div x-show="$store.player.relatedSongs.length > 0" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
+                        <template x-for="song in $store.player.relatedSongs" :key="song.videoId">
+                            <div class="group cursor-pointer" @click="$store.player.playRelatedSong(song)">
+                                <div class="relative aspect-square rounded overflow-hidden mb-1.5 bg-white/5 hover:bg-white/10 transition-all duration-200">
+                                    <img class="w-full h-full object-cover" 
+                                         :src="getHighResThumbnail(song.thumbnail || song.thumbnails || '/static/images/placeholder.jpg')" 
+                                         :alt="song.title"
+                                         crossorigin="anonymous"
+                                         loading="lazy"
+                                         onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
+                                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <div class="w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-play text-white text-xs ml-0.5"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <h4 class="text-white text-xs truncate mb-0.5" x-text="song.title"></h4>
+                                <p class="text-gray-400 text-[10px] truncate" x-text="song.artists?.[0]?.name || song.artist || 'Artista'"></p>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -490,7 +479,7 @@
                     <h3 class="text-xl font-bold" x-text="$store.player.currentTrack?.title"></h3>
                     <p class="text-gray-400" x-text="$store.player.currentTrack?.artist"></p>
                 </div>
-                <button class="text-gray-400 hover:text-white" @click="$store.player.hideLyrics()">
+                <button type="button" class="text-gray-400 hover:text-white" @click="$store.player.hideLyrics()" aria-label="Fechar letras">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -499,11 +488,18 @@
                     <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
                     <p class="mt-2 text-gray-400">Carregando letras...</p>
                 </div>
-                <div x-show="$store.player.lyricsError" class="text-center py-8">
-                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
-                    <p class="mt-2 text-gray-400" x-text="$store.player.lyricsError"></p>
+                <div x-show="$store.player.lyricsError" class="text-center py-12">
+                    <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-6 max-w-md mx-auto">
+                        <i class="fas fa-music-slash text-red-400 text-3xl mb-3"></i>
+                        <p class="text-red-300 font-medium mb-2">Letras Indisponíveis</p>
+                        <p class="text-gray-400 text-sm" x-text="$store.player.lyricsError"></p>
+                        <p class="text-gray-500 text-xs mt-3">
+                            <i class="fas fa-info-circle"></i>
+                            Algumas músicas não possuem letras disponíveis no YouTube Music
+                        </p>
+                    </div>
                 </div>
-                <div x-show="$store.player.lyricsText" class="text-gray-300 whitespace-pre-line" x-text="$store.player.lyricsText"></div>
+                <div x-show="$store.player.lyricsText" class="text-gray-300 whitespace-pre-line leading-relaxed" x-text="$store.player.lyricsText"></div>
             </div>
         </div>
     </div>
@@ -810,8 +806,6 @@
         
         // Sistema de Navegação com Histórico de URL
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Navegação: DOMContentLoaded disparado');
-            
             let htmxCheckAttempts = 0;
             const maxAttempts = 100; // 5 segundos (50ms * 100)
             
@@ -821,87 +815,25 @@
                 
                 if (typeof htmx !== 'undefined') {
                     clearInterval(waitForHTMX);
-                    console.log('✅ HTMX disponível, iniciando navegação...');
                     initializeNavigation();
                 } else if (htmxCheckAttempts >= maxAttempts) {
                     clearInterval(waitForHTMX);
-                    console.error('❌ HTMX não carregou após 5 segundos. Recarregando página...');
-                    // Fallback: Redirecionar para a raiz
+                    console.error('HTMX timeout - recarregando');
                     window.location.href = '/';
                 }
             }, 50);
             
             function initializeNavigation() {
+                // ✅ HTMX automático: #main-content tem hx-get="/pages/home" hx-trigger="load"
                 const currentPath = window.location.pathname;
-                const queryString = window.location.search;
-                const mainContent = document.getElementById('main-content');
-                
-                console.log('📍 Path atual:', currentPath);
-                
-                if (!mainContent) {
-                    console.error('❌ #main-content não encontrado');
-                    return;
+                if (currentPath === '/') {
+                    history.replaceState({url: '/pages/home'}, '', '/pages/home');
                 }
-                
-                let targetUrl = '/pages/home';
-                let section = 'home';
-                
-                // Se estamos em uma rota /pages/*, carrega o conteúdo via HTMX
-                if (currentPath.startsWith('/pages/')) {
-                    targetUrl = currentPath + queryString;  // Incluir query string
-                    section = currentPath.split('/')[2] || 'home';
-                    
-                    console.log('🎯 Carregando seção:', section);
-                    
-                    // IMPORTANTE: Salvar estado atual no histórico ao recarregar (F5)
-                    // Isso garante que o botão voltar funcione após recarregar
-                    if (!history.state || history.state.url !== targetUrl) {
-                        history.replaceState({url: targetUrl}, '', targetUrl);
-                    }
-                } else if (currentPath === '/') {
-                    targetUrl = '/pages/home';
-                    section = 'home';
-                    history.replaceState({url: targetUrl}, '', targetUrl);
-                }
-                
-                console.log('📥 Fazendo request HTMX para:', targetUrl);
-                
-                // Carrega o conteúdo (sem pushState pois é carregamento inicial)
-                // IMPORTANTE: Usar HTMX nativo para garantir header HX-Request
-                const tempElement = document.createElement('div');
-                tempElement.setAttribute('hx-get', targetUrl);
-                tempElement.setAttribute('hx-target', '#main-content');
-                tempElement.setAttribute('hx-swap', 'innerHTML');
-                
-                // Processar elemento e fazer request
-                htmx.process(tempElement);
-                htmx.trigger(tempElement, 'click');
-                
-                console.log('✅ Request HTMX disparado');
-                console.log('⏳ Aguardando htmx:afterSettle processar elementos...');
-                
-                // ✅ BACKUP: Se afterSettle não disparar, forçar após 2 segundos
-                setTimeout(() => {
-                    const mainContent = document.getElementById('main-content');
-                    if (mainContent) {
-                        const loadTriggers = mainContent.querySelectorAll('[hx-trigger*="load"]');
-                        if (loadTriggers.length > 0) {
-                            console.log('🔄 BACKUP: Disparando', loadTriggers.length, 'elementos manualmente');
-                            loadTriggers.forEach(element => {
-                                htmx.process(element);
-                                htmx.trigger(element, 'load');
-                            });
-                        }
-                    }
-                }, 2000);
             }
         });
         
         // Atualizar seção ativa da sidebar após navegação HTMX
         document.body.addEventListener('htmx:afterSettle', function(event) {
-            console.log('✅ htmx:afterSettle disparado!');
-            console.log('📦 Event target:', event.detail.target);
-            
             const currentPath = window.location.pathname;
             if (currentPath.startsWith('/pages/')) {
                 const section = currentPath.split('/')[2] || 'home';
@@ -910,24 +842,8 @@
                 // Só atualiza se for uma seção válida da sidebar
                 if (validSections.includes(section) && window.Alpine && Alpine.store('app')) {
                     Alpine.store('app').currentSection = section;
-                    console.log('📍 Seção ativa atualizada:', section);
                 }
             }
-            
-            // IMPORTANTE: Forçar HTMX a processar elementos com hx-trigger="load" que foram carregados
-            // Isso garante que conteúdo dinâmico seja carregado APÓS o HTMX inserir o HTML no DOM
-            console.log('🔄 Processando elementos HTMX após settle...');
-            const loadTriggers = event.detail.target.querySelectorAll('[hx-trigger*="load"]');
-            console.log('🔄 Encontrados', loadTriggers.length, 'elementos com hx-trigger="load"');
-            
-            loadTriggers.forEach(element => {
-                const url = element.getAttribute('hx-get');
-                console.log('  ▶️ Disparando load para:', url);
-                htmx.process(element);
-                htmx.trigger(element, 'load');
-            });
-            
-            console.log('✅ Processamento de elementos concluído!');
         });
         
         // Listener para botão voltar/avançar do navegador

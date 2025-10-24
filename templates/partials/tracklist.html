@@ -17,7 +17,7 @@
                              class="w-full h-full object-cover"
                              loading="lazy"
                              crossorigin="anonymous"
-                             onerror="this.src='/static/images/placeholder.jpg'">
+                             onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                     </div>
                     <div class="track-info flex-1 min-w-0">
                         <div class="track-title text-white font-medium truncate">{{ track.title }}</div>

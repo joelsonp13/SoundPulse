@@ -7,7 +7,7 @@
              alt="{{ playlist.title if playlist else 'Playlist' }}"
              loading="lazy"
              crossorigin="anonymous"
-             onerror="this.src='/static/images/placeholder.jpg'">
+             onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
         <div class="flex-1">
             <p class="playlist-type text-sm uppercase tracking-wide text-gray-300 mb-2">PLAYLIST</p>
             <h1 class="text-5xl font-bold mb-4" x-text="playlist.title">{{ playlist.title if playlist else 'Playlist' }}</h1>

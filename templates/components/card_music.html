@@ -5,7 +5,7 @@
              alt="{{ item.title }}"
              loading="lazy"
              crossorigin="anonymous"
-             onerror="this.src='/static/images/placeholder.jpg'">
+             onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
         <button class="music-card-play-button" onclick="event.stopPropagation(); playTrackFromCard(this.closest('.music-card'))">
             <i class="fas fa-play"></i>
         </button>
