@@ -959,28 +959,52 @@ def page_podcast(browseId):
 
 @app.route('/api/charts/songs/<country>')
 def charts_songs(country):
-    """Charts songs by country - ULTRA RÁPIDO"""
+    """Charts songs by country - USA get_charts() oficial do ytmusicapi"""
     if not yt and not yt_public:
         return render_template('components/error_state.html', 
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        country_names = {
-            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
-            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
-            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
-        }
+        # 🌍 Usar get_charts() oficial do ytmusicapi com código de país ISO
+        charts = safe_ytmusic_call(lambda ytm: ytm.get_charts(country=country.upper()))
         
-        country_name = country_names.get(country.upper(), 'trending')
-        query = f'top hits {country_name} 2024'
+        songs = []
+        if charts:
+            # Tentar pegar do "Top songs" chart
+            if 'songs' in charts and 'items' in charts['songs']:
+                songs = charts['songs']['items'][:8]
+            # Fallback: tentar "trending"
+            elif 'trending' in charts and 'items' in charts['trending']:
+                songs = charts['trending']['items'][:8]
+            # Fallback: tentar qualquer chave com 'items'
+            else:
+                for key, value in charts.items():
+                    if isinstance(value, dict) and 'items' in value:
+                        songs = value['items'][:8]
+                        break
         
-        songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=8))
+        # Garantir que temos videoId e title
         songs = [s for s in songs if s.get('videoId') and s.get('title')]
+        
+        # Se não conseguiu nada, fazer fallback para search
+        if not songs:
+            print(f"[FALLBACK] get_charts não retornou músicas para {country}, usando search")
+            country_names = {
+                'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
+                'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
+                'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+            }
+            country_name = country_names.get(country.upper(), 'trending')
+            query = f'top hits {country_name} 2024'
+            songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=8))
+            songs = [s for s in songs if s.get('videoId') and s.get('title')]
         
         return render_template('components/cards_grid.html', items=songs, type='music')
     except Exception as e:
         print(f"Erro em charts_songs: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return render_template('components/error_state.html',
                              title='Erro ao carregar charts',
                              message=str(e))
@@ -1053,28 +1077,52 @@ def trending_podcasts_endpoint():
 
 @app.route('/api/charts/artists/<country>')
 def charts_artists(country):
-    """Charts artists by country - ULTRA RÁPIDO"""
+    """Charts artists by country - USA get_charts() oficial do ytmusicapi"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        country_names = {
-            'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
-            'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
-            'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
-        }
+        # 🌍 Usar get_charts() oficial do ytmusicapi com código de país ISO
+        charts = safe_ytmusic_call(lambda ytm: ytm.get_charts(country=country.upper()))
         
-        country_name = country_names.get(country.upper(), 'trending')
-        query = f'top artists {country_name} 2024'
+        artists = []
+        if charts:
+            # Tentar pegar do "Top artists" chart
+            if 'artists' in charts and 'items' in charts['artists']:
+                artists = charts['artists']['items'][:8]
+            # Fallback: procurar em outras chaves
+            else:
+                for key, value in charts.items():
+                    if isinstance(value, dict) and 'items' in value:
+                        # Verificar se são artistas (tem browseId e subscribers)
+                        items = value.get('items', [])
+                        if items and items[0].get('browseId') and 'subscribers' in items[0]:
+                            artists = items[:8]
+                            break
         
-        artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=8))
+        # Garantir que temos browseId
         artists = [a for a in artists if a.get('browseId')]
+        
+        # Se não conseguiu nada, fazer fallback para search
+        if not artists:
+            print(f"[FALLBACK] get_charts não retornou artistas para {country}, usando search")
+            country_names = {
+                'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
+                'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
+                'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+            }
+            country_name = country_names.get(country.upper(), 'trending')
+            query = f'top artists {country_name} 2024'
+            artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=8))
+            artists = [a for a in artists if a.get('browseId')]
         
         return render_template('components/cards_grid.html', items=artists, type='artist')
     except Exception as e:
         print(f"Erro em charts_artists: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return render_template('components/error_state.html',
                              title='Erro ao carregar charts',
                              message=str(e))
