@@ -216,6 +216,26 @@
     display: inline-block;
 }
 
+.spotify-track-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.spotify-track-thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.spotify-track-details {
+    min-width: 0;
+    flex: 1;
+}
+
 .spotify-track-title {
     color: white;
     font-size: 1rem;
@@ -677,12 +697,20 @@
                                 <i class="fas fa-play spotify-track-play-icon"></i>
                             </td>
                             
-                            <!-- Título + Artista -->
+                            <!-- Título + Artista + Thumbnail -->
                             <td>
-                                <div class="spotify-track-title" x-text="track.title"></div>
-                                <div class="spotify-track-artist" 
-                                     x-show="track.artists && track.artists.length > 0"
-                                     x-text="track.artists && track.artists.length > 0 ? track.artists[0].name : ''"></div>
+                                <div class="spotify-track-info-cell">
+                                    <img :src="track.thumbnails && track.thumbnails[0] ? getHighResThumbnail(track.thumbnails[0].url) : (album && album.thumbnails && album.thumbnails[0] ? getHighResThumbnail(album.thumbnails[0].url) : '/static/images/placeholder.jpg')"
+                                         :alt="track.title"
+                                         class="spotify-track-thumbnail"
+                                         onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
+                                    <div class="spotify-track-details">
+                                        <div class="spotify-track-title" x-text="track.title"></div>
+                                        <div class="spotify-track-artist" 
+                                             x-show="track.artists && track.artists.length > 0"
+                                             x-text="track.artists && track.artists.length > 0 ? track.artists[0].name : ''"></div>
+                                    </div>
+                                </div>
                             </td>
                             
                             <!-- Duração + Actions -->
