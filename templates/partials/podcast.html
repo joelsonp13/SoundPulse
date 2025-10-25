@@ -150,6 +150,9 @@
     min-width: 112px;
     border-radius: 4px;
     object-fit: cover;
+    will-change: transform;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 .spotify-episode-content {
@@ -574,6 +577,9 @@
             <img :src="podcast && podcast.thumbnails && podcast.thumbnails[0] ? getHighResThumbnail(podcast.thumbnails[0].url) : '/static/images/placeholder.jpg'"
                  :alt="podcast ? podcast.title : 'Podcast'"
                  class="spotify-podcast-cover"
+                 loading="eager"
+                 fetchpriority="high"
+                 decoding="async"
              onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
             
             <!-- Info -->
@@ -614,6 +620,9 @@
                         <img :src="episode.thumbnails && episode.thumbnails[0] ? getHighResThumbnail(episode.thumbnails[0].url) : (podcast && podcast.thumbnails && podcast.thumbnails[0] ? getHighResThumbnail(podcast.thumbnails[0].url) : '/static/images/placeholder.jpg')"
                              :alt="episode.title"
                              class="spotify-episode-thumbnail"
+                             :loading="index < 10 ? 'eager' : 'lazy'"
+                             :fetchpriority="index < 5 ? 'high' : 'auto'"
+                             decoding="async"
                              onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                         
                         <!-- Content -->
