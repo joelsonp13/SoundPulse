@@ -170,6 +170,11 @@
     text-align: center;
 }
 
+.spotify-tracks-header th:nth-child(2) {
+    max-width: 0; /* Força o ellipsis a funcionar */
+    width: 50%;
+}
+
 .spotify-tracks-header th:last-child {
     width: 80px;
     text-align: right;
@@ -188,6 +193,10 @@
 .spotify-track-row td {
     padding: 0.5rem 1rem;
     vertical-align: middle;
+}
+
+.spotify-track-row td:nth-child(2) {
+    max-width: 0; /* Força o ellipsis a funcionar */
 }
 
 .spotify-track-number {
@@ -424,12 +433,18 @@
         height: 36px;
     }
     
+    .spotify-track-details {
+        max-width: 150px; /* Limita em mobile muito pequeno */
+    }
+    
     .spotify-track-title {
         font-size: 0.875rem;
+        max-width: 100%;
     }
     
     .spotify-track-artist {
         font-size: 0.75rem;
+        max-width: 100%;
     }
     
     .spotify-track-duration {
@@ -504,12 +519,18 @@
         height: 44px;
     }
     
+    .spotify-track-details {
+        max-width: 250px; /* Limita em mobile normal */
+    }
+    
     .spotify-track-title {
         font-size: 0.9375rem;
+        max-width: 100%;
     }
     
     .spotify-track-artist {
         font-size: 0.8125rem;
+        max-width: 100%;
     }
 }
 
@@ -531,6 +552,10 @@
     .spotify-track-thumbnail {
         width: 48px;
         height: 48px;
+    }
+    
+    .spotify-track-details {
+        max-width: 350px; /* Limita em tablet */
     }
 }
 </style>
