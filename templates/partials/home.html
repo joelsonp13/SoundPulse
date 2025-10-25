@@ -52,14 +52,17 @@
     background: rgba(255, 255, 255, 0.5);
 }
 
-.horizontal-cards-grid {
-    display: flex;
+/* Força flex quando cards-grid está dentro de horizontal-scroll */
+.horizontal-scroll-container .cards-grid {
+    display: flex !important;
     gap: 1rem;
     padding: 0.5rem 0;
+    flex-wrap: nowrap;
 }
 
-.horizontal-cards-grid .music-card,
-.horizontal-cards-grid .artist-card {
+/* Cards compactos no scroll horizontal */
+.horizontal-scroll-container .music-card,
+.horizontal-scroll-container .artist-card {
     min-width: 180px;
     max-width: 180px;
     flex-shrink: 0;
@@ -73,12 +76,10 @@
             <h2 class="section-title">🔥 Top Músicas - Brasil</h2>
             <a href="/pages/charts" class="section-show-all">Ver mais</a>
         </div>
-        <div class="horizontal-scroll-container">
-            <div hx-get="/api/charts/songs/BR" hx-trigger="load" hx-swap="innerHTML" class="horizontal-cards-grid">
-                <div class="text-center py-8" style="width: 100%;">
-                    <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
-                    <p class="mt-2 text-gray-400">Carregando...</p>
-                </div>
+        <div class="horizontal-scroll-container" hx-get="/api/charts/songs/BR" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
             </div>
         </div>
     </section>
@@ -89,12 +90,10 @@
             <h2 class="section-title">🎤 Top Artistas - Brasil</h2>
             <a href="/pages/charts" class="section-show-all">Ver mais</a>
         </div>
-        <div class="horizontal-scroll-container">
-            <div hx-get="/api/charts/artists/BR" hx-trigger="load" hx-swap="innerHTML" class="horizontal-cards-grid">
-                <div class="text-center py-8" style="width: 100%;">
-                    <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
-                    <p class="mt-2 text-gray-400">Carregando...</p>
-                </div>
+        <div class="horizontal-scroll-container" hx-get="/api/charts/artists/BR" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                <p class="mt-2 text-gray-400">Carregando...</p>
             </div>
         </div>
     </section>
