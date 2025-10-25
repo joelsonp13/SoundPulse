@@ -700,7 +700,7 @@
                             <!-- Título + Artista + Thumbnail -->
                             <td>
                                 <div class="spotify-track-info-cell">
-                                    <img :src="track.thumbnails && track.thumbnails[0] ? getHighResThumbnail(track.thumbnails[0].url) : (album && album.thumbnails && album.thumbnails[0] ? getHighResThumbnail(album.thumbnails[0].url) : '/static/images/placeholder.jpg')"
+                                    <img :src="track.thumbnails && track.thumbnails[0] ? getHighResThumbnail(track.thumbnails[0].url) : '/static/images/placeholder.jpg'"
                                          :alt="track.title"
                                          class="spotify-track-thumbnail"
                                          onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
