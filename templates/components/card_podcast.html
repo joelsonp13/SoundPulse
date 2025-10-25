@@ -4,8 +4,8 @@
         <img class="podcast-card-image" 
              src="{{ (item.thumbnails[0].url if item.thumbnails else '/static/images/placeholder.jpg')|highres }}"
              alt="{{ item.title }}"
-             loading="{{ 'eager' if loop.index <= 6 else 'lazy' }}"
-             fetchpriority="{{ 'high' if loop.index <= 3 else 'auto' }}"
+             {% if loop.index <= 6 %}loading="eager"{% else %}loading="lazy"{% endif %}
+             {% if loop.index <= 3 %}fetchpriority="high"{% else %}fetchpriority="auto"{% endif %}
              decoding="async"
              crossorigin="anonymous"
              onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
