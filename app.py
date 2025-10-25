@@ -959,14 +959,13 @@ def page_podcast(browseId):
 
 @app.route('/api/charts/songs/<country>')
 def charts_songs(country):
-    """Charts songs by country"""
+    """Charts songs by country - ULTRA RÁPIDO"""
     if not yt and not yt_public:
         return render_template('components/error_state.html', 
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        # Usar busca direta ao invés de get_charts (mais confiável)
         country_names = {
             'BR': 'Brazil', 'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
             'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
@@ -976,10 +975,8 @@ def charts_songs(country):
         country_name = country_names.get(country.upper(), 'trending')
         query = f'top hits {country_name} 2024'
         
-        songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=10))
-        
-        # Filtrar apenas músicas válidas e garantir thumbnails
-        songs = [ensure_thumbnail(s) for s in songs if s.get('videoId') and s.get('title')]
+        songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=8))
+        songs = [s for s in songs if s.get('videoId') and s.get('title')]
         
         return render_template('components/cards_grid.html', items=songs, type='music')
     except Exception as e:
