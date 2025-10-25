@@ -1195,33 +1195,29 @@ def playlist_tracks_endpoint(playlistId):
 
 @app.route('/api/podcast/<browseId>/episodes')
 def podcast_episodes_endpoint(browseId):
-    """Podcast episodes - retorna JSON para Alpine.js"""
+    """Podcast episodes - ULTRA RÁPIDO (igual playlists)"""
     if not yt and not yt_public:
         return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
-        # Buscar podcast completo
         podcast = safe_ytmusic_call(lambda ytm: ytm.get_podcast(browseId))
-        
         episodes = []
         
-        # Tentar pegar episódios diretamente do podcast
         if podcast:
             # Opção 1: Episódios já vêm no podcast
             if 'episodes' in podcast:
                 if isinstance(podcast['episodes'], list):
-                    episodes = [ensure_thumbnail(e) for e in podcast['episodes']]
+                    episodes = podcast['episodes']
                 elif isinstance(podcast['episodes'], dict) and 'results' in podcast['episodes']:
-                    episodes = [ensure_thumbnail(e) for e in podcast['episodes']['results']]
+                    episodes = podcast['episodes']['results']
             
             # Opção 2: Tentar buscar pelo author ID (canal)
             if not episodes and 'author' in podcast and podcast['author'] and 'id' in podcast['author']:
                 try:
                     author_id = podcast['author']['id']
-                    # Buscar vídeos do canal
                     channel_data = safe_ytmusic_call(lambda ytm: ytm.get_artist(author_id))
                     if channel_data and 'songs' in channel_data and 'results' in channel_data['songs']:
-                        episodes = [ensure_thumbnail(e) for e in channel_data['songs']['results'][:20]]
+                        episodes = channel_data['songs']['results'][:20]
                 except Exception as channel_error:
                     print(f"Erro ao buscar por canal: {str(channel_error)}")
             
@@ -1231,14 +1227,12 @@ def podcast_episodes_endpoint(browseId):
                     search_query = podcast['title']
                     search_results = safe_ytmusic_call(lambda ytm: ytm.search(search_query, filter='videos', limit=10))
                     if search_results:
-                        episodes = [ensure_thumbnail(e) for e in search_results if e.get('resultType') == 'video']
+                        episodes = [e for e in search_results if e.get('resultType') == 'video']
                 except Exception as search_error:
                     print(f"Erro ao buscar por pesquisa: {str(search_error)}")
         
-        print(f"📊 Total de episódios encontrados: {len(episodes)}")
         return jsonify({'success': True, 'episodes': episodes})
     except Exception as e:
-        print(f"❌ Erro ao carregar episódios: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'Erro ao carregar episódios: {str(e)}'}), 500
