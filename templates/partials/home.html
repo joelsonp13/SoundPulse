@@ -1,3 +1,31 @@
+<style>
+/* ⚡ OTIMIZAÇÕES HOME - ULTRA RÁPIDO */
+.home-page {
+    contain: layout style paint;
+    content-visibility: auto;
+}
+
+.content-section {
+    contain: layout style;
+    will-change: contents;
+}
+
+.cards-grid {
+    contain: layout style paint;
+}
+
+.music-card, .album-card, .podcast-card, .playlist-card {
+    contain: layout style paint;
+    will-change: transform;
+}
+
+.music-card-image, .album-card-image, .podcast-card-image, .playlist-card-image {
+    will-change: transform;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+</style>
+
 <div class="home-page p-6">
     <!-- Em Alta Agora -->
     <section class="content-section mb-8">

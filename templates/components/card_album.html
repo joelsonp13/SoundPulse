@@ -3,7 +3,9 @@
         <img class="album-card-image" 
              src="{{ (item.thumbnails[0].url if item.thumbnails else '/static/images/placeholder.jpg')|highres }}"
              alt="{{ item.title }}"
-             loading="lazy"
+             loading="{{ 'eager' if loop.index <= 6 else 'lazy' }}"
+             fetchpriority="{{ 'high' if loop.index <= 3 else 'auto' }}"
+             decoding="async"
              crossorigin="anonymous"
              onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
         <button class="album-card-play-button" onclick="event.stopPropagation(); playAlbumFromCard(this.closest('.album-card'))">

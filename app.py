@@ -992,15 +992,14 @@ def charts_songs(country):
 
 @app.route('/api/trending-songs')
 def trending_songs_endpoint():
-    """Trending songs"""
+    """Trending songs - ULTRA RÁPIDO"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        results = safe_ytmusic_call(lambda ytm: ytm.search('trending music 2024', filter='songs', limit=10))
-        results = [ensure_thumbnail(r) for r in results]
+        results = safe_ytmusic_call(lambda ytm: ytm.search('trending music 2024', filter='songs', limit=8))
         return render_template('components/cards_grid.html', items=results, type='music')
     except Exception as e:
         return render_template('components/error_state.html',
@@ -1009,15 +1008,14 @@ def trending_songs_endpoint():
 
 @app.route('/api/new-releases')
 def new_releases_endpoint():
-    """New album releases"""
+    """New album releases - ULTRA RÁPIDO"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        results = safe_ytmusic_call(lambda ytm: ytm.search('new releases albums 2024', filter='albums', limit=10))
-        results = [ensure_thumbnail(r) for r in results]
+        results = safe_ytmusic_call(lambda ytm: ytm.search('new releases albums 2024', filter='albums', limit=8))
         return render_template('components/cards_grid.html', items=results, type='album')
     except Exception as e:
         return render_template('components/error_state.html',
@@ -1026,33 +1024,28 @@ def new_releases_endpoint():
 
 @app.route('/api/trending-podcasts')
 def trending_podcasts_endpoint():
-    """Trending podcasts"""
+    """Trending podcasts - ULTRA RÁPIDO"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        # Search for popular podcasts
-        results = safe_ytmusic_call(lambda ytm: ytm.search('best podcasts 2024', limit=15))
+        results = safe_ytmusic_call(lambda ytm: ytm.search('best podcasts 2024', limit=12))
         
-        # Filtrar e processar podcasts
         podcasts = []
         for r in results:
-            # Verificar se é podcast ou playlist
             if ('podcast' in str(r.get('resultType', '')).lower() or 
                 'podcast' in str(r.get('category', '')).lower() or
                 r.get('resultType') == 'playlist'):
                 
-                # Melhorar thumbnails se possível
                 if r.get('thumbnails'):
-                    # Pegar a maior thumbnail disponível
                     thumbnails = sorted(r['thumbnails'], key=lambda x: x.get('width', 0) * x.get('height', 0), reverse=True)
                     r['thumbnails'] = thumbnails
                 
-                podcasts.append(ensure_thumbnail(r))
+                podcasts.append(r)
                 
-                if len(podcasts) >= 10:
+                if len(podcasts) >= 8:
                     break
         
         return render_template('components/cards_grid.html', items=podcasts, type='podcast')
