@@ -1,3 +1,7 @@
+<!-- ⚡ OTIMIZAÇÕES DE PERFORMANCE - Preconnect para YouTube -->
+<link rel="preconnect" href="https://i.ytimg.com" crossorigin>
+<link rel="dns-prefetch" href="https://i.ytimg.com">
+
 <style>
 /* ========================================== */
 /* ALBUM ESTILO SPOTIFY */
@@ -229,6 +233,9 @@
     border-radius: 2px;
     object-fit: cover;
     flex-shrink: 0;
+    will-change: transform;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 .spotify-track-details {
@@ -643,7 +650,8 @@
                  class="spotify-album-cover"
                  loading="eager"
                  fetchpriority="high"
-             onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
+                 decoding="async"
+                 onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
             
             <!-- Info -->
             <div class="spotify-album-info">
@@ -707,6 +715,7 @@
                                          class="spotify-track-thumbnail"
                                          :loading="index < 10 ? 'eager' : 'lazy'"
                                          :fetchpriority="index < 5 ? 'high' : 'auto'"
+                                         decoding="async"
                                          onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                                     <div class="spotify-track-details">
                                         <div class="spotify-track-title" x-text="track.title"></div>
