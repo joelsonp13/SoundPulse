@@ -164,11 +164,12 @@ function getHighResThumbnail(url) {
         
         // URLs .jpg do YouTube (i.ytimg.com)
         else if (url.includes('ytimg.com')) {
-            // Vídeos normais - MÁXIMA QUALIDADE
-            url = url.replace(/\/default\.jpg/g, '/maxresdefault.jpg')
-                     .replace(/\/mqdefault\.jpg/g, '/maxresdefault.jpg')
-                     .replace(/\/sddefault\.jpg/g, '/maxresdefault.jpg')
-                     .replace(/\/hqdefault\.jpg/g, '/maxresdefault.jpg');
+            // ⚡ OTIMIZADO: hqdefault é MUITO mais rápido que maxresdefault
+            // hqdefault = 480x360 (suficiente para cards) vs maxresdefault = 1280x720
+            url = url.replace(/\/default\.jpg/g, '/hqdefault.jpg')
+                     .replace(/\/mqdefault\.jpg/g, '/hqdefault.jpg')
+                     .replace(/\/sddefault\.jpg/g, '/hqdefault.jpg')
+                     .replace(/\/maxresdefault\.jpg/g, '/hqdefault.jpg');
             // Playlists/Podcasts - manter URL original (qualidade limitada pela API)
         }
         
@@ -181,6 +182,77 @@ function getHighResThumbnail(url) {
 
 // Expor globalmente para uso no Alpine.js
 window.getHighResThumbnail = getHighResThumbnail;
+
+// ⚡ HOME LOADER - CARREGAMENTO PARALELO ULTRA RÁPIDO
+window.homeLoader = function() {
+    return {
+        sections: {
+            topSongsBR: '',
+            topArtistsBR: '',
+            trendingSongs: '',
+            newReleases: '',
+            trendingPodcasts: '',
+            moodsPreview: ''
+        },
+        
+        async loadAllSections() {
+            console.log('⚡ Iniciando carregamento PROGRESSIVO ultra rápido...');
+            const startTime = performance.now();
+            
+            try {
+                // ⚡ PRIORIDADE 1: Top Songs e Artists (MAIS IMPORTANTES - CARREGAR PRIMEIRO)
+                Promise.all([
+                    fetch('/api/charts/songs/BR').then(r => r.text()),
+                    fetch('/api/charts/artists/BR').then(r => r.text())
+                ]).then(([topSongs, topArtists]) => {
+                    this.sections.topSongsBR = topSongs;
+                    this.sections.topArtistsBR = topArtists;
+                    
+                    const time1 = (performance.now() - startTime).toFixed(0);
+                    console.log(`✅ Seções prioritárias em ${time1}ms`);
+                    
+                    // ⚡ PRELOAD: Pré-carregar primeiras imagens
+                    this.$nextTick(() => {
+                        const firstImages = document.querySelectorAll('#top-songs-br img, #top-artists-br img');
+                        firstImages.forEach((img, index) => {
+                            if (index < 3) {
+                                const preloadImg = new Image();
+                                preloadImg.src = img.src;
+                            }
+                        });
+                    });
+                });
+                
+                // ⚡ PRIORIDADE 2: Trending Songs (APARECE CONFORME CHEGA)
+                fetch('/api/trending-songs').then(r => r.text()).then(html => {
+                    this.sections.trendingSongs = html;
+                    console.log(`✅ Trending Songs em ${(performance.now() - startTime).toFixed(0)}ms`);
+                });
+                
+                // ⚡ PRIORIDADE 3: New Releases (APARECE CONFORME CHEGA)
+                fetch('/api/new-releases').then(r => r.text()).then(html => {
+                    this.sections.newReleases = html;
+                    console.log(`✅ New Releases em ${(performance.now() - startTime).toFixed(0)}ms`);
+                });
+                
+                // ⚡ PRIORIDADE 4: Podcasts e Moods (MENOS URGENTES)
+                fetch('/api/trending-podcasts').then(r => r.text()).then(html => {
+                    this.sections.trendingPodcasts = html;
+                    console.log(`✅ Podcasts em ${(performance.now() - startTime).toFixed(0)}ms`);
+                });
+                
+                fetch('/api/moods-preview').then(r => r.text()).then(html => {
+                    this.sections.moodsPreview = html;
+                    const totalTime = (performance.now() - startTime).toFixed(0);
+                    console.log(`✅ TODAS as seções carregadas em ${totalTime}ms (PROGRESSIVO)`);
+                });
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar home:', error);
+            }
+        }
+    }
+};
 
 // ========================================
 // ALPINE.JS INITIALIZATION

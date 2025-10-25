@@ -6,6 +6,26 @@ import os
 import requests
 from functools import lru_cache
 from datetime import datetime, timedelta
+import time
+
+# ⚡ CACHE SIMPLES - 2 minutos de TTL
+_cache = {}
+_cache_ttl = 120  # 2 minutos
+
+def get_cached(key):
+    """Retorna valor do cache se válido"""
+    if key in _cache:
+        value, timestamp = _cache[key]
+        if time.time() - timestamp < _cache_ttl:
+            return value
+        else:
+            del _cache[key]  # Limpar cache expirado
+    return None
+
+def set_cached(key, value):
+    """Salva valor no cache"""
+    _cache[key] = (value, time.time())
+    return value
 
 app = Flask(__name__)
 
@@ -82,11 +102,12 @@ def highres_thumbnail(url):
         
         # URLs .jpg do YouTube (i.ytimg.com)
         elif 'ytimg.com' in url:
-            # Vídeos normais - MÁXIMA QUALIDADE
-            url = url.replace('/default.jpg', '/maxresdefault.jpg')
-            url = url.replace('/mqdefault.jpg', '/maxresdefault.jpg')
-            url = url.replace('/sddefault.jpg', '/maxresdefault.jpg')
-            url = url.replace('/hqdefault.jpg', '/maxresdefault.jpg')
+            # ⚡ OTIMIZADO: hqdefault é MUITO mais rápido que maxresdefault
+            # hqdefault = 480x360 (suficiente para cards) vs maxresdefault = 1280x720
+            url = url.replace('/default.jpg', '/hqdefault.jpg')
+            url = url.replace('/mqdefault.jpg', '/hqdefault.jpg')
+            url = url.replace('/sddefault.jpg', '/hqdefault.jpg')
+            url = url.replace('/maxresdefault.jpg', '/hqdefault.jpg')
             # Playlists/Podcasts - manter URL original (qualidade limitada pela API)
         
         # USAR PROXY - Solução simples
@@ -959,7 +980,7 @@ def page_podcast(browseId):
 
 @app.route('/api/charts/songs/<country>')
 def charts_songs(country):
-    """Charts songs by country - USA get_charts() oficial do ytmusicapi"""
+    """⚡ Charts songs - 1 BUSCA DIRETA + CACHE"""
     if not yt and not yt_public:
         return render_template('components/error_state.html', 
                              title='Erro',
@@ -967,142 +988,42 @@ def charts_songs(country):
     
     try:
         country_code = country.upper()
-        print(f"\n{'='*60}")
-        print(f"[CHARTS SONGS] Buscando para país: {country_code}")
+        cache_key = f"charts_songs_{country_code}"
         
-        songs = []
-        charts = None
+        # ⚡ VERIFICAR CACHE PRIMEIRO
+        cached_html = get_cached(cache_key)
+        if cached_html:
+            print(f"⚡ [CACHE HIT] Charts Songs {country_code}")
+            return cached_html
         
-        # 🌍 Tentar get_charts() oficial (pode dar 403 Forbidden)
-        try:
-            charts = safe_ytmusic_call(lambda ytm: ytm.get_charts(country=country_code))
-            
-            # DEBUG: Mostrar estrutura completa retornada
-            if charts:
-                print(f"[DEBUG] Estrutura get_charts() retornada:")
-                print(f"  - Keys disponíveis: {list(charts.keys())}")
-                for key, value in charts.items():
-                    if isinstance(value, dict):
-                        print(f"  - charts['{key}']: {list(value.keys())}")
-                        if 'items' in value:
-                            print(f"    - Total items em '{key}': {len(value['items'])}")
-                            if value['items']:
-                                first_item = value['items'][0]
-                                print(f"    - Primeiro item keys: {list(first_item.keys())}")
-                                print(f"    - Primeiro item: {first_item.get('title', 'N/A')}")
-            else:
-                print("[DEBUG] get_charts() retornou None ou vazio!")
-        except Exception as charts_error:
-            # 403 Forbidden ou outro erro - usar fallback
-            error_msg = str(charts_error)
-            if '403' in error_msg or 'Forbidden' in error_msg:
-                print(f"[AVISO] get_charts() retornou 403 Forbidden - sem permissão para charts oficiais")
-                print(f"[SOLUÇÃO] Usando busca específica por país (funciona melhor!)")
-            else:
-                print(f"[AVISO] get_charts() falhou: {error_msg}")
-            charts = None
+        print(f"⚡ [CHARTS SONGS] {country_code}")
         
-        songs = []
-        if charts:
-            # 🎯 MÉTODO 1: Tentar "songs" com "items"
-            if 'songs' in charts and charts['songs']:
-                if 'items' in charts['songs']:
-                    songs = charts['songs']['items'][:8]
-                    print(f"[MÉTODO 1] Encontrado {len(songs)} músicas em charts['songs']['items']")
-                elif 'playlist' in charts['songs']:
-                    # Às vezes vem como "playlist"
-                    songs = charts['songs'].get('playlist', [])[:8]
-                    print(f"[MÉTODO 1B] Encontrado {len(songs)} músicas em charts['songs']['playlist']")
-            
-            # 🎯 MÉTODO 2: Tentar "trending"
-            if not songs and 'trending' in charts and charts['trending']:
-                if 'items' in charts['trending']:
-                    songs = charts['trending']['items'][:8]
-                    print(f"[MÉTODO 2] Encontrado {len(songs)} músicas em charts['trending']['items']")
-            
-            # 🎯 MÉTODO 3: Procurar em TODAS as chaves
-            if not songs:
-                print("[MÉTODO 3] Procurando em todas as chaves...")
-                for key, value in charts.items():
-                    if isinstance(value, dict):
-                        if 'items' in value:
-                            items = value['items']
-                            # Verificar se são músicas (tem videoId)
-                            if items and isinstance(items, list) and items[0].get('videoId'):
-                                songs = items[:8]
-                                print(f"[MÉTODO 3] Encontrado {len(songs)} músicas em charts['{key}']['items']")
-                                break
+        # ⚡ BUSCA DIRETA - SEM FALLBACKS (muito mais rápido!)
+        queries_map = {
+            'BR': 'top Brasil 2024',
+            'US': 'Billboard Hot 100 2024',
+            'MX': 'top Mexico 2024',
+            'AR': 'top Argentina 2024',
+            'GB': 'UK charts 2024',
+            'DE': 'top Germany 2024',
+            'FR': 'top France 2024',
+            'ES': 'top Spain 2024',
+            'IT': 'top Italy 2024',
+            'JP': 'top Japan 2024',
+            'KR': 'top Korea 2024'
+        }
         
-        # Garantir que temos videoId e title
-        songs = [s for s in songs if s.get('videoId') and s.get('title')]
-        print(f"[RESULTADO] Total de músicas válidas: {len(songs)}")
+        query = queries_map.get(country_code, f'top hits {country_code} 2024')
         
-        # 🎯 BUSCA ESPECÍFICA POR PAÍS (melhor que get_charts!)
-        if not songs:
-            print(f"[BUSCA] Procurando top músicas de {country_code}")
-            
-            # 🇧🇷 BRASIL: Queries específicas de gêneros populares
-            if country_code == 'BR':
-                queries = [
-                    'top Brasil 2024',                          # Geral Brasil
-                    'mais tocadas Brasil sertanejo funk',       # Gêneros BR
-                    'Anitta Ludmilla Pedro Sampaio',            # Funk/Pop BR
-                    'Wesley Safadão Gusttavo Lima Marília Mendonça'  # Sertanejo
-                ]
-                print(f"[BRASIL] Usando queries específicas BR: {len(queries)} tentativas")
-            # 🇺🇸 USA
-            elif country_code == 'US':
-                queries = [
-                    'Billboard Hot 100 2024',
-                    'top hits USA 2024',
-                    'trending USA music'
-                ]
-            # 🇲🇽 MÉXICO
-            elif country_code == 'MX':
-                queries = [
-                    'top Mexico 2024 regional mexicano',
-                    'corridos tumbados Mexico',
-                    'Bad Bunny Peso Pluma Mexico'
-                ]
-            # 🇦🇷 ARGENTINA
-            elif country_code == 'AR':
-                queries = [
-                    'top Argentina 2024 cumbia trap',
-                    'Duki Bizarrap Argentina',
-                    'Maria Becerra Argentina'
-                ]
-            # 🌍 OUTROS PAÍSES
-            else:
-                country_names = {
-                    'GB': 'UK', 'DE': 'Germany', 'FR': 'France', 
-                    'IT': 'Italy', 'ES': 'Spain', 'JP': 'Japan', 
-                    'KR': 'Korea', 'ZZ': 'Global'
-                }
-                country_name = country_names.get(country_code, 'trending')
-                queries = [f'top hits {country_name} 2024']
-            
-            # Tentar cada query até conseguir resultados
-            for idx, query in enumerate(queries, 1):
-                print(f"[BUSCA {idx}/{len(queries)}] Query: {query}")
-                songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=10))
-                songs = [s for s in songs if s.get('videoId') and s.get('title')]
-                if len(songs) >= 8:
-                    print(f"[SUCESSO] ✅ {len(songs)} músicas encontradas!")
-                    songs = songs[:8]  # Pegar só 8
-                    break
-                elif songs:
-                    print(f"[PARCIAL] ⚠️ Apenas {len(songs)} músicas, tentando próxima query...")
-            
-            if not songs:
-                # Último fallback: músicas trending globais
-                print(f"[FALLBACK FINAL] Usando trending global")
-                songs = safe_ytmusic_call(lambda ytm: ytm.search('trending music 2024', filter='songs', limit=8))
-                songs = [s for s in songs if s.get('videoId') and s.get('title')]
+        # ⚡ BUSCA DIRETA - limite reduzido para 6 (mais rápido!)
+        songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=6))
         
-        print(f"[FINAL] Retornando {len(songs)} músicas")
-        print(f"{'='*60}\n")
+        # Garantir videoId e title
+        songs = [s for s in songs if s.get('videoId') and s.get('title')][:6]
+        print(f"✅ {len(songs)} músicas")
         
-        return render_template('components/cards_grid.html', items=songs, type='music')
+        html = render_template('components/cards_grid.html', items=songs, type='music')
+        return set_cached(cache_key, html)
     except Exception as e:
         print(f"[ERRO] em charts_songs: {str(e)}")
         import traceback
@@ -1115,15 +1036,23 @@ def charts_songs(country):
 
 @app.route('/api/trending-songs')
 def trending_songs_endpoint():
-    """Trending songs - ULTRA RÁPIDO"""
+    """⚡ Trending songs + CACHE"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        results = safe_ytmusic_call(lambda ytm: ytm.search('trending music 2024', filter='songs', limit=8))
-        return render_template('components/cards_grid.html', items=results, type='music')
+        cache_key = "trending_songs"
+        cached_html = get_cached(cache_key)
+        if cached_html:
+            print(f"⚡ [CACHE HIT] Trending Songs")
+            return cached_html
+        
+        # ⚡ Limite reduzido para 6 (mais rápido!)
+        results = safe_ytmusic_call(lambda ytm: ytm.search('top hits 2024', filter='songs', limit=6))
+        html = render_template('components/cards_grid.html', items=results, type='music')
+        return set_cached(cache_key, html)
     except Exception as e:
         return render_template('components/error_state.html',
                              title='Erro ao carregar músicas',
@@ -1131,15 +1060,23 @@ def trending_songs_endpoint():
 
 @app.route('/api/new-releases')
 def new_releases_endpoint():
-    """New album releases - ULTRA RÁPIDO"""
+    """⚡ New releases + CACHE"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        results = safe_ytmusic_call(lambda ytm: ytm.search('new releases albums 2024', filter='albums', limit=8))
-        return render_template('components/cards_grid.html', items=results, type='album')
+        cache_key = "new_releases"
+        cached_html = get_cached(cache_key)
+        if cached_html:
+            print(f"⚡ [CACHE HIT] New Releases")
+            return cached_html
+        
+        # ⚡ Limite reduzido para 6
+        results = safe_ytmusic_call(lambda ytm: ytm.search('new albums 2024', filter='albums', limit=6))
+        html = render_template('components/cards_grid.html', items=results, type='album')
+        return set_cached(cache_key, html)
     except Exception as e:
         return render_template('components/error_state.html',
                              title='Erro ao carregar lançamentos',
@@ -1147,14 +1084,21 @@ def new_releases_endpoint():
 
 @app.route('/api/trending-podcasts')
 def trending_podcasts_endpoint():
-    """Trending podcasts - ULTRA RÁPIDO"""
+    """⚡ Trending podcasts + CACHE"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        results = safe_ytmusic_call(lambda ytm: ytm.search('best podcasts 2024', limit=12))
+        cache_key = "trending_podcasts"
+        cached_html = get_cached(cache_key)
+        if cached_html:
+            print(f"⚡ [CACHE HIT] Trending Podcasts")
+            return cached_html
+        
+        # ⚡ Limite reduzido para 8 (filtrado para 6)
+        results = safe_ytmusic_call(lambda ytm: ytm.search('best podcasts', limit=8))
         
         podcasts = []
         for r in results:
@@ -1168,10 +1112,11 @@ def trending_podcasts_endpoint():
                 
                 podcasts.append(r)
                 
-                if len(podcasts) >= 8:
+                if len(podcasts) >= 6:  # ⚡ Reduzido de 8 para 6
                     break
         
-        return render_template('components/cards_grid.html', items=podcasts, type='podcast')
+        html = render_template('components/cards_grid.html', items=podcasts, type='podcast')
+        return set_cached(cache_key, html)
     except Exception as e:
         return render_template('components/error_state.html',
                              title='Erro ao carregar podcasts',
@@ -1179,7 +1124,7 @@ def trending_podcasts_endpoint():
 
 @app.route('/api/charts/artists/<country>')
 def charts_artists(country):
-    """Charts artists by country - USA get_charts() oficial do ytmusicapi"""
+    """⚡ Charts artists + CACHE"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
@@ -1187,122 +1132,40 @@ def charts_artists(country):
     
     try:
         country_code = country.upper()
-        print(f"\n{'='*60}")
-        print(f"[CHARTS ARTISTS] Buscando para país: {country_code}")
+        cache_key = f"charts_artists_{country_code}"
         
-        artists = []
-        charts = None
+        # ⚡ VERIFICAR CACHE
+        cached_html = get_cached(cache_key)
+        if cached_html:
+            print(f"⚡ [CACHE HIT] Charts Artists {country_code}")
+            return cached_html
         
-        # 🌍 Tentar get_charts() oficial (pode dar 403 Forbidden)
-        try:
-            charts = safe_ytmusic_call(lambda ytm: ytm.get_charts(country=country_code))
-            
-            # DEBUG: Mostrar estrutura
-            if charts:
-                print(f"[DEBUG] Estrutura get_charts() para artistas:")
-                print(f"  - Keys disponíveis: {list(charts.keys())}")
-        except Exception as charts_error:
-            # 403 Forbidden ou outro erro - usar fallback
-            error_msg = str(charts_error)
-            if '403' in error_msg or 'Forbidden' in error_msg:
-                print(f"[AVISO] get_charts() retornou 403 Forbidden - sem permissão")
-                print(f"[SOLUÇÃO] Usando busca específica de artistas")
-            else:
-                print(f"[AVISO] get_charts() falhou: {error_msg}")
-            charts = None
+        print(f"⚡ [CHARTS ARTISTS] {country_code}")
         
-        artists = []
-        if charts:
-            # 🎯 MÉTODO 1: Tentar "artists" com "items"
-            if 'artists' in charts and charts['artists']:
-                if 'items' in charts['artists']:
-                    artists = charts['artists']['items'][:8]
-                    print(f"[MÉTODO 1] Encontrado {len(artists)} artistas em charts['artists']['items']")
-            
-            # 🎯 MÉTODO 2: Procurar em todas as chaves
-            if not artists:
-                print("[MÉTODO 2] Procurando artistas em todas as chaves...")
-                for key, value in charts.items():
-                    if isinstance(value, dict) and 'items' in value:
-                        items = value.get('items', [])
-                        # Verificar se são artistas (tem browseId e subscribers)
-                        if items and isinstance(items, list):
-                            first = items[0]
-                            if first.get('browseId') and ('subscribers' in first or 'artist' in str(first).lower()):
-                                artists = items[:8]
-                                print(f"[MÉTODO 2] Encontrado {len(artists)} artistas em charts['{key}']['items']")
-                                break
+        # ⚡ BUSCA DIRETA - SEM FALLBACKS
+        queries_map = {
+            'BR': 'artistas brasileiros populares',
+            'US': 'top USA artists 2024',
+            'MX': 'artistas mexicanos populares',
+            'AR': 'artistas argentinos populares',
+            'GB': 'UK top artists',
+            'DE': 'top Germany artists',
+            'FR': 'top France artists',
+            'ES': 'top Spain artists',
+            'IT': 'top Italy artists',
+            'JP': 'top Japan artists',
+            'KR': 'top Korea artists'
+        }
         
-        # Garantir que temos browseId
-        artists = [a for a in artists if a.get('browseId')]
-        print(f"[RESULTADO] Total de artistas válidos: {len(artists)}")
+        query = queries_map.get(country_code, f'top artists {country_code}')
         
-        # 🎯 BUSCA ESPECÍFICA DE ARTISTAS POR PAÍS
-        if not artists:
-            print(f"[BUSCA] Procurando top artistas de {country_code}")
-            
-            # 🇧🇷 BRASIL: Artistas mais populares
-            if country_code == 'BR':
-                queries = [
-                    'artistas brasileiros mais ouvidos 2024',
-                    'Anitta Ludmilla Iza Wesley Safadão',
-                    'Gusttavo Lima Jorge e Mateus Simone Mendes',
-                    'Pedro Sampaio Mc Daniel Mc Ryan SP'
-                ]
-                print(f"[BRASIL] Usando queries específicas BR: {len(queries)} tentativas")
-            # 🇺🇸 USA
-            elif country_code == 'US':
-                queries = [
-                    'top USA artists 2024 Billboard',
-                    'Taylor Swift Drake Bad Bunny',
-                    'trending USA artists'
-                ]
-            # 🇲🇽 MÉXICO
-            elif country_code == 'MX':
-                queries = [
-                    'artistas mexicanos populares 2024',
-                    'Peso Pluma Grupo Frontera Eslabón Armado',
-                    'regional mexicano artistas'
-                ]
-            # 🇦🇷 ARGENTINA
-            elif country_code == 'AR':
-                queries = [
-                    'artistas argentinos populares 2024',
-                    'Bizarrap Duki Maria Becerra',
-                    'trap cumbia Argentina artistas'
-                ]
-            # 🌍 OUTROS PAÍSES
-            else:
-                country_names = {
-                    'GB': 'UK', 'DE': 'Germany', 'FR': 'France',
-                    'IT': 'Italy', 'ES': 'Spain', 'JP': 'Japan',
-                    'KR': 'Korea', 'ZZ': 'Global'
-                }
-                country_name = country_names.get(country_code, 'trending')
-                queries = [f'top artists {country_name} 2024']
-            
-            # Tentar cada query até conseguir resultados
-            for idx, query in enumerate(queries, 1):
-                print(f"[BUSCA {idx}/{len(queries)}] Query: {query}")
-                artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=10))
-                artists = [a for a in artists if a.get('browseId')]
-                if len(artists) >= 8:
-                    print(f"[SUCESSO] ✅ {len(artists)} artistas encontrados!")
-                    artists = artists[:8]  # Pegar só 8
-                    break
-                elif artists:
-                    print(f"[PARCIAL] ⚠️ Apenas {len(artists)} artistas, tentando próxima query...")
-            
-            if not artists:
-                # Último fallback: artistas trending globais
-                print(f"[FALLBACK FINAL] Usando artistas trending globais")
-                artists = safe_ytmusic_call(lambda ytm: ytm.search('popular artists 2024', filter='artists', limit=8))
-                artists = [a for a in artists if a.get('browseId')]
+        # ⚡ BUSCA DIRETA - limite reduzido para 6
+        artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=6))
+        artists = [a for a in artists if a.get('browseId')][:6]
+        print(f"✅ {len(artists)} artistas")
         
-        print(f"[FINAL] Retornando {len(artists)} artistas")
-        print(f"{'='*60}\n")
-        
-        return render_template('components/cards_grid.html', items=artists, type='artist')
+        html = render_template('components/cards_grid.html', items=artists, type='artist')
+        return set_cached(cache_key, html)
     except Exception as e:
         print(f"[ERRO] em charts_artists: {str(e)}")
         import traceback
@@ -1483,13 +1346,19 @@ def get_moods_endpoint():
 
 @app.route('/api/moods-preview')
 def get_moods_preview_endpoint():
-    """Get mood categories preview (first 6)"""
+    """⚡ Mood categories preview + CACHE"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
+        cache_key = "moods_preview"
+        cached_html = get_cached(cache_key)
+        if cached_html:
+            print(f"⚡ [CACHE HIT] Moods Preview")
+            return cached_html
+        
         mood_data = safe_ytmusic_call(lambda ytm: ytm.get_mood_categories())
         # mood_data é dict com {'Moods & moments': [...], 'Genres': [...]}
         moods = []
@@ -1499,7 +1368,8 @@ def get_moods_preview_endpoint():
                     moods.extend(items)
         # Pega apenas os primeiros 6
         moods_preview = moods[:6] if len(moods) > 6 else moods
-        return render_template('partials/mood_categories.html', moods=moods_preview)
+        html = render_template('partials/mood_categories.html', moods=moods_preview)
+        return set_cached(cache_key, html)
     except Exception as e:
         print(f"Erro em get_moods_preview: {str(e)}")
         return render_template('components/error_state.html',

@@ -25,83 +25,193 @@
     image-rendering: crisp-edges;
 }
 
-/* 🔥 SCROLL HORIZONTAL - ESTILO MODERNO */
-.horizontal-scroll-container {
+/* 🔥 SCROLL HORIZONTAL - SISTEMA DO SEARCH (MELHORADO) */
+.scroll-container {
+    display: flex;
+    gap: 1.5rem;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: visible;
+    padding: 1rem 0.5rem 1.5rem;
+    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-    padding-bottom: 1rem;
+    scrollbar-color: rgba(6, 182, 212, 0.5) rgba(30, 41, 59, 0.3);
+    max-width: 80rem; /* max-w-7xl - Limita largura em telas grandes */
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.horizontal-scroll-container::-webkit-scrollbar {
+/* Scrollbar Personalizada (Webkit) */
+.scroll-container::-webkit-scrollbar {
     height: 8px;
 }
 
-.horizontal-scroll-container::-webkit-scrollbar-track {
-    background: transparent;
+.scroll-container::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.3);
+    border-radius: 10px;
+    margin: 0 1rem;
 }
 
-.horizontal-scroll-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
+.scroll-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.6), rgba(59, 130, 246, 0.6));
+    border-radius: 10px;
+    transition: all 0.3s ease;
 }
 
-.horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
+.scroll-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.9), rgba(59, 130, 246, 0.9));
 }
 
-/* Força flex quando cards-grid está dentro de horizontal-scroll */
-.horizontal-scroll-container .cards-grid {
+/* FORÇA FLEX quando cards-grid está dentro de scroll-container */
+.scroll-container .cards-grid {
     display: flex !important;
-    gap: 1rem;
-    padding: 0.5rem 0;
+    gap: 1.5rem;
     flex-wrap: nowrap;
+    padding: 0;
 }
 
-/* Cards compactos no scroll horizontal */
-.horizontal-scroll-container .music-card,
-.horizontal-scroll-container .artist-card {
-    min-width: 180px;
-    max-width: 180px;
+/* Cards no scroll horizontal */
+.scroll-container .music-card,
+.scroll-container .artist-card {
+    flex-shrink: 0;
+    width: 200px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Foco para acessibilidade */
+.scroll-container .music-card:focus,
+.scroll-container .artist-card:focus {
+    outline: 2px solid rgba(6, 182, 212, 0.5);
+    outline-offset: 4px;
+}
+
+/* Garantir altura fixa dos títulos para cards uniformes */
+.scroll-container .music-card-title,
+.scroll-container .artist-card-title {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-height: 2.5rem !important;
+    max-height: 2.5rem !important;
+    height: 2.5rem !important;
+    line-height: 1.25rem !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+}
+
+/* Artista/Subtítulo - uma linha apenas */
+.scroll-container .music-card-artist,
+.scroll-container .artist-card-type {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Garantir que os wrappers de imagem não quebrem o layout */
+.scroll-container .music-card-image-wrapper,
+.scroll-container .artist-card-image-wrapper {
     flex-shrink: 0;
 }
 
-/* 🎯 BOTÕES DE NAVEGAÇÃO SCROLL */
-.scroll-section-wrapper {
-    position: relative;
+/* Layout flexbox para conteúdo de texto */
+.scroll-container .music-card > div:last-child,
+.scroll-container .artist-card > div:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
+/* Garantir ellipsis em títulos longos - Suporte universal */
+.playlist-card-title,
+.artist-card-title,
+.music-card-title,
+.album-card-title {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    line-height: 1.25rem !important;
+}
+
+/* 🎯 BOTÕES DE NAVEGAÇÃO - GLASSMORPHISM MODERNO */
 .scroll-nav-button {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
+    z-index: 10;
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    border: none;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Glassmorphism com gradiente */
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(6, 182, 212, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(6, 182, 212, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.scroll-nav-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(6, 182, 212, 0.2), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.scroll-nav-button:hover::before {
+    opacity: 1;
 }
 
 .scroll-nav-button:hover {
-    background: rgba(0, 188, 212, 0.9);
-    border-color: rgba(0, 188, 212, 0.5);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3));
+    border-color: rgba(6, 182, 212, 0.7);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(6, 182, 212, 0.6),
+                0 0 60px rgba(6, 182, 212, 0.3),
+                inset 0 2px 4px rgba(255, 255, 255, 0.15);
     transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
 }
 
 .scroll-nav-button:active {
     transform: translateY(-50%) scale(0.95);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6),
+                0 0 30px rgba(6, 182, 212, 0.8),
+                inset 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-nav-button i {
+    font-size: 20px;
+    color: white;
+    text-shadow: 0 0 10px rgba(6, 182, 212, 0.8),
+                 0 0 20px rgba(6, 182, 212, 0.5);
+    transition: all 0.3s ease;
+}
+
+.scroll-nav-button:hover i {
+    text-shadow: 0 0 15px rgba(6, 182, 212, 1),
+                 0 0 30px rgba(6, 182, 212, 0.7);
+    transform: scale(1.1);
 }
 
 .scroll-nav-button.left {
@@ -112,97 +222,147 @@
     right: -24px;
 }
 
-.scroll-nav-button i {
-    font-size: 1.25rem;
-}
-
-/* 📱 ARRASTAR COM MOUSE E TOQUE */
-.horizontal-scroll-container {
-    cursor: grab;
-    user-select: none;
-    -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
-}
-
-.horizontal-scroll-container:active {
-    cursor: grabbing;
-}
-
-.horizontal-scroll-container.dragging {
-    scroll-behavior: auto !important; /* Desabilita smooth ao arrastar */
-}
-
-/* Ocultar botões em telas pequenas */
-@media (max-width: 768px) {
+/* 📱 RESPONSIVO */
+@media (max-width: 639px) {
+    .scroll-container .cards-grid {
+        gap: 1rem !important;
+    }
+    
+    .scroll-container .music-card,
+    .scroll-container .artist-card {
+        width: 150px !important;
+        min-height: 250px !important;
+    }
+    
     .scroll-nav-button {
-        display: none;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .scroll-nav-button i {
+        font-size: 16px;
+    }
+    
+    .scroll-nav-button.left {
+        left: -12px;
+    }
+    
+    .scroll-nav-button.right {
+        right: -12px;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+    .scroll-container .cards-grid {
+        gap: 1.25rem !important;
+    }
+    
+    .scroll-container .music-card,
+    .scroll-container .artist-card {
+        width: 180px !important;
+        min-height: 270px !important;
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1439px) {
+    .scroll-container .cards-grid,
+    .scroll-container {
+        gap: 1.75rem !important;
+    }
+    
+    .scroll-container .music-card,
+    .scroll-container .artist-card {
+        width: 200px !important;
+        min-height: 280px !important;
+    }
+}
+
+@media (min-width: 1440px) {
+    .scroll-container .cards-grid,
+    .scroll-container {
+        gap: 2rem !important;
+    }
+    
+    .scroll-container .music-card,
+    .scroll-container .artist-card {
+        width: 220px !important;
+        min-height: 300px !important;
     }
 }
 </style>
 
-<div class="home-page p-6">
+<div class="home-page p-6" x-data="homeLoader()" x-init="loadAllSections()">
     <!-- 🔥 Top Músicas Brasil - Scroll Horizontal -->
-    <section class="content-section mb-8" x-data="scrollSection()">
+    <section class="content-section mb-8">
         <div class="section-header">
             <h2 class="section-title">🔥 Top Músicas - Brasil</h2>
             <a href="/pages/charts" class="section-show-all">Ver mais</a>
         </div>
-        <div class="scroll-section-wrapper">
-            <button @click="scrollLeft()" class="scroll-nav-button left" aria-label="Anterior" type="button">
+
+        <!-- Container com Scroll Horizontal -->
+        <div class="relative" x-data="{ scrollContainer: null }" x-init="scrollContainer = $el.querySelector('.scroll-container')">
+
+            <!-- Botão Esquerda -->
+            <button @click="scrollContainer.scrollBy({ left: -400, behavior: 'smooth' })"
+                    class="scroll-nav-button left"
+                    aria-label="Rolar músicas para a esquerda"
+                    type="button">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <div x-ref="container" 
-                 class="horizontal-scroll-container" 
-                 hx-get="/api/charts/songs/BR" 
-                 hx-trigger="load" 
-                 hx-swap="innerHTML"
-                 @mousedown="startDrag($event)"
-                 @mousemove="drag($event)"
-                 @mouseup="endDrag()"
-                 @mouseleave="endDrag()"
-                 @touchstart="startDrag($event)"
-                 @touchmove="drag($event)"
-                 @touchend="endDrag()">
+
+            <!-- Container de Scroll -->
+            <div class="scroll-container" id="top-songs-br" x-html="sections.topSongsBR">
                 <div class="text-center py-8">
                     <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
                     <p class="mt-2 text-gray-400">Carregando...</p>
                 </div>
             </div>
-            <button @click="scrollRight()" class="scroll-nav-button right" aria-label="Próximo" type="button">
+
+            <!-- Botão Direita -->
+            <button @click="scrollContainer.scrollBy({ left: 400, behavior: 'smooth' })"
+                    class="scroll-nav-button right"
+                    aria-label="Rolar músicas para a direita"
+                    type="button">
                 <i class="fas fa-chevron-right"></i>
             </button>
+
         </div>
     </section>
 
     <!-- 🎤 Top Artistas Brasil - Scroll Horizontal -->
-    <section class="content-section mb-8" x-data="scrollSection()">
+    <section class="content-section mb-8">
         <div class="section-header">
             <h2 class="section-title">🎤 Top Artistas - Brasil</h2>
             <a href="/pages/charts" class="section-show-all">Ver mais</a>
         </div>
-        <div class="scroll-section-wrapper">
-            <button @click="scrollLeft()" class="scroll-nav-button left" aria-label="Anterior" type="button">
+
+        <!-- Container com Scroll Horizontal -->
+        <div class="relative" x-data="{ scrollContainer: null }" x-init="$nextTick(() => scrollContainer = $el.querySelector('.scroll-container'))">
+
+            <!-- Botão Esquerda -->
+            <button @click="scrollContainer?.scrollBy({ left: -400, behavior: 'smooth' })"
+                    class="scroll-nav-button left"
+                    aria-label="Rolar artistas para a esquerda"
+                    type="button">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <div x-ref="container" 
-                 class="horizontal-scroll-container" 
-                 hx-get="/api/charts/artists/BR" 
-                 hx-trigger="load" 
-                 hx-swap="innerHTML"
-                 @mousedown="startDrag($event)"
-                 @mousemove="drag($event)"
-                 @mouseup="endDrag()"
-                 @mouseleave="endDrag()"
-                 @touchstart="startDrag($event)"
-                 @touchmove="drag($event)"
-                 @touchend="endDrag()">
+
+            <!-- Container de Scroll -->
+            <div class="scroll-container" id="top-artists-br" x-html="sections.topArtistsBR">
                 <div class="text-center py-8">
                     <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
                     <p class="mt-2 text-gray-400">Carregando...</p>
                 </div>
             </div>
-            <button @click="scrollRight()" class="scroll-nav-button right" aria-label="Próximo" type="button">
+
+            <!-- Botão Direita -->
+            <button @click="scrollContainer?.scrollBy({ left: 400, behavior: 'smooth' })"
+                    class="scroll-nav-button right"
+                    aria-label="Rolar artistas para a direita"
+                    type="button">
                 <i class="fas fa-chevron-right"></i>
             </button>
+
         </div>
     </section>
 
@@ -212,7 +372,7 @@
             <h2 class="section-title">Em Alta Agora</h2>
             <a href="#" class="section-show-all">Mostrar tudo</a>
         </div>
-        <div hx-get="/api/trending-songs" hx-trigger="load" hx-swap="innerHTML">
+        <div id="trending-songs" x-html="sections.trendingSongs">
             <div class="text-center py-8">
                 <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
                 <p class="mt-2 text-gray-400">Carregando...</p>
@@ -226,7 +386,7 @@
             <h2 class="section-title">Novos Lançamentos</h2>
             <a href="#" class="section-show-all">Mostrar tudo</a>
         </div>
-        <div hx-get="/api/new-releases" hx-trigger="load" hx-swap="innerHTML">
+        <div id="new-releases" x-html="sections.newReleases">
             <div class="text-center py-8">
                 <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
                 <p class="mt-2 text-gray-400">Carregando...</p>
@@ -240,21 +400,7 @@
             <h2 class="section-title">Podcasts em Alta</h2>
             <a href="#" class="section-show-all">Mostrar tudo</a>
         </div>
-        <div hx-get="/api/trending-podcasts" hx-trigger="load" hx-swap="innerHTML">
-            <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
-                <p class="mt-2 text-gray-400">Carregando...</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Top Charts (País Selecionado) -->
-    <section class="content-section mb-8">
-        <h2 class="section-title">🔥 Top Músicas - Brasil</h2>
-        <div hx-get="/api/charts/songs/BR" 
-             hx-trigger="load, countryChanged from:body" 
-             hx-swap="innerHTML"
-             id="charts-songs-section">
+        <div id="trending-podcasts" x-html="sections.trendingPodcasts">
             <div class="text-center py-8">
                 <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
                 <p class="mt-2 text-gray-400">Carregando...</p>
@@ -268,7 +414,7 @@
             <h2 class="section-title">Explorar por Humor</h2>
             <a href="#" class="section-show-all">Mostrar tudo</a>
         </div>
-        <div hx-get="/api/moods-preview" hx-trigger="load" hx-swap="innerHTML">
+        <div id="moods-preview" x-html="sections.moodsPreview">
             <div class="text-center py-8">
                 <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
                 <p class="mt-2 text-gray-400">Carregando...</p>
@@ -276,4 +422,3 @@
         </div>
     </section>
 </div>
-

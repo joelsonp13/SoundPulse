@@ -485,59 +485,71 @@
     podcastId: '',
     podcast: null,
     episodes: [],
+    visibleEpisodes: [],
     loading: true,
+    renderBatchSize: 15,
     
     init() {
         // Pegar ID do podcast
         this.podcastId = this.$el.getAttribute('data-podcast-id');
         console.log('🎙️ Carregando podcast:', this.podcastId);
         
-        // Carregar dados do podcast
-        this.loadPodcast();
+        // ⚡ MOSTRAR SKELETON IMEDIATAMENTE
+        this.loading = false;
+        
+        // Carregar dados do podcast (SEM BLOQUEAR)
+        this.$nextTick(() => this.loadPodcast());
     },
     
     async loadPodcast() {
         if (!this.podcastId) {
             console.error('❌ ID do podcast não encontrado');
-            this.loading = false;
             return;
         }
         
         try {
-            // ⚡ CARREGAR EM PARALELO para ser mais rápido
-            const [podcastRes, episodesRes] = await Promise.all([
-                fetch('/api/podcast/' + this.podcastId),
-                fetch('/api/podcast/' + this.podcastId + '/episodes')
-            ]);
+            // ⚡ ULTRA RÁPIDO: Carregar INFO primeiro (mais leve)
+            const podcastRes = await fetch('/api/podcast/' + this.podcastId);
+            const podcastData = await podcastRes.json();
             
-            const [podcastData, episodesData] = await Promise.all([
-                podcastRes.json(),
-                episodesRes.json()
-            ]);
-            
-            // Processar dados do podcast
             if (podcastData.success) {
                 this.podcast = podcastData.podcast;
                 console.log('✅ Podcast carregado:', this.podcast.title);
-            } else {
-                console.error('❌ Erro:', podcastData.error);
+                
+                // ⚡ PRELOAD: Pré-carregar imagem do header
+                if (this.podcast.thumbnails?.[0]?.url) {
+                    const img = new Image();
+                    img.src = this.getHighResThumbnail(this.podcast.thumbnails[0].url);
+                }
             }
             
-            // Processar episódios
+            // ⚡ Depois carrega EPISÓDIOS (mais pesado) - NÃO BLOQUEIA
+            const episodesRes = await fetch('/api/podcast/' + this.podcastId + '/episodes');
+            const episodesData = await episodesRes.json();
+            
             if (episodesData.success) {
                 this.episodes = episodesData.episodes || [];
                 console.log('✅ Episódios carregados:', this.episodes.length);
+                
+                // ⚡ RENDERIZAÇÃO PROGRESSIVA: Mostrar primeiros 15 imediatamente
+                this.visibleEpisodes = this.episodes.slice(0, this.renderBatchSize);
+                
+                // ⚡ Depois renderizar o resto sem bloquear
+                if (this.episodes.length > this.renderBatchSize) {
+                    requestAnimationFrame(() => {
+                        this.visibleEpisodes = this.episodes;
+                    });
+                }
             } else {
-                console.error('❌ Erro ao carregar episódios:', episodesData.error);
-                this.episodes = []; // Garantir que seja array vazio
+                this.episodes = [];
+                this.visibleEpisodes = [];
             }
             
         } catch (error) {
             console.error('❌ Erro ao carregar podcast:', error);
-            this.episodes = []; // Garantir que episodes seja sempre um array
+            this.episodes = [];
+            this.visibleEpisodes = [];
             this.podcast = null;
-        } finally {
-            this.loading = false;
         }
     },
     
@@ -614,21 +626,20 @@
         <!-- Episodes List -->
         <div class="spotify-episodes-container">
             <!-- Loading Episodes -->
-            <div x-show="episodes.length === 0" class="spotify-loading" style="padding: 2rem;">
+            <div x-show="visibleEpisodes.length === 0" class="spotify-loading" style="padding: 2rem;">
                 <i class="fas fa-spinner fa-spin"></i>
                 <span>Carregando episódios...</span>
             </div>
             
             <!-- Episodes -->
-            <div x-show="episodes.length > 0" style="display: none;">
-                <template x-for="(episode, index) in (episodes || [])" :key="'episode-' + index">
+            <div x-show="visibleEpisodes.length > 0" style="display: none;">
+                <template x-for="(episode, index) in (visibleEpisodes || [])" :key="'episode-' + index">
                     <div class="spotify-episode-item" @click="playEpisode(episode, index)">
                         <!-- Thumbnail -->
                         <img :src="episode.thumbnails && episode.thumbnails[0] ? getHighResThumbnail(episode.thumbnails[0].url) : (podcast && podcast.thumbnails && podcast.thumbnails[0] ? getHighResThumbnail(podcast.thumbnails[0].url) : '/static/images/placeholder.jpg')"
                              :alt="episode.title"
                              class="spotify-episode-thumbnail"
-                             :loading="index < 10 ? 'eager' : 'lazy'"
-                             :fetchpriority="index < 5 ? 'high' : 'auto'"
+                             loading="lazy"
                              decoding="async"
                              onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                         

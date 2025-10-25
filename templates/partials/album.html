@@ -541,59 +541,71 @@
     albumId: '',
     album: null,
     tracks: [],
+    visibleTracks: [],
     loading: true,
+    renderBatchSize: 20,
     
     init() {
         // Pegar ID do álbum
         this.albumId = this.$el.getAttribute('data-album-id');
         console.log('💿 Carregando álbum:', this.albumId);
         
-        // Carregar dados do álbum
-        this.loadAlbum();
+        // ⚡ MOSTRAR SKELETON IMEDIATAMENTE
+        this.loading = false;
+        
+        // Carregar dados do álbum (SEM BLOQUEAR)
+        this.$nextTick(() => this.loadAlbum());
     },
     
     async loadAlbum() {
         if (!this.albumId) {
             console.error('❌ ID do álbum não encontrado');
-            this.loading = false;
             return;
         }
         
         try {
-            // ⚡ CARREGAR EM PARALELO para ser mais rápido
-            const [albumRes, tracksRes] = await Promise.all([
-                fetch('/api/album/' + this.albumId),
-                fetch('/api/album/' + this.albumId + '/tracks')
-            ]);
+            // ⚡ ULTRA RÁPIDO: Carregar INFO primeiro (mais leve)
+            const albumRes = await fetch('/api/album/' + this.albumId);
+            const albumData = await albumRes.json();
             
-            const [albumData, tracksData] = await Promise.all([
-                albumRes.json(),
-                tracksRes.json()
-            ]);
-            
-            // Processar dados do álbum
             if (albumData.success) {
                 this.album = albumData.album;
                 console.log('✅ Álbum carregado:', this.album.title);
-            } else {
-                console.error('❌ Erro:', albumData.error);
+                
+                // ⚡ PRELOAD: Pré-carregar imagem do header
+                if (this.album.thumbnails?.[0]?.url) {
+                    const img = new Image();
+                    img.src = this.getHighResThumbnail(this.album.thumbnails[0].url);
+                }
             }
             
-            // Processar tracks
+            // ⚡ Depois carrega TRACKS (mais pesado) - NÃO BLOQUEIA
+            const tracksRes = await fetch('/api/album/' + this.albumId + '/tracks');
+            const tracksData = await tracksRes.json();
+            
             if (tracksData.success) {
                 this.tracks = tracksData.tracks || [];
                 console.log('✅ Tracks carregadas:', this.tracks.length);
+                
+                // ⚡ RENDERIZAÇÃO PROGRESSIVA: Mostrar primeiras 20 imediatamente
+                this.visibleTracks = this.tracks.slice(0, this.renderBatchSize);
+                
+                // ⚡ Depois renderizar o resto sem bloquear
+                if (this.tracks.length > this.renderBatchSize) {
+                    requestAnimationFrame(() => {
+                        this.visibleTracks = this.tracks;
+                    });
+                }
             } else {
-                console.error('❌ Erro ao carregar tracks:', tracksData.error);
-                this.tracks = []; // Garantir que seja array vazio
+                this.tracks = [];
+                this.visibleTracks = [];
             }
             
         } catch (error) {
             console.error('❌ Erro ao carregar álbum:', error);
-            this.tracks = []; // Garantir que tracks seja sempre um array
+            this.tracks = [];
+            this.visibleTracks = [];
             this.album = null;
-        } finally {
-            this.loading = false;
         }
     },
     
@@ -680,13 +692,13 @@
         <!-- Tracks Table -->
         <div class="spotify-tracks-container">
             <!-- Loading Tracks -->
-            <div x-show="tracks.length === 0" class="spotify-loading" style="padding: 2rem;">
+            <div x-show="visibleTracks.length === 0" class="spotify-loading" style="padding: 2rem;">
                 <i class="fas fa-spinner fa-spin"></i>
                 <span>Carregando músicas...</span>
             </div>
             
             <!-- Table -->
-            <table x-show="tracks.length > 0" class="spotify-tracks-table" style="display: none;">
+            <table x-show="visibleTracks.length > 0" class="spotify-tracks-table" style="display: none;">
                 <thead class="spotify-tracks-header">
                     <tr>
                         <th>#</th>
@@ -695,7 +707,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="(track, index) in (tracks || [])" :key="'track-' + index">
+                    <template x-for="(track, index) in (visibleTracks || [])" :key="'track-' + index">
                         <tr class="spotify-track-row" @click="playTrack(track, index)">
                             <!-- Número / Play -->
                             <td class="spotify-track-number">
@@ -709,8 +721,7 @@
                                     <img :src="track.thumbnails && track.thumbnails[0] ? getHighResThumbnail(track.thumbnails[0].url) : '/static/images/placeholder.jpg'"
                                          :alt="track.title"
                                          class="spotify-track-thumbnail"
-                                         :loading="index < 10 ? 'eager' : 'lazy'"
-                                         :fetchpriority="index < 5 ? 'high' : 'auto'"
+                                         loading="lazy"
                                          decoding="async"
                                          onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                                     <div class="spotify-track-details">

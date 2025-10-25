@@ -569,59 +569,71 @@
     playlistId: '',
     playlist: null,
     tracks: [],
+    visibleTracks: [],
     loading: true,
+    renderBatchSize: 20,
     
     init() {
         // Pegar ID da playlist
         this.playlistId = this.$el.getAttribute('data-playlist-id');
         console.log('🎵 Carregando playlist:', this.playlistId);
         
-        // Carregar dados da playlist
-        this.loadPlaylist();
+        // ⚡ MOSTRAR SKELETON IMEDIATAMENTE
+        this.loading = false;
+        
+        // Carregar dados da playlist (SEM BLOQUEAR)
+        this.$nextTick(() => this.loadPlaylist());
     },
     
     async loadPlaylist() {
         if (!this.playlistId) {
             console.error('❌ ID da playlist não encontrado');
-            this.loading = false;
             return;
         }
         
         try {
-            // ⚡ CARREGAR EM PARALELO para ser mais rápido
-            const [playlistRes, tracksRes] = await Promise.all([
-                fetch('/api/playlist/' + this.playlistId),
-                fetch('/api/playlist/' + this.playlistId + '/tracks')
-            ]);
+            // ⚡ ULTRA RÁPIDO: Carregar INFO primeiro (mais leve)
+            const playlistRes = await fetch('/api/playlist/' + this.playlistId);
+            const playlistData = await playlistRes.json();
             
-            const [playlistData, tracksData] = await Promise.all([
-                playlistRes.json(),
-                tracksRes.json()
-            ]);
-            
-            // Processar dados da playlist
             if (playlistData.success) {
                 this.playlist = playlistData.playlist;
                 console.log('✅ Playlist carregada:', this.playlist.title);
-            } else {
-                console.error('❌ Erro:', playlistData.error);
+                
+                // ⚡ PRELOAD: Pré-carregar imagem do header
+                if (this.playlist.thumbnails?.[0]?.url) {
+                    const img = new Image();
+                    img.src = this.getHighResThumbnail(this.playlist.thumbnails[0].url);
+                }
             }
             
-            // Processar tracks
+            // ⚡ Depois carrega TRACKS (mais pesado) - NÃO BLOQUEIA
+            const tracksRes = await fetch('/api/playlist/' + this.playlistId + '/tracks');
+            const tracksData = await tracksRes.json();
+            
             if (tracksData.success) {
                 this.tracks = tracksData.tracks || [];
                 console.log('✅ Tracks carregadas:', this.tracks.length);
+                
+                // ⚡ RENDERIZAÇÃO PROGRESSIVA: Mostrar primeiras 20 imediatamente
+                this.visibleTracks = this.tracks.slice(0, this.renderBatchSize);
+                
+                // ⚡ Depois renderizar o resto sem bloquear
+                if (this.tracks.length > this.renderBatchSize) {
+                    requestAnimationFrame(() => {
+                        this.visibleTracks = this.tracks;
+                    });
+                }
             } else {
-                console.error('❌ Erro ao carregar tracks:', tracksData.error);
-                this.tracks = []; // Garantir que seja array vazio
+                this.tracks = [];
+                this.visibleTracks = [];
             }
             
         } catch (error) {
             console.error('❌ Erro ao carregar playlist:', error);
-            this.tracks = []; // Garantir que tracks seja sempre um array
+            this.tracks = [];
+            this.visibleTracks = [];
             this.playlist = null;
-        } finally {
-            this.loading = false;
         }
     },
     
@@ -706,13 +718,13 @@
         <!-- Tracks Table -->
         <div class="spotify-tracks-container">
             <!-- Loading Tracks -->
-            <div x-show="tracks.length === 0" class="spotify-loading" style="padding: 2rem;">
+            <div x-show="visibleTracks.length === 0" class="spotify-loading" style="padding: 2rem;">
                 <i class="fas fa-spinner fa-spin"></i>
                 <span>Carregando músicas...</span>
             </div>
             
             <!-- Table -->
-            <table x-show="tracks.length > 0" class="spotify-tracks-table" style="display: none;">
+            <table x-show="visibleTracks.length > 0" class="spotify-tracks-table" style="display: none;">
                 <thead class="spotify-tracks-header">
                     <tr>
                         <th>#</th>
@@ -722,7 +734,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="(track, index) in (tracks || [])" :key="'track-' + index">
+                    <template x-for="(track, index) in (visibleTracks || [])" :key="'track-' + index">
                         <tr class="spotify-track-row" @click="playTrack(track, index)">
                             <!-- Número / Play -->
                             <td class="spotify-track-number">
@@ -736,8 +748,7 @@
                                     <img :src="track.thumbnails && track.thumbnails[0] ? getHighResThumbnail(track.thumbnails[0].url) : '/static/images/placeholder.jpg'"
                                          :alt="track.title"
                                          class="spotify-track-thumbnail"
-                                         :loading="index < 10 ? 'eager' : 'lazy'"
-                                         :fetchpriority="index < 5 ? 'high' : 'auto'"
+                                         loading="lazy"
                                          decoding="async"
                                          onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                                     <div class="spotify-track-details">
