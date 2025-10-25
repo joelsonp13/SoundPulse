@@ -1,4 +1,76 @@
 // ========================================
+// ALPINE.JS GLOBAL COMPONENTS
+// ========================================
+
+/**
+ * 🎯 SCROLL SECTION - Componente para scroll horizontal com drag
+ * Usado nas seções de Top Músicas e Top Artistas
+ */
+document.addEventListener('alpine:init', () => {
+    Alpine.data('scrollSection', () => ({
+        isDragging: false,
+        startX: 0,
+        startScrollLeft: 0,
+        
+        // ⬅️ Scroll para esquerda (botão)
+        scrollLeft() {
+            if (this.$refs.container) {
+                this.$refs.container.scrollBy({ left: -400, behavior: 'smooth' });
+            }
+        },
+        
+        // ➡️ Scroll para direita (botão)
+        scrollRight() {
+            if (this.$refs.container) {
+                this.$refs.container.scrollBy({ left: 400, behavior: 'smooth' });
+            }
+        },
+        
+        // 🖱️ Iniciar arrasto (mouse ou toque)
+        startDrag(e) {
+            this.isDragging = true;
+            const container = this.$refs.container;
+            if (!container) return;
+            
+            container.classList.add('dragging');
+            
+            // Pegar posição X (mouse ou toque)
+            const pageX = e.pageX || (e.touches && e.touches[0].pageX);
+            this.startX = pageX - container.offsetLeft;
+            this.startScrollLeft = container.scrollLeft;
+            
+            // Prevenir seleção de texto ao arrastar
+            e.preventDefault();
+        },
+        
+        // 🖱️ Arrastar (mouse ou toque)
+        drag(e) {
+            if (!this.isDragging) return;
+            
+            e.preventDefault();
+            const container = this.$refs.container;
+            if (!container) return;
+            
+            // Pegar posição X (mouse ou toque)
+            const pageX = e.pageX || (e.touches && e.touches[0].pageX);
+            const x = pageX - container.offsetLeft;
+            const walk = (x - this.startX) * 2; // Multiplicar por 2 = scroll mais rápido
+            
+            container.scrollLeft = this.startScrollLeft - walk;
+        },
+        
+        // 🖱️ Finalizar arrasto
+        endDrag() {
+            this.isDragging = false;
+            const container = this.$refs.container;
+            if (container) {
+                container.classList.remove('dragging');
+            }
+        }
+    }));
+});
+
+// ========================================
 // LAZY LOADING DE IMAGENS (OTIMIZAÇÃO)
 // ========================================
 
