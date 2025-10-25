@@ -443,8 +443,14 @@ def search():
         def search_songs():
             try:
                 results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=15))
-                # ⚡ Processar apenas se tiver thumbnail válido
-                return [r for r in results if r.get('resultType') == 'song' and r.get('thumbnails')]
+                # ⚡ Filtrar e garantir alta qualidade de imagem
+                valid_results = []
+                for r in results:
+                    if r.get('resultType') == 'song' and r.get('thumbnails'):
+                        # Ordenar thumbnails por tamanho (maior = melhor qualidade)
+                        r['thumbnails'].sort(key=lambda t: (t.get('width', 0) * t.get('height', 0)), reverse=True)
+                        valid_results.append(r)
+                return valid_results
             except Exception as e:
                 print(f"   [Erro] Músicas: {e}")
                 return []
@@ -452,8 +458,14 @@ def search():
         def search_artists():
             try:
                 results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=6))
-                # ⚡ Processar apenas se tiver browseId e thumbnail
-                return [r for r in results if r.get('resultType') == 'artist' and r.get('browseId') and r.get('thumbnails')]
+                # ⚡ Filtrar e garantir alta qualidade de imagem
+                valid_results = []
+                for r in results:
+                    if r.get('resultType') == 'artist' and r.get('browseId') and r.get('thumbnails'):
+                        # Ordenar thumbnails por tamanho (maior = melhor qualidade)
+                        r['thumbnails'].sort(key=lambda t: (t.get('width', 0) * t.get('height', 0)), reverse=True)
+                        valid_results.append(r)
+                return valid_results
             except Exception as e:
                 print(f"   [Erro] Artistas: {e}")
                 return []
@@ -461,8 +473,14 @@ def search():
         def search_playlists():
             try:
                 results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='playlists', limit=6))
-                # ⚡ Processar apenas se tiver browseId e thumbnail
-                return [r for r in results if r.get('resultType') == 'playlist' and r.get('browseId') and r.get('thumbnails')]
+                # ⚡ Filtrar e garantir alta qualidade de imagem
+                valid_results = []
+                for r in results:
+                    if r.get('resultType') == 'playlist' and r.get('browseId') and r.get('thumbnails'):
+                        # Ordenar thumbnails por tamanho (maior = melhor qualidade)
+                        r['thumbnails'].sort(key=lambda t: (t.get('width', 0) * t.get('height', 0)), reverse=True)
+                        valid_results.append(r)
+                return valid_results
             except Exception as e:
                 print(f"   [Erro] Playlists: {e}")
                 return []
@@ -470,8 +488,14 @@ def search():
         def search_albums():
             try:
                 results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='albums', limit=6))
-                # ⚡ Processar apenas se tiver thumbnail
-                return [r for r in results if r.get('resultType') == 'album' and r.get('thumbnails')]
+                # ⚡ Filtrar e garantir alta qualidade de imagem
+                valid_results = []
+                for r in results:
+                    if r.get('resultType') == 'album' and r.get('thumbnails'):
+                        # Ordenar thumbnails por tamanho (maior = melhor qualidade)
+                        r['thumbnails'].sort(key=lambda t: (t.get('width', 0) * t.get('height', 0)), reverse=True)
+                        valid_results.append(r)
+                return valid_results
             except Exception as e:
                 print(f"   [Erro] Álbuns: {e}")
                 return []

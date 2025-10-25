@@ -61,13 +61,8 @@ function getHighResThumbnail(url) {
         url = url.url || url.href || '';
         if (!url) return '/static/images/placeholder.jpg';
     } else if (Array.isArray(url) && url.length > 0) {
-        // Se é um array, pegar a maior thumbnail disponível
-        const sortedThumbnails = url.sort((a, b) => {
-            const sizeA = (a.width || 0) * (a.height || 0);
-            const sizeB = (b.width || 0) * (b.height || 0);
-            return sizeB - sizeA;
-        });
-        url = sortedThumbnails[0].url || sortedThumbnails[0].href || '';
+        // ⚡ Backend já ordena por tamanho (maior primeiro), apenas pegar o primeiro
+        url = url[0].url || url[0].href || '';
         if (!url) return '/static/images/placeholder.jpg';
     }
     
