@@ -1,3 +1,29 @@
+<style>
+/* ⚡ OTIMIZAÇÕES EXPLORE - ULTRA RÁPIDO */
+.explore-page {
+    contain: layout style paint;
+    content-visibility: auto;
+}
+
+.content-section {
+    contain: layout style;
+    will-change: contents;
+}
+
+.mood-grid, .mood-categories-grid {
+    contain: layout style paint;
+}
+
+.mood-category-card {
+    contain: layout style paint;
+    will-change: transform, background;
+}
+
+.cards-grid {
+    contain: layout style paint;
+}
+</style>
+
 <div class="explore-page p-6">
     <!-- Page Header -->
     <header class="page-header mb-8">

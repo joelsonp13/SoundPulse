@@ -1282,21 +1282,15 @@ def get_moods_preview_endpoint():
 
 @app.route('/api/mood/<params>')
 def mood_playlists_endpoint(params):
-    """Get playlists by mood"""
+    """Get playlists by mood - ULTRA RÁPIDO"""
     if not yt and not yt_public:
         return render_template('components/error_state.html',
                              title='Erro',
                              message='YTMusic não conectado')
     
     try:
-        # IMPORTANTE: get_mood_playlists sempre dá 403 com OAuth
-        # Usar APENAS yt_public (sem autenticação) para evitar erro 403
         ytm_instance = yt_public if yt_public else yt
         playlists = ytm_instance.get_mood_playlists(params)
-        
-        # Garantir thumbnails em todas as playlists
-        playlists = [ensure_thumbnail(p) for p in playlists] if isinstance(playlists, list) else playlists
-        
         return render_template('components/cards_grid.html', items=playlists, type='playlist')
     except Exception as e:
         print(f"❌ Erro ao carregar mood playlists ({params}): {str(e)}")
