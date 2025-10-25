@@ -970,24 +970,37 @@ def charts_songs(country):
         print(f"\n{'='*60}")
         print(f"[CHARTS SONGS] Buscando para país: {country_code}")
         
-        # 🌍 Usar get_charts() oficial do ytmusicapi com código de país ISO
-        charts = safe_ytmusic_call(lambda ytm: ytm.get_charts(country=country_code))
+        songs = []
+        charts = None
         
-        # DEBUG: Mostrar estrutura completa retornada
-        if charts:
-            print(f"[DEBUG] Estrutura get_charts() retornada:")
-            print(f"  - Keys disponíveis: {list(charts.keys())}")
-            for key, value in charts.items():
-                if isinstance(value, dict):
-                    print(f"  - charts['{key}']: {list(value.keys())}")
-                    if 'items' in value:
-                        print(f"    - Total items em '{key}': {len(value['items'])}")
-                        if value['items']:
-                            first_item = value['items'][0]
-                            print(f"    - Primeiro item keys: {list(first_item.keys())}")
-                            print(f"    - Primeiro item: {first_item.get('title', 'N/A')}")
-        else:
-            print("[DEBUG] get_charts() retornou None ou vazio!")
+        # 🌍 Tentar get_charts() oficial (pode dar 403 Forbidden)
+        try:
+            charts = safe_ytmusic_call(lambda ytm: ytm.get_charts(country=country_code))
+            
+            # DEBUG: Mostrar estrutura completa retornada
+            if charts:
+                print(f"[DEBUG] Estrutura get_charts() retornada:")
+                print(f"  - Keys disponíveis: {list(charts.keys())}")
+                for key, value in charts.items():
+                    if isinstance(value, dict):
+                        print(f"  - charts['{key}']: {list(value.keys())}")
+                        if 'items' in value:
+                            print(f"    - Total items em '{key}': {len(value['items'])}")
+                            if value['items']:
+                                first_item = value['items'][0]
+                                print(f"    - Primeiro item keys: {list(first_item.keys())}")
+                                print(f"    - Primeiro item: {first_item.get('title', 'N/A')}")
+            else:
+                print("[DEBUG] get_charts() retornou None ou vazio!")
+        except Exception as charts_error:
+            # 403 Forbidden ou outro erro - usar fallback
+            error_msg = str(charts_error)
+            if '403' in error_msg or 'Forbidden' in error_msg:
+                print(f"[AVISO] get_charts() retornou 403 Forbidden - sem permissão para charts oficiais")
+                print(f"[SOLUÇÃO] Usando busca específica por país (funciona melhor!)")
+            else:
+                print(f"[AVISO] get_charts() falhou: {error_msg}")
+            charts = None
         
         songs = []
         if charts:
@@ -1024,36 +1037,67 @@ def charts_songs(country):
         songs = [s for s in songs if s.get('videoId') and s.get('title')]
         print(f"[RESULTADO] Total de músicas válidas: {len(songs)}")
         
-        # 🎯 FALLBACK: Buscar músicas populares do Brasil
+        # 🎯 BUSCA ESPECÍFICA POR PAÍS (melhor que get_charts!)
         if not songs:
-            print(f"[FALLBACK] get_charts não retornou músicas para {country_code}, usando busca específica")
+            print(f"[BUSCA] Procurando top músicas de {country_code}")
             
-            # Tentar busca mais específica para Brasil
+            # 🇧🇷 BRASIL: Queries específicas de gêneros populares
             if country_code == 'BR':
-                # Buscar artistas brasileiros populares
                 queries = [
-                    'top Brasil 2024 sertanejo funk',
-                    'Anitta Ludmilla Brasil',
-                    'Wesley Safadão Gusttavo Lima'
+                    'top Brasil 2024',                          # Geral Brasil
+                    'mais tocadas Brasil sertanejo funk',       # Gêneros BR
+                    'Anitta Ludmilla Pedro Sampaio',            # Funk/Pop BR
+                    'Wesley Safadão Gusttavo Lima Marília Mendonça'  # Sertanejo
                 ]
-                for query in queries:
-                    songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=8))
-                    songs = [s for s in songs if s.get('videoId') and s.get('title')]
-                    if songs:
-                        print(f"[FALLBACK] Encontrado com query: {query}")
-                        break
+                print(f"[BRASIL] Usando queries específicas BR: {len(queries)} tentativas")
+            # 🇺🇸 USA
+            elif country_code == 'US':
+                queries = [
+                    'Billboard Hot 100 2024',
+                    'top hits USA 2024',
+                    'trending USA music'
+                ]
+            # 🇲🇽 MÉXICO
+            elif country_code == 'MX':
+                queries = [
+                    'top Mexico 2024 regional mexicano',
+                    'corridos tumbados Mexico',
+                    'Bad Bunny Peso Pluma Mexico'
+                ]
+            # 🇦🇷 ARGENTINA
+            elif country_code == 'AR':
+                queries = [
+                    'top Argentina 2024 cumbia trap',
+                    'Duki Bizarrap Argentina',
+                    'Maria Becerra Argentina'
+                ]
+            # 🌍 OUTROS PAÍSES
             else:
-                # Para outros países, usar busca genérica
                 country_names = {
-                    'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
-                    'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
-                    'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+                    'GB': 'UK', 'DE': 'Germany', 'FR': 'France', 
+                    'IT': 'Italy', 'ES': 'Spain', 'JP': 'Japan', 
+                    'KR': 'Korea', 'ZZ': 'Global'
                 }
                 country_name = country_names.get(country_code, 'trending')
-                query = f'top hits {country_name} 2024'
-                songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=8))
+                queries = [f'top hits {country_name} 2024']
+            
+            # Tentar cada query até conseguir resultados
+            for idx, query in enumerate(queries, 1):
+                print(f"[BUSCA {idx}/{len(queries)}] Query: {query}")
+                songs = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=10))
                 songs = [s for s in songs if s.get('videoId') and s.get('title')]
-                print(f"[FALLBACK] Encontrado com busca: {query}")
+                if len(songs) >= 8:
+                    print(f"[SUCESSO] ✅ {len(songs)} músicas encontradas!")
+                    songs = songs[:8]  # Pegar só 8
+                    break
+                elif songs:
+                    print(f"[PARCIAL] ⚠️ Apenas {len(songs)} músicas, tentando próxima query...")
+            
+            if not songs:
+                # Último fallback: músicas trending globais
+                print(f"[FALLBACK FINAL] Usando trending global")
+                songs = safe_ytmusic_call(lambda ytm: ytm.search('trending music 2024', filter='songs', limit=8))
+                songs = [s for s in songs if s.get('videoId') and s.get('title')]
         
         print(f"[FINAL] Retornando {len(songs)} músicas")
         print(f"{'='*60}\n")
@@ -1146,13 +1190,26 @@ def charts_artists(country):
         print(f"\n{'='*60}")
         print(f"[CHARTS ARTISTS] Buscando para país: {country_code}")
         
-        # 🌍 Usar get_charts() oficial do ytmusicapi com código de país ISO
-        charts = safe_ytmusic_call(lambda ytm: ytm.get_charts(country=country_code))
+        artists = []
+        charts = None
         
-        # DEBUG: Mostrar estrutura
-        if charts:
-            print(f"[DEBUG] Estrutura get_charts() para artistas:")
-            print(f"  - Keys disponíveis: {list(charts.keys())}")
+        # 🌍 Tentar get_charts() oficial (pode dar 403 Forbidden)
+        try:
+            charts = safe_ytmusic_call(lambda ytm: ytm.get_charts(country=country_code))
+            
+            # DEBUG: Mostrar estrutura
+            if charts:
+                print(f"[DEBUG] Estrutura get_charts() para artistas:")
+                print(f"  - Keys disponíveis: {list(charts.keys())}")
+        except Exception as charts_error:
+            # 403 Forbidden ou outro erro - usar fallback
+            error_msg = str(charts_error)
+            if '403' in error_msg or 'Forbidden' in error_msg:
+                print(f"[AVISO] get_charts() retornou 403 Forbidden - sem permissão")
+                print(f"[SOLUÇÃO] Usando busca específica de artistas")
+            else:
+                print(f"[AVISO] get_charts() falhou: {error_msg}")
+            charts = None
         
         artists = []
         if charts:
@@ -1180,34 +1237,67 @@ def charts_artists(country):
         artists = [a for a in artists if a.get('browseId')]
         print(f"[RESULTADO] Total de artistas válidos: {len(artists)}")
         
-        # 🎯 FALLBACK: Buscar artistas populares
+        # 🎯 BUSCA ESPECÍFICA DE ARTISTAS POR PAÍS
         if not artists:
-            print(f"[FALLBACK] get_charts não retornou artistas para {country_code}, usando busca específica")
+            print(f"[BUSCA] Procurando top artistas de {country_code}")
             
-            # Tentar busca mais específica para Brasil
+            # 🇧🇷 BRASIL: Artistas mais populares
             if country_code == 'BR':
                 queries = [
-                    'artistas brasileiros populares 2024',
-                    'Anitta Ludmilla Wesley Safadão',
-                    'sertanejo funk Brasil artistas'
+                    'artistas brasileiros mais ouvidos 2024',
+                    'Anitta Ludmilla Iza Wesley Safadão',
+                    'Gusttavo Lima Jorge e Mateus Simone Mendes',
+                    'Pedro Sampaio Mc Daniel Mc Ryan SP'
                 ]
-                for query in queries:
-                    artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=8))
-                    artists = [a for a in artists if a.get('browseId')]
-                    if artists:
-                        print(f"[FALLBACK] Encontrado com query: {query}")
-                        break
+                print(f"[BRASIL] Usando queries específicas BR: {len(queries)} tentativas")
+            # 🇺🇸 USA
+            elif country_code == 'US':
+                queries = [
+                    'top USA artists 2024 Billboard',
+                    'Taylor Swift Drake Bad Bunny',
+                    'trending USA artists'
+                ]
+            # 🇲🇽 MÉXICO
+            elif country_code == 'MX':
+                queries = [
+                    'artistas mexicanos populares 2024',
+                    'Peso Pluma Grupo Frontera Eslabón Armado',
+                    'regional mexicano artistas'
+                ]
+            # 🇦🇷 ARGENTINA
+            elif country_code == 'AR':
+                queries = [
+                    'artistas argentinos populares 2024',
+                    'Bizarrap Duki Maria Becerra',
+                    'trap cumbia Argentina artistas'
+                ]
+            # 🌍 OUTROS PAÍSES
             else:
                 country_names = {
-                    'US': 'USA', 'GB': 'UK', 'DE': 'Germany',
-                    'FR': 'France', 'IT': 'Italy', 'ES': 'Spain', 'MX': 'Mexico',
-                    'AR': 'Argentina', 'JP': 'Japan', 'KR': 'Korea', 'ZZ': 'Global'
+                    'GB': 'UK', 'DE': 'Germany', 'FR': 'France',
+                    'IT': 'Italy', 'ES': 'Spain', 'JP': 'Japan',
+                    'KR': 'Korea', 'ZZ': 'Global'
                 }
                 country_name = country_names.get(country_code, 'trending')
-                query = f'top artists {country_name} 2024'
-                artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=8))
+                queries = [f'top artists {country_name} 2024']
+            
+            # Tentar cada query até conseguir resultados
+            for idx, query in enumerate(queries, 1):
+                print(f"[BUSCA {idx}/{len(queries)}] Query: {query}")
+                artists = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=10))
                 artists = [a for a in artists if a.get('browseId')]
-                print(f"[FALLBACK] Encontrado com busca: {query}")
+                if len(artists) >= 8:
+                    print(f"[SUCESSO] ✅ {len(artists)} artistas encontrados!")
+                    artists = artists[:8]  # Pegar só 8
+                    break
+                elif artists:
+                    print(f"[PARCIAL] ⚠️ Apenas {len(artists)} artistas, tentando próxima query...")
+            
+            if not artists:
+                # Último fallback: artistas trending globais
+                print(f"[FALLBACK FINAL] Usando artistas trending globais")
+                artists = safe_ytmusic_call(lambda ytm: ytm.search('popular artists 2024', filter='artists', limit=8))
+                artists = [a for a in artists if a.get('browseId')]
         
         print(f"[FINAL] Retornando {len(artists)} artistas")
         print(f"{'='*60}\n")
