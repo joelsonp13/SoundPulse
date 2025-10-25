@@ -641,6 +641,8 @@
             <img :src="album && album.thumbnails && album.thumbnails[0] ? getHighResThumbnail(album.thumbnails[0].url) : '/static/images/placeholder.jpg'"
                  :alt="album ? album.title : 'Álbum'"
                  class="spotify-album-cover"
+                 loading="eager"
+                 fetchpriority="high"
              onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
             
             <!-- Info -->
@@ -703,6 +705,8 @@
                                     <img :src="track.thumbnails && track.thumbnails[0] ? getHighResThumbnail(track.thumbnails[0].url) : '/static/images/placeholder.jpg'"
                                          :alt="track.title"
                                          class="spotify-track-thumbnail"
+                                         :loading="index < 10 ? 'eager' : 'lazy'"
+                                         :fetchpriority="index < 5 ? 'high' : 'auto'"
                                          onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                                     <div class="spotify-track-details">
                                         <div class="spotify-track-title" x-text="track.title"></div>

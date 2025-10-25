@@ -1146,13 +1146,31 @@ def artist_top_songs_endpoint(browseId):
 
 @app.route('/api/album/<browseId>/tracks')
 def album_tracks_endpoint(browseId):
-    """Album tracks - retorna JSON para Alpine.js"""
+    """Album tracks - ULTRA RÁPIDO com thumbnails individuais"""
     if not yt and not yt_public:
         return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
         album = safe_ytmusic_call(lambda ytm: ytm.get_album(browseId))
-        tracks = [ensure_thumbnail(t) for t in album.get('tracks', [])]
+        raw_tracks = album.get('tracks', [])
+        album_thumbnails = album.get('thumbnails', [])
+        
+        # ⚡ ULTRA RÁPIDO: Construir todas as tracks em uma única passada
+        tracks = []
+        for track in raw_tracks:
+            video_id = track.get('videoId')
+            
+            if video_id:
+                # ⚡ Ordem otimizada: Menor para maior (carrega mais rápido)
+                track['thumbnails'] = [
+                    {'url': f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg', 'width': 480, 'height': 360},
+                    {'url': f'https://i.ytimg.com/vi/{video_id}/mqdefault.jpg', 'width': 320, 'height': 180}
+                ]
+            else:
+                track['thumbnails'] = album_thumbnails
+            
+            tracks.append(track)
+        
         return jsonify({'success': True, 'tracks': tracks})
     except Exception as e:
         return jsonify({'success': False, 'error': f'Erro ao carregar faixas: {str(e)}'}), 500
