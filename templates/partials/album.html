@@ -166,6 +166,11 @@
     text-align: center;
 }
 
+.spotify-tracks-header th:nth-child(2) {
+    max-width: 0; /* Força o ellipsis a funcionar */
+    width: 50%;
+}
+
 .spotify-tracks-header th:last-child {
     width: 80px;
     text-align: right;
@@ -184,6 +189,10 @@
 .spotify-track-row td {
     padding: 0.5rem 1rem;
     vertical-align: middle;
+}
+
+.spotify-track-row td:nth-child(2) {
+    max-width: 0; /* Força o ellipsis a funcionar */
 }
 
 .spotify-track-number {
@@ -294,21 +303,211 @@
 }
 
 /* Responsivo */
-@media (max-width: 768px) {
+/* ========================================== */
+/* RESPONSIVIDADE COMPLETA - Álbuns */
+/* ========================================== */
+
+/* Mobile Muito Pequeno (até 480px) */
+@media (max-width: 480px) {
+    .spotify-album-page {
+        padding: 0;
+    }
+    
     .spotify-album-header {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        gap: 1.5rem;
+        gap: 1rem;
+        padding: 1.5rem 1rem 1rem;
+        margin-bottom: 1rem;
     }
     
     .spotify-album-cover {
-        width: 192px;
-        height: 192px;
+        width: 140px;
+        height: 140px;
+    }
+    
+    .spotify-album-type {
+        font-size: 0.625rem;
+    }
+    
+    .spotify-album-title {
+        font-size: 1.5rem;
+        line-height: 1.3;
+    }
+    
+    .spotify-album-artist,
+    .spotify-album-meta {
+        font-size: 0.75rem;
+    }
+    
+    .spotify-album-actions {
+        padding: 1rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .spotify-play-button {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .spotify-play-button i {
+        font-size: 20px;
+    }
+    
+    .spotify-icon-button {
+        width: 28px;
+        height: 28px;
+        font-size: 28px;
+    }
+    
+    /* Tabela de Tracks - Mobile */
+    .spotify-tracks-container {
+        padding: 0 0.5rem 1rem;
+    }
+    
+    .spotify-tracks-header th {
+        padding: 0.5rem 0.5rem;
+        font-size: 0.65rem;
+    }
+    
+    .spotify-track-row td {
+        padding: 0.5rem 0.5rem;
+    }
+    
+    .spotify-track-number {
+        width: 30px;
+        font-size: 0.75rem;
+    }
+    
+    .spotify-track-info-cell {
+        gap: 0.5rem;
+    }
+    
+    .spotify-track-thumbnail {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .spotify-track-details {
+        max-width: 150px; /* Limita em mobile muito pequeno */
+    }
+    
+    .spotify-track-title {
+        font-size: 0.875rem;
+        max-width: 100%;
+    }
+    
+    .spotify-track-artist {
+        font-size: 0.75rem;
+        max-width: 100%;
+    }
+    
+    .spotify-track-duration {
+        font-size: 0.75rem;
+    }
+    
+    .spotify-track-actions {
+        display: none; /* Esconder ações em mobile muito pequeno */
+    }
+}
+
+/* Mobile Normal (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .spotify-album-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1.25rem;
+        padding: 1.75rem 1.5rem 1.25rem;
+    }
+    
+    .spotify-album-cover {
+        width: 180px;
+        height: 180px;
+    }
+    
+    .spotify-album-type {
+        font-size: 0.7rem;
     }
     
     .spotify-album-title {
         font-size: 2rem;
+    }
+    
+    .spotify-album-artist,
+    .spotify-album-meta {
+        font-size: 0.8rem;
+    }
+    
+    .spotify-album-actions {
+        padding: 1.25rem 1.5rem;
+        gap: 1.5rem;
+    }
+    
+    .spotify-play-button {
+        width: 52px;
+        height: 52px;
+    }
+    
+    /* Tabela ajustada */
+    .spotify-tracks-container {
+        padding: 0 1rem 1.5rem;
+    }
+    
+    .spotify-tracks-header th {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.7rem;
+    }
+    
+    .spotify-track-row td {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .spotify-track-thumbnail {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .spotify-track-details {
+        max-width: 250px; /* Limita em mobile normal */
+    }
+    
+    .spotify-track-title {
+        font-size: 0.9375rem;
+        max-width: 100%;
+    }
+    
+    .spotify-track-artist {
+        font-size: 0.8125rem;
+        max-width: 100%;
+    }
+}
+
+/* Tablet (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .spotify-album-cover {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .spotify-album-title {
+        font-size: 2.5rem;
+    }
+    
+    .spotify-tracks-container {
+        padding: 0 1.5rem 1.5rem;
+    }
+    
+    .spotify-track-thumbnail {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .spotify-track-details {
+        max-width: 350px; /* Limita em tablet */
     }
 }
 </style>

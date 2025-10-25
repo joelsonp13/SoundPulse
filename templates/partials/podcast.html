@@ -258,30 +258,213 @@
 }
 
 /* Responsivo */
-@media (max-width: 768px) {
+/* ========================================== */
+/* RESPONSIVIDADE COMPLETA - Podcasts */
+/* ========================================== */
+
+/* Mobile Muito Pequeno (até 480px) */
+@media (max-width: 480px) {
+    .spotify-podcast-page {
+        padding: 0;
+    }
+    
     .spotify-podcast-header {
         flex-direction: column;
         align-items: center;
         text-align: center;
-        gap: 1.5rem;
+        gap: 1rem;
+        padding: 1.5rem 1rem 1rem;
+        margin-bottom: 1rem;
     }
     
     .spotify-podcast-cover {
-        width: 192px;
-        height: 192px;
+        width: 140px;
+        height: 140px;
+    }
+    
+    .spotify-podcast-type {
+        font-size: 0.625rem;
+    }
+    
+    .spotify-podcast-title {
+        font-size: 1.5rem;
+        line-height: 1.3;
+    }
+    
+    .spotify-podcast-author,
+    .spotify-podcast-description {
+        font-size: 0.75rem;
+    }
+    
+    .spotify-podcast-actions {
+        padding: 1rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .spotify-play-button {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .spotify-play-button i {
+        font-size: 20px;
+    }
+    
+    .spotify-icon-button {
+        width: 28px;
+        height: 28px;
+        font-size: 28px;
+    }
+    
+    /* Episódios - Mobile */
+    .spotify-episodes-container {
+        padding: 0 0.5rem 1rem;
+    }
+    
+    .spotify-episode-item {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    .spotify-episode-thumbnail {
+        width: 100%;
+        height: auto;
+        min-width: auto;
+    }
+    
+    .spotify-episode-content {
+        max-width: 100%;
+    }
+    
+    .spotify-episode-title {
+        font-size: 0.875rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+    
+    .spotify-episode-description {
+        font-size: 0.75rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+    
+    .spotify-episode-meta {
+        font-size: 0.7rem;
+    }
+    
+    .spotify-episode-play-button {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+}
+
+/* Mobile Normal (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .spotify-podcast-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1.25rem;
+        padding: 1.75rem 1.5rem 1.25rem;
+    }
+    
+    .spotify-podcast-cover {
+        width: 180px;
+        height: 180px;
+    }
+    
+    .spotify-podcast-type {
+        font-size: 0.7rem;
     }
     
     .spotify-podcast-title {
         font-size: 2rem;
     }
     
+    .spotify-podcast-author,
+    .spotify-podcast-description {
+        font-size: 0.8rem;
+    }
+    
+    .spotify-podcast-actions {
+        padding: 1.25rem 1.5rem;
+        gap: 1.5rem;
+    }
+    
+    .spotify-play-button {
+        width: 52px;
+        height: 52px;
+    }
+    
+    /* Episódios ajustados */
+    .spotify-episodes-container {
+        padding: 0 1rem 1.5rem;
+    }
+    
     .spotify-episode-item {
-        flex-direction: column;
+        gap: 0.875rem;
+        padding: 0.875rem;
     }
     
     .spotify-episode-thumbnail {
-        width: 100%;
-        height: auto;
+        width: 100px;
+        height: 100px;
+        min-width: 100px;
+    }
+    
+    .spotify-episode-content {
+        max-width: calc(100% - 100px - 0.875rem);
+    }
+    
+    .spotify-episode-title {
+        font-size: 0.9375rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+    
+    .spotify-episode-description {
+        font-size: 0.8125rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+}
+
+/* Tablet (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .spotify-podcast-cover {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .spotify-podcast-title {
+        font-size: 2.5rem;
+    }
+    
+    .spotify-episodes-container {
+        padding: 0 1.5rem 1.5rem;
+    }
+    
+    .spotify-episode-thumbnail {
+        width: 112px;
+        height: 112px;
+    }
+    
+    .spotify-episode-content {
+        max-width: calc(100% - 112px - 1rem);
+    }
+    
+    .spotify-episode-title {
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+    
+    .spotify-episode-description {
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
     }
 }
 </style>
@@ -391,7 +574,7 @@
             <img :src="podcast && podcast.thumbnails && podcast.thumbnails[0] ? getHighResThumbnail(podcast.thumbnails[0].url) : '/static/images/placeholder.jpg'"
                  :alt="podcast ? podcast.title : 'Podcast'"
                  class="spotify-podcast-cover"
-                 onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
+             onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
             
             <!-- Info -->
             <div class="spotify-podcast-info">
@@ -447,13 +630,13 @@
                                 </div>
                                 <button class="spotify-episode-play-button" @click.stop="playEpisode(episode, index)">
                                     <i class="fas fa-play"></i>
-                                </button>
-                            </div>
-                        </div>
+                </button>
+            </div>
+        </div>
                     </div>
                 </template>
             </div>
         </div>
-    </div>
+        </div>
 
 </div>
