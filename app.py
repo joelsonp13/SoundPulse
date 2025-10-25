@@ -936,13 +936,13 @@ def page_playlist(playlistId):
 
 @app.route('/api/podcast/<browseId>')
 def get_podcast(browseId):
-    """Obter informações do podcast (SEM episódios para ser rápido)"""
+    """Obter informações do podcast - ULTRA RÁPIDO"""
     if not yt and not yt_public:
         return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
         podcast = safe_ytmusic_call(lambda ytm: ytm.get_podcast(browseId))
-        return jsonify({'success': True, 'podcast': ensure_thumbnail(podcast)})
+        return jsonify({'success': True, 'podcast': podcast})
     except Exception as e:
         return jsonify({'success': False, 'error': f'Erro ao obter podcast: {str(e)}'}), 500
 
