@@ -502,7 +502,6 @@
                     placeholder="Digite o nome da música, artista ou playlist..."
                     class="glass-search-input"
                     x-model="searchQuery"
-                    @input.debounce.200ms="performSearch()"
                     @keyup.enter="performSearch()"
                 >
                 
@@ -608,6 +607,8 @@
                                 <img :src="getHighResThumbnail(mainArtist?.thumbnails?.[0]?.url) || '/static/images/placeholder.jpg'"
                                      :alt="mainArtist?.artist || mainArtist?.name || 'Artista'"
                                      class="artist-hero-image"
+                                     loading="eager"
+                                     fetchpriority="high"
                                      onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                             </div>
                             
@@ -654,6 +655,7 @@
                                         <img :src="getHighResThumbnail(song.thumbnails?.[0]?.url) || '/static/images/placeholder.jpg'"
                                              :alt="song.title"
                                              class="thumbnail-img"
+                                             :loading="index < 10 ? 'eager' : 'lazy'"
                                              onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                                     </div>
                                     
@@ -720,6 +722,7 @@
                                 <img :src="getHighResThumbnail(artist.thumbnails?.[0]?.url) || '/static/images/placeholder.jpg'"
                                      :alt="artist.name || artist.artist || 'Artista'"
                                      class="artist-card-image"
+                                     :loading="index < 5 ? 'eager' : 'lazy'"
                                      onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                             </div>
                             
@@ -787,6 +790,7 @@
                                 <img :src="getHighResThumbnail(playlist?.thumbnails?.[0]?.url) || '/static/images/placeholder.jpg'"
                                      :alt="playlist?.title || 'Playlist'"
                                      class="playlist-card-image"
+                                     :loading="index < 5 ? 'eager' : 'lazy'"
                                      onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                                 <button class="playlist-card-play-button" @click.stop="handleItemClick(playlist)">
                                     <i class="fas fa-play"></i>
@@ -844,6 +848,7 @@
                                 <img :src="getHighResThumbnail(playlist?.thumbnails?.[0]?.url) || '/static/images/placeholder.jpg'"
                                      :alt="playlist?.title || 'Playlist'"
                                      class="playlist-card-image"
+                                     :loading="index < 8 ? 'eager' : 'lazy'"
                                      onerror="if(this.src !== '/static/images/placeholder.jpg') { this.src='/static/images/placeholder.jpg'; this.onerror=null; }">
                                 
                                 <!-- Botão Play -->

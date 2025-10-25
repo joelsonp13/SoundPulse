@@ -1334,14 +1334,12 @@ window.searchComponent = function() {
                 return;
             }
             
-            // ⚡ OTIMIZAÇÃO: Processar thumbnails em lote de forma não bloqueante
-            const itemsToProcess = [];
-            
+            // ⚡ OTIMIZAÇÃO: Processar thumbnails inline durante categorização
             this.searchResults.forEach(item => {
                 const type = item.resultType || item.category || '';
                 
-                // Adicionar à lista de processamento de thumbnails
-                itemsToProcess.push(item);
+                // ⚡ Processar thumbnail imediatamente (inline)
+                this.ensureItemThumbnails(item);
                 
                 if (type === 'artist') {
                     // Apenas artistas COM browseId
@@ -1359,9 +1357,6 @@ window.searchComponent = function() {
                     categorized.albums.push(item);
                 }
             });
-            
-            // ⚡ Processar thumbnails de forma assíncrona (não bloqueante)
-            this.processThumbnailsBatch(itemsToProcess);
             
             // Ordenar playlists por relevância
             if (categorized.playlists.length > 0 && this.searchQuery) {
@@ -1383,38 +1378,6 @@ window.searchComponent = function() {
             
             // Update the property instead of returning
             this.categorizedResults = categorized;
-        },
-        
-        // ⚡ Processar thumbnails em lote de forma não bloqueante
-        processThumbnailsBatch(items) {
-            if (!items || items.length === 0) return;
-            
-            // Processar em chunks de 20 itens para não bloquear a UI
-            const chunkSize = 20;
-            let index = 0;
-            
-            const processChunk = () => {
-                const end = Math.min(index + chunkSize, items.length);
-                
-                for (let i = index; i < end; i++) {
-                    this.ensureItemThumbnails(items[i]);
-                }
-                
-                index = end;
-                
-                // Se ainda há itens, processar próximo chunk
-                if (index < items.length) {
-                    // Usar requestIdleCallback se disponível, senão setTimeout
-                    if (window.requestIdleCallback) {
-                        requestIdleCallback(processChunk);
-                    } else {
-                        setTimeout(processChunk, 0);
-                    }
-                }
-            };
-            
-            // Iniciar processamento
-            processChunk();
         },
         
         // Músicas a serem exibidas (com paginação)
