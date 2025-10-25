@@ -14,19 +14,91 @@
     contain: layout style paint;
 }
 
-.music-card, .album-card, .podcast-card, .playlist-card {
+.music-card, .album-card, .podcast-card, .playlist-card, .artist-card {
     contain: layout style paint;
     will-change: transform;
 }
 
-.music-card-image, .album-card-image, .podcast-card-image, .playlist-card-image {
+.music-card-image, .album-card-image, .podcast-card-image, .playlist-card-image, .artist-card-image {
     will-change: transform;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
 }
+
+/* 🔥 SCROLL HORIZONTAL - ESTILO MODERNO */
+.horizontal-scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    padding-bottom: 1rem;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.horizontal-cards-grid {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.horizontal-cards-grid .music-card,
+.horizontal-cards-grid .artist-card {
+    min-width: 180px;
+    max-width: 180px;
+    flex-shrink: 0;
+}
 </style>
 
 <div class="home-page p-6">
+    <!-- 🔥 Top Músicas Brasil - Scroll Horizontal -->
+    <section class="content-section mb-8">
+        <div class="section-header">
+            <h2 class="section-title">🔥 Top Músicas - Brasil</h2>
+            <a href="/pages/charts" class="section-show-all">Ver mais</a>
+        </div>
+        <div class="horizontal-scroll-container">
+            <div hx-get="/api/charts/songs/BR" hx-trigger="load" hx-swap="innerHTML" class="horizontal-cards-grid">
+                <div class="text-center py-8" style="width: 100%;">
+                    <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                    <p class="mt-2 text-gray-400">Carregando...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 🎤 Top Artistas Brasil - Scroll Horizontal -->
+    <section class="content-section mb-8">
+        <div class="section-header">
+            <h2 class="section-title">🎤 Top Artistas - Brasil</h2>
+            <a href="/pages/charts" class="section-show-all">Ver mais</a>
+        </div>
+        <div class="horizontal-scroll-container">
+            <div hx-get="/api/charts/artists/BR" hx-trigger="load" hx-swap="innerHTML" class="horizontal-cards-grid">
+                <div class="text-center py-8" style="width: 100%;">
+                    <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                    <p class="mt-2 text-gray-400">Carregando...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Em Alta Agora -->
     <section class="content-section mb-8">
         <div class="section-header">
