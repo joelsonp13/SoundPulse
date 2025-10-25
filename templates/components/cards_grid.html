@@ -1,5 +1,6 @@
 <div class="cards-grid">
     {% for item in items %}
+        {% set card_index = loop.index %}
         {% if type == 'music' %}
             {% include 'components/card_music.html' %}
         {% elif type == 'artist' %}
