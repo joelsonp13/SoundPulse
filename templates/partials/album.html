@@ -470,7 +470,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="(track, index) in tracks" :key="track.videoId || 'track-' + index">
+                    <template x-for="(track, index) in (tracks || [])" :key="'track-' + index">
                         <tr class="spotify-track-row" @click="playTrack(track, index)">
                             <!-- Número / Play -->
                             <td class="spotify-track-number">

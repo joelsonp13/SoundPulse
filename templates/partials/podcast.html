@@ -425,7 +425,7 @@
             
             <!-- Episodes -->
             <div x-show="episodes.length > 0" style="display: none;">
-                <template x-for="(episode, index) in episodes" :key="episode.videoId || 'episode-' + index">
+                <template x-for="(episode, index) in (episodes || [])" :key="'episode-' + index">
                     <div class="spotify-episode-item" @click="playEpisode(episode, index)">
                         <!-- Thumbnail -->
                         <img :src="episode.thumbnails && episode.thumbnails[0] ? getHighResThumbnail(episode.thumbnails[0].url) : (podcast && podcast.thumbnails && podcast.thumbnails[0] ? getHighResThumbnail(podcast.thumbnails[0].url) : '/static/images/placeholder.jpg')"
