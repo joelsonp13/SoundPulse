@@ -468,39 +468,44 @@
         padding: 0 8px;
     }
     
-    /* Search Box compacto */
+    /* Search Box HORIZONTAL (como imagem) */
     .glass-search-box {
-        flex-direction: column;
-        gap: 10px;
-        padding: 12px;
+        gap: 8px;
+        padding: 6px;
         border-radius: 16px;
     }
     
-    /* Ícone menor */
+    /* Ícone compacto */
     .glass-search-icon {
-        display: none; /* Esconder ícone lateral em mobile muito pequeno */
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
     }
     
-    /* Input full width */
+    /* Input ajustado */
     .glass-search-input {
-        width: 100%;
-        padding: 14px 16px;
-        font-size: 15px;
-        text-align: left;
+        font-size: 14px;
+        padding: 10px 8px;
     }
     
-    /* Botões em linha */
-    .glass-clear-btn,
-    .glass-submit-btn {
-        width: 100%;
-        padding: 14px;
-        border-radius: 12px;
-        font-size: 15px;
-        justify-content: center;
+    /* Botão clear compacto */
+    .glass-clear-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+        border-radius: 8px;
     }
     
+    /* Botão submit sem texto */
     .glass-submit-btn span {
-        display: inline; /* Mostrar texto em mobile quando full width */
+        display: none;
+    }
+    
+    .glass-submit-btn {
+        padding: 10px;
+        width: 40px;
+        border-radius: 10px;
+        justify-content: center;
     }
     
     /* Loading menor */
