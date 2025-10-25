@@ -439,35 +439,39 @@ def search():
         
         all_results = []
         
-        # Funções de busca otimizadas com limites reduzidos
+        # ⚡ Funções de busca com limites MUITO REDUZIDOS para velocidade máxima
         def search_songs():
             try:
-                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=25))
-                return [ensure_thumbnail(r) for r in results if r.get('resultType') == 'song']
+                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='songs', limit=15))
+                # ⚡ Processar apenas se tiver thumbnail válido
+                return [r for r in results if r.get('resultType') == 'song' and r.get('thumbnails')]
             except Exception as e:
                 print(f"   [Erro] Músicas: {e}")
                 return []
         
         def search_artists():
             try:
-                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=12))
-                return [ensure_thumbnail(r) for r in results if r.get('resultType') == 'artist' and r.get('browseId')]
+                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='artists', limit=6))
+                # ⚡ Processar apenas se tiver browseId e thumbnail
+                return [r for r in results if r.get('resultType') == 'artist' and r.get('browseId') and r.get('thumbnails')]
             except Exception as e:
                 print(f"   [Erro] Artistas: {e}")
                 return []
         
         def search_playlists():
             try:
-                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='playlists', limit=12))
-                return [ensure_thumbnail(r) for r in results if r.get('resultType') == 'playlist' and r.get('browseId')]
+                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='playlists', limit=6))
+                # ⚡ Processar apenas se tiver browseId e thumbnail
+                return [r for r in results if r.get('resultType') == 'playlist' and r.get('browseId') and r.get('thumbnails')]
             except Exception as e:
                 print(f"   [Erro] Playlists: {e}")
                 return []
         
         def search_albums():
             try:
-                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='albums', limit=12))
-                return [ensure_thumbnail(r) for r in results if r.get('resultType') == 'album']
+                results = safe_ytmusic_call(lambda ytm: ytm.search(query, filter='albums', limit=6))
+                # ⚡ Processar apenas se tiver thumbnail
+                return [r for r in results if r.get('resultType') == 'album' and r.get('thumbnails')]
             except Exception as e:
                 print(f"   [Erro] Álbuns: {e}")
                 return []

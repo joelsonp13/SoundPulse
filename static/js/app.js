@@ -1205,11 +1205,8 @@ window.searchComponent = function() {
                         const data = await response.json();
                         
                         if (data.success && data.artist?.songs?.results) {
-                            // Garantir thumbnails válidas em cada música
-                            const songs = data.artist.songs.results.slice(0, 5).map(song => {
-                                this.ensureItemThumbnails(song);
-                                return song;
-                            });
+                            // ⚡ Backend já valida thumbnails, apenas pegar top 5
+                            const songs = data.artist.songs.results.slice(0, 5);
                             this.topSongs = songs;
                             
                             // ⚡ CACHE: Salvar músicas no cache (máximo 10 artistas)
@@ -1334,23 +1331,14 @@ window.searchComponent = function() {
                 return;
             }
             
-            // ⚡ OTIMIZAÇÃO: Processar thumbnails inline durante categorização
+            // ⚡ CATEGORIZAÇÃO ULTRA-RÁPIDA (backend já valida thumbnails)
             this.searchResults.forEach(item => {
                 const type = item.resultType || item.category || '';
                 
-                // ⚡ Processar thumbnail imediatamente (inline)
-                this.ensureItemThumbnails(item);
-                
-                if (type === 'artist') {
-                    // Apenas artistas COM browseId
-                    if (item.browseId) {
-                        categorized.artists.push(item);
-                    }
-                } else if (type === 'playlist') {
-                    // Apenas playlists COM browseId
-                    if (item.browseId) {
-                        categorized.playlists.push(item);
-                    }
+                if (type === 'artist' && item.browseId) {
+                    categorized.artists.push(item);
+                } else if (type === 'playlist' && item.browseId) {
+                    categorized.playlists.push(item);
                 } else if (type === 'song' || type === 'video') {
                     categorized.songs.push(item);
                 } else if (type === 'album') {
@@ -1358,18 +1346,11 @@ window.searchComponent = function() {
                 }
             });
             
-            // Ordenar playlists por relevância
-            if (categorized.playlists.length > 0 && this.searchQuery) {
-                categorized.playlists.sort((a, b) => {
-                    const scoreA = this.calculateRelevanceScore(a, this.searchQuery);
-                    const scoreB = this.calculateRelevanceScore(b, this.searchQuery);
-                    return scoreB - scoreA;
-                });
-            }
+            // ⚡ SKIP: Sem ordenação por relevância (backend já retorna ordenado)
             
             // Log resumo de resultados
             const elapsed = (performance.now() - startTime).toFixed(1);
-            console.log(`📊 Categorizados em ${elapsed}ms:`, {
+            console.log(`⚡ Categorizados em ${elapsed}ms:`, {
                 artistas: categorized.artists.length,
                 playlists: categorized.playlists.length,
                 músicas: categorized.songs.length,
