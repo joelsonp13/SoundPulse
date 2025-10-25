@@ -1146,28 +1146,43 @@ def artist_top_songs_endpoint(browseId):
 
 @app.route('/api/album/<browseId>/tracks')
 def album_tracks_endpoint(browseId):
-    """Album tracks - retorna JSON para Alpine.js"""
+    """Album tracks - retorna JSON para Alpine.js com thumbnails INDIVIDUAIS"""
     if not yt and not yt_public:
         return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
         album = safe_ytmusic_call(lambda ytm: ytm.get_album(browseId))
+        raw_tracks = album.get('tracks', [])
         
-        # ⚡ IMPORTANTE: Tracks de álbuns NÃO têm thumbnails individuais na API
-        # Usar a capa do álbum para TODAS as tracks
-        album_thumbnails = album.get('thumbnails', [])
+        print(f"📀 Álbum {browseId}: Buscando thumbnails individuais para {len(raw_tracks)} tracks")
         
         tracks = []
-        for track in album.get('tracks', []):
-            # Adicionar a capa do álbum em cada track
-            if album_thumbnails:
-                track['thumbnails'] = album_thumbnails
+        for track in raw_tracks:
+            # ⚡ BUSCAR THUMBNAIL INDIVIDUAL da música
+            video_id = track.get('videoId')
+            
+            if video_id:
+                # Construir URL da thumbnail do YouTube usando o videoId
+                # YouTube usa videoId para gerar thumbnails
+                track['thumbnails'] = [
+                    {'url': f'https://i.ytimg.com/vi/{video_id}/maxresdefault.jpg', 'width': 1280, 'height': 720},
+                    {'url': f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg', 'width': 480, 'height': 360},
+                    {'url': f'https://i.ytimg.com/vi/{video_id}/mqdefault.jpg', 'width': 320, 'height': 180},
+                    {'url': f'https://i.ytimg.com/vi/{video_id}/default.jpg', 'width': 120, 'height': 90}
+                ]
+                print(f"   ✅ Track '{track.get('title', 'Unknown')}': thumbnail https://i.ytimg.com/vi/{video_id}/hqdefault.jpg")
+            else:
+                # Fallback: usar capa do álbum se não tiver videoId
+                track['thumbnails'] = album.get('thumbnails', [])
+                print(f"   ⚠️ Track '{track.get('title', 'Unknown')}': sem videoId, usando capa do álbum")
+            
             tracks.append(track)
         
-        print(f"📀 Álbum {browseId}: {len(tracks)} tracks com thumbnails do álbum")
+        print(f"📀 Total: {len(tracks)} tracks processadas com thumbnails individuais")
         
         return jsonify({'success': True, 'tracks': tracks})
     except Exception as e:
+        print(f"❌ Erro ao carregar tracks do álbum: {str(e)}")
         return jsonify({'success': False, 'error': f'Erro ao carregar faixas: {str(e)}'}), 500
 
 # ===== PLAYLIST ENDPOINTS =====
