@@ -1179,13 +1179,14 @@ def album_tracks_endpoint(browseId):
 
 @app.route('/api/playlist/<playlistId>/tracks')
 def playlist_tracks_endpoint(playlistId):
-    """Playlist tracks - retorna JSON para Alpine.js"""
+    """Playlist tracks - ULTRA RÁPIDO"""
     if not yt and not yt_public:
         return jsonify({'success': False, 'error': 'YTMusic não conectado'}), 500
     
     try:
         playlist = safe_ytmusic_call(lambda ytm: ytm.get_playlist(playlistId))
-        tracks = [ensure_thumbnail(t) for t in playlist.get('tracks', [])]
+        # ⚡ ULTRA RÁPIDO: Retornar tracks direto, já vêm com thumbnails da API
+        tracks = playlist.get('tracks', [])
         return jsonify({'success': True, 'tracks': tracks})
     except Exception as e:
         return jsonify({'success': False, 'error': f'Erro ao carregar músicas: {str(e)}'}), 500
