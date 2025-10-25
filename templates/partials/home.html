@@ -67,34 +67,105 @@
     max-width: 180px;
     flex-shrink: 0;
 }
+
+/* 🎯 BOTÕES DE NAVEGAÇÃO SCROLL */
+.scroll-section-wrapper {
+    position: relative;
+}
+
+.scroll-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.scroll-nav-button:hover {
+    background: rgba(0, 188, 212, 0.9);
+    border-color: rgba(0, 188, 212, 0.5);
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
+}
+
+.scroll-nav-button:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.scroll-nav-button.left {
+    left: -24px;
+}
+
+.scroll-nav-button.right {
+    right: -24px;
+}
+
+.scroll-nav-button i {
+    font-size: 1.25rem;
+}
+
+/* Ocultar botões em telas pequenas */
+@media (max-width: 768px) {
+    .scroll-nav-button {
+        display: none;
+    }
+}
 </style>
 
 <div class="home-page p-6">
     <!-- 🔥 Top Músicas Brasil - Scroll Horizontal -->
-    <section class="content-section mb-8">
+    <section class="content-section mb-8" x-data="{ scrollContainer: null }" x-init="scrollContainer = $el.querySelector('.horizontal-scroll-container')">
         <div class="section-header">
             <h2 class="section-title">🔥 Top Músicas - Brasil</h2>
             <a href="/pages/charts" class="section-show-all">Ver mais</a>
         </div>
-        <div class="horizontal-scroll-container" hx-get="/api/charts/songs/BR" hx-trigger="load" hx-swap="innerHTML">
-            <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
-                <p class="mt-2 text-gray-400">Carregando...</p>
+        <div class="scroll-section-wrapper">
+            <button @click="scrollContainer.scrollBy({ left: -400, behavior: 'smooth' })" class="scroll-nav-button left" aria-label="Anterior" type="button">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="horizontal-scroll-container" hx-get="/api/charts/songs/BR" hx-trigger="load" hx-swap="innerHTML">
+                <div class="text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                    <p class="mt-2 text-gray-400">Carregando...</p>
+                </div>
             </div>
+            <button @click="scrollContainer.scrollBy({ left: 400, behavior: 'smooth' })" class="scroll-nav-button right" aria-label="Próximo" type="button">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
     </section>
 
     <!-- 🎤 Top Artistas Brasil - Scroll Horizontal -->
-    <section class="content-section mb-8">
+    <section class="content-section mb-8" x-data="{ scrollContainer: null }" x-init="scrollContainer = $el.querySelector('.horizontal-scroll-container')">
         <div class="section-header">
             <h2 class="section-title">🎤 Top Artistas - Brasil</h2>
             <a href="/pages/charts" class="section-show-all">Ver mais</a>
         </div>
-        <div class="horizontal-scroll-container" hx-get="/api/charts/artists/BR" hx-trigger="load" hx-swap="innerHTML">
-            <div class="text-center py-8">
-                <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
-                <p class="mt-2 text-gray-400">Carregando...</p>
+        <div class="scroll-section-wrapper">
+            <button @click="scrollContainer.scrollBy({ left: -400, behavior: 'smooth' })" class="scroll-nav-button left" aria-label="Anterior" type="button">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="horizontal-scroll-container" hx-get="/api/charts/artists/BR" hx-trigger="load" hx-swap="innerHTML">
+                <div class="text-center py-8">
+                    <i class="fas fa-spinner fa-spin text-cyan-500 text-2xl"></i>
+                    <p class="mt-2 text-gray-400">Carregando...</p>
+                </div>
             </div>
+            <button @click="scrollContainer.scrollBy({ left: 400, behavior: 'smooth' })" class="scroll-nav-button right" aria-label="Próximo" type="button">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
     </section>
 
