@@ -1153,24 +1153,18 @@ def album_tracks_endpoint(browseId):
     try:
         album = safe_ytmusic_call(lambda ytm: ytm.get_album(browseId))
         
-        # ⚡ IMPORTANTE: Tracks de álbuns geralmente NÃO têm thumbnails individuais
-        # Usar a capa do álbum como fallback
+        # ⚡ IMPORTANTE: Tracks de álbuns NÃO têm thumbnails individuais na API
+        # Usar a capa do álbum para TODAS as tracks
         album_thumbnails = album.get('thumbnails', [])
         
         tracks = []
         for track in album.get('tracks', []):
-            track = ensure_thumbnail(track)
-            
-            # Se a track não tem thumbnail válido, usar a capa do álbum
-            if not track.get('thumbnails') or track['thumbnails'][0]['url'] == '/static/images/placeholder.jpg':
-                if album_thumbnails:
-                    track['thumbnails'] = album_thumbnails
-            
+            # Adicionar a capa do álbum em cada track
+            if album_thumbnails:
+                track['thumbnails'] = album_thumbnails
             tracks.append(track)
         
-        print(f"📀 Álbum {browseId}: {len(tracks)} tracks processadas")
-        if tracks:
-            print(f"   🖼️ Primeira track tem thumbnail: {tracks[0].get('thumbnails', [{}])[0].get('url', 'NENHUM')}")
+        print(f"📀 Álbum {browseId}: {len(tracks)} tracks com thumbnails do álbum")
         
         return jsonify({'success': True, 'tracks': tracks})
     except Exception as e:
