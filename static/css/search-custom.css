@@ -432,44 +432,197 @@
     50% { opacity: 0.6; }
 }
 
-/* Responsivo - Glass Search Hero */
-@media (max-width: 768px) {
+/* ========================================== */
+/* RESPONSIVIDADE COMPLETA - Glass Search */
+/* ========================================== */
+
+/* Mobile Muito Pequeno (até 480px) */
+@media (max-width: 480px) {
     .modern-search-hero {
-        padding: 60px 16px;
+        padding: 40px 12px;
     }
     
     .search-hero-title {
-        font-size: 2.5rem;
+        font-size: 1.875rem; /* 30px */
+        margin-bottom: 12px;
+    }
+    
+    .search-hero-subtitle {
+        font-size: 0.875rem; /* 14px */
+        margin-bottom: 24px;
+    }
+    
+    .search-icon-glass {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 20px;
+    }
+    
+    .search-icon-glass i {
+        font-size: 32px;
+    }
+    
+    /* Container ajustado */
+    .glass-search-container {
+        max-width: 100%;
+        padding: 0 8px;
+    }
+    
+    /* Search Box compacto */
+    .glass-search-box {
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 16px;
+    }
+    
+    /* Ícone menor */
+    .glass-search-icon {
+        display: none; /* Esconder ícone lateral em mobile muito pequeno */
+    }
+    
+    /* Input full width */
+    .glass-search-input {
+        width: 100%;
+        padding: 14px 16px;
+        font-size: 15px;
+        text-align: left;
+    }
+    
+    /* Botões em linha */
+    .glass-clear-btn,
+    .glass-submit-btn {
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        font-size: 15px;
+        justify-content: center;
+    }
+    
+    .glass-submit-btn span {
+        display: inline; /* Mostrar texto em mobile quando full width */
+    }
+    
+    /* Loading menor */
+    .glass-loading {
+        font-size: 13px;
+        padding: 12px;
+        margin-top: 16px;
+    }
+}
+
+/* Mobile/Tablet Pequeno (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .modern-search-hero {
+        padding: 50px 16px;
+    }
+    
+    .search-hero-title {
+        font-size: 2.25rem; /* 36px */
     }
     
     .search-hero-subtitle {
         font-size: 1rem;
-        margin-bottom: 32px;
+        margin-bottom: 28px;
     }
     
     .search-icon-glass {
-        width: 100px;
-        height: 100px;
+        width: 90px;
+        height: 90px;
         margin-bottom: 24px;
     }
     
     .search-icon-glass i {
-        font-size: 40px;
+        font-size: 36px;
     }
     
+    /* Container ajustado */
+    .glass-search-container {
+        max-width: 100%;
+        padding: 0 12px;
+    }
+    
+    /* Search Box ajustado */
     .glass-search-box {
-        flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 18px;
     }
     
+    /* Ícone menor */
+    .glass-search-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    /* Input ajustado */
+    .glass-search-input {
+        font-size: 15px;
+        padding: 12px 10px;
+    }
+    
+    /* Botão clear menor */
+    .glass-clear-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+    
+    /* Botão submit compacto */
     .glass-submit-btn span {
-        display: none;
+        display: none; /* Esconder texto */
     }
     
     .glass-submit-btn {
         padding: 12px;
-        width: 48px;
+        width: 44px;
         justify-content: center;
+    }
+    
+    /* Loading ajustado */
+    .glass-loading {
+        font-size: 14px;
+        padding: 14px;
+        margin-top: 18px;
+    }
+}
+
+/* Tablet (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .modern-search-hero {
+        padding: 60px 20px;
+    }
+    
+    .search-hero-title {
+        font-size: 2.75rem; /* 44px */
+    }
+    
+    .glass-search-container {
+        max-width: 600px;
+    }
+    
+    .glass-search-box {
+        gap: 10px;
+        padding: 8px;
+    }
+    
+    .glass-search-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 19px;
+    }
+    
+    .glass-submit-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
+
+/* Desktop Pequeno (1025px - 1440px) */
+@media (min-width: 1025px) and (max-width: 1440px) {
+    .glass-search-container {
+        max-width: 680px;
     }
 }
 
